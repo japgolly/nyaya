@@ -1,0 +1,13 @@
+.idea
+.idea_modules
+target
+*.log
+*.pid
+~*
+.~*
+*.bak
+*.tmp
+.*.swp
+.*.swo
+.*.swn
+
