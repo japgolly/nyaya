@@ -93,6 +93,7 @@ case class Foo(a: Int, b: String) {
 * When building random data generators, under the covers, this uses [NICTA/rng](https://github.com/NICTA/rng).
 * I find NICTA/rng combinators ***immensely*** powerful and easy and powerful to work with, much better than typeclasses. As such, many useful combinators have been added as this project was used for real.
 * I've never been a fan of `Gen` and `Arbitrary` in ScalaCheck. This has `Gen` but no `Arbitrary`. If you want to use this library and want implicits, using implicit `Gen`s by yourself will suffice.
+* No `suchThat` or filtering available. Don't generate data just to throw it away, no, write an accurate generator. If a number is too large then keep halving it until its not. There are better ways than throw-away-retry.
 
 ##### Example
 Say we have these data types
@@ -178,12 +179,91 @@ prop mustBeProvedBy domain  // Method 2
 ```
 
 ### Uniqueness
-* Validation
-* Generation
-* 
-- special features
+**Validation** is the easy part. Just use `Prop.distinct`.
+```scala
+case class Thing(id: Int, name: String)
+case class AllThings(timestamp: Long, things: List[Thing])
 
-* uniqueness: Validate uniqueness within data. Easily generate data with complex uniquess constraints.
+val p: Prop[AllThings] = Prop.distinct("thing IDs", (_: AllThings).things.map(_.id))
+```
+
+**Generation** is normally much harder but with Nyaya, hopefully you'll find it easy. I sure do!
+
+There is a class called `Distinct` that will ensure generated data is unique, usually with just a few combinators. I'll introduce it first by showing a few examples, with an explanation after.
+
+```scala
+// Let's start with something trivial: uniqueness in a List[Int]
+val d = Distinct.int.lift[List]
+val g = Gen.int.list.map(d.run)
+
+// How about people with unique names
+case class Person(id: Long, name: String)
+val g = Gen.apply2(Person.apply)(Gen.long, Gen.string1)
+val d = Distinct.str.contramap[Person](_.name, (person, newName) => person.copy(name = newName))
+g map d.run
+
+// The whole (a,b)=>a.copy(b=b) thing gets old after a while
+// Let's use Monocle to create lenses!
+object Person {
+  private def l = Lenser[Person]
+  val id   = l(_.id)
+  val name = l(_.name)
+}
+
+// Now let's generate a List[Person] with unique ids and names
+val personGen = Gen.apply2(Person.apply)(Gen.long, Gen.string1)
+
+val distinctId   = Distinct.long.at(Person.id)
+val distinctName = Distinct.str.at(Person.name)
+val d            = (distinctId * distinctName).lift[List]
+
+val g: Gen[List[Person]] = personGen.list map d.run
+```
+
+It works by knowing how to provide a unique value when a duplicate is found, the behaviour of which is provided by `Distinct.Fixer`. Once a `Fixer` exists, it is then passed to a `Distinct` which is used for type navigation and composition.
+
+Uniqueness doesn't have to be restricted to a single field; it can extend across multiple fields in multiple types.
+This is an example:
+```scala
+// Say we have these types...
+
+case class Id(value: Long)
+
+case class Donkey(id: Id, name: String)
+case class Horse (id: Id, happy: Boolean)
+
+case class Farm(ds: List[Donkey], hs: Vector[Horse])
+
+// Now say we want to prevent duplicate IDs between the donkeys and horses in Farm
+
+// First lets create some boring, boring lenses...
+object Donkey {
+  private def l = Lenser[Donkey]
+  val id   = l(_.id)
+  val name = l(_.name)
+}
+object Horse {
+  private def l = Lenser[Horse]
+  val id    = l(_.id)
+  val happy = l(_.happy)
+}
+object Farm {
+  private def l = Lenser[Farm]
+  val ds = l(_.ds)
+  val hs = l(_.hs)
+}
+
+// No duplicate IDs in Farm is acheived thus:
+
+val distinctId     = Distinct.flong.xmap(Id.apply)(_.value).distinct
+val distinctDonkey = distinctId.at(Donkey.id)
+val distinctHorse  = distinctId.at(Horse.id)
+val distinctFarm   = distinctDonkey.lift[List].at(Farm.ds) +
+                     distinctHorse.lift[Vector].at(Farm.hs)
+
+val farmGen : Gen[Farm] = ...
+val farmGen2: Gen[Farm] = farmGen map distinctFarm.run
+```
 
 ### Other validation
 * Set membership tests. All give detailed info on failure.
