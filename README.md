@@ -13,6 +13,14 @@ Nyaya is
 It was initially created because ScalaCheck wasn't available on Scala.JS.
 Rather than being a port or clone, it's evolved into its own unique solution building on good and bad experiences using ScalaCheck, and my own needs, and values.
 
+SBT setup:
+```scala
+// Proposition creation & assertion
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-core" % "0.5.0"
+
+// Proposition testing & random data generation
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.5.0" % "test"
+```
 
 Status
 ======
@@ -270,28 +278,9 @@ val farmGen2: Gen[Farm] = farmGen map distinctFarm.run
   * `Prop.whitelist` - Test that all members are on a whitelist.
   * `Prop.blacklist` - Test that no members are on a blacklist.
   * `Prop.allPresent` - Test that no required items are missing.
-* `CycleDetector` - Easily detect cycles in recursive data. Directed and undirected checks available.
-
-
-Quick Overview
-==============
-
-### `nyaya-core`
-
-* Create propositions (≈ properties).
-* Assert them in dev (elided in prod).
-* Get a detailed report about what sub-propositions failed and why.
-* Proposition composition.
-* Easily validate uniqueness constraints.
-
-### `nyaya-test`
-
-* Generate random data.
-  * No implicits.
-  * Excellent combinators. _(thanks NICTA/rng)_
-* Test propositions with random data.
-* Prove propositions.
-* Generate data with uniqueness constraints.
+* `CycleDetector` - Easily detect cycles in recursive data.
+  * Directed graphs.
+  * Undirected graphs.
 
 
 Licence
