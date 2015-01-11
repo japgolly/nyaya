@@ -11,22 +11,31 @@ import MultiValues.Commutative
 
 object MultimapTest extends TestSuite {
 
+  // Here we are going to test Multimap
   case class PropInputs[L[_] : MultiValues, A](mm: Multimap[A, L, A], a: A, b: A, as: L[A],
                                                commutative: Option[Commutative[L]])
                                               (implicit A: Order[A], L: Equal[L[A]]) {
+
+    // This is a helper that facilitates easy creation, composition & logic
     val E = EvalOver(this)
 
-    type MM = Multimap[A, L, A]
-    lazy val aset = as.set
-    val em = Multimap.empty[A, L, A]
-    val el = MultiValues[L].empty[A]
+    // Helper function for a quick L[A] of just the given A
     def l(x: A): L[A] = el add1 x
-    lazy val ab = l(a) add1 b
+
+    // Let's cache a few repeated values that we will use throughout the test
+         val em    = Multimap.empty[A, L, A]
+         val el    = MultiValues[L].empty[A]
+    lazy val ab    = l(a) add1 b
     lazy val bigas = as add1 a add1 b
-    lazy val bigm = mm.addks(bigas, a).addvs(b, bigas)
+    lazy val bigm  = mm.addks(bigas, a).addvs(b, bigas)
+
+    // This will test that two operations (f and g) commute
+    type MM = Multimap[A, L, A]
     def comm[R: Equal](name: => String, z: MM, r: MM => R, f: MM ⇒ MM, g: MM ⇒ MM) =
       E.equal(name, r(f(g(z))), r(g(f(z))))
 
+    // And now the propositions begin...
+    // First the propositions that are only tested when L is commutative
     def commutativeProps = commutative.fold(E.pass)(c => {
       implicit def cc = c
       ( E.equal("reverse.reverse = id"      , mm.reverse.reverse                     , mm)
@@ -37,6 +46,7 @@ object MultimapTest extends TestSuite {
       )
     })
 
+    // Then all the other propositions.
     def eval =
     ( commutativeProps
     ∧ E.equal("get.setvs.add = vs",         em.add(a, b).setvs(a, as)(a), as)
