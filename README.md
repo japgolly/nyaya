@@ -1,6 +1,8 @@
 Nyaya
 =====
 
+(Nya-[what?](http://en.wikipedia.org/wiki/Nyaya) Anyway...)
+
 Nyaya is a library to validate propositions/properties/laws…
 * …in tests using random data. (behaviour)
 * …at (non-prod) runtime using real data. (state)
