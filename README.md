@@ -44,7 +44,7 @@ val prop = (even & mod3 & mod5).forallF[List] rename "Example"
 ```
 This is a sample failure report:
 ```
-Property [example] failed.
+Property [Example] failed.
 
 Input: [List(15, 30, 60, 25)].
 
@@ -66,7 +66,7 @@ Failure tree:
 
 ### Runtime Assertion
 
-In cases that we can't encode constraints using types, we generally write property-based tests.
+In cases where we can't encode constraints using types, we generally write property-based tests.
 Just as the compiler cannot prove these constraints, nor can it prove that we've written data
 generators that will cover all cases. Thus as an additional safety check I like to validate
 the assumed laws at runtime using real data. I (may) also want these checks omitted from
@@ -88,52 +88,50 @@ case class Foo(a: Int, b: String) {
 }
 ```
 
-### random testing
+### Random Data and Testing
 
 * When building random data generators, uses combinators in NICTA/rng which I find much better.
 
-### proving
+### Proving
 
-
+### Uniqueness
 
 - special features
 
 * uniqueness: Validate uniqueness within data. Easily generate data with complex uniquess constraints.
 
-* cycle detection: Easily detect cycles in recursive data.
+### Other validation
+* `CycleDetector` - Easily detect cycles in recursive data. Directed and undirected checks available.
+* Set membership tests:
+  * `Prop.whitelist` - Test that all members are on a whitelist.
+  * `Prop.blacklist` - Test that no members are on a blacklist.
+  * `Prop.allPresent` - Test that no required items are missing.
 
 
-There are a number of features that make Nyaya special:
+Quick Overview
+==============
 
-
-* optionally not at runtime in production.
-
-
-
-
-
-
-What?
-=====
-
-### nyaya-core
+### `nyaya-core`
 
 * Create propositions (≈ properties).
 * Assert them in dev (elided in prod).
 * Get a detailed report about what sub-propositions failed and why.
 * Proposition composition.
+* Easily validate uniqueness constraints.
 
-### nyaya-test
+### `nyaya-test`
 
-* Test propositions with random data (like ScalaCheck).
+* Generate random data.
   * No implicits.
-  * Better combinators.
+  * Excellent combinators. _(thanks NICTA/rng)_
+* Test propositions with random data.
 * Prove propositions.
-* Testing and generation of data with uniqueness constraints.
+* Generate data with uniqueness constraints.
 
 
-### Licence
-
+Licence
+=======
+```
 Copyright (C) 2014-2015 David Barri
 
 This library is free software; you can redistribute it and/or
@@ -145,4 +143,4 @@ This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
-
+```
