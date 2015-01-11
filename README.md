@@ -63,7 +63,6 @@ Failure tree:
      └─ div3
 ```
 
-
 ### Runtime Assertion
 
 In cases where we can't encode constraints using types, we generally write property-based tests.
@@ -88,14 +87,38 @@ case class Foo(a: Int, b: String) {
 }
 ```
 
-### Random Data and Testing
+### Generating Random Data
 
-* When building random data generators, uses combinators in NICTA/rng which I find much better.
+* When building random data generators, under the covers, this uses [NICTA/rng](https://github.com/NICTA/rng).
+* I find NICTA/rng combinators ***immensely*** powerful and easy and powerful to work with, much better than typeclasses. As such, many useful combinators have been added as this project was used for real.
+* I've never been a fan of `Gen` and `Arbitrary` in ScalaCheck. This has `Gen` but no `Arbitrary`. If you want to use this library and want implicits, using implicit `Gen`s by yourself will suffice.
+
+##### Example
+Say we have these data types
+```scala
+  case class Id(value: Int)
+
+  case class Blah(ids: Set[Id], prevCoord: Option[(Double, Double, Double)])
+```
+Generators for each are:
+```scala
+  lazy val id: Gen[Id] =
+    Gen.positiveint map Id.apply
+  
+  lazy val blah: Gen[Blah] =
+    Gen.apply2(Blah.apply)(
+      id.set,
+      Gen.double.triple.option)
+```
+
+### Testing with Random Data
 
 ### Proving
 
 ### Uniqueness
-
+* Validation
+* Generation
+* 
 - special features
 
 * uniqueness: Validate uniqueness within data. Easily generate data with complex uniquess constraints.
