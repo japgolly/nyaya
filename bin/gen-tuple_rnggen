@@ -1,0 +1,26 @@
+#!/bin/env scala
+// vim: set ft=scala :
+
+val comma = ", "
+def T(i: Int) = (64+i).toChar.toString
+
+var rt = Seq.empty[String]
+var ra = Seq.empty[String]
+
+for (i <- (2 to 9)) {
+  // def m (f: Int => String): List[String] = (1 to a).toList.map(f)
+  // def mc(f: Int => String): String = m(f).mkString(comma)
+  // def mt(f: Int => String): String = m(f).mkString("(",comma,")")
+
+  def A(j: Int) = ('A'+j).toChar.toString
+  val As = (0 until i) map A
+  val Ac = As mkString ","
+
+  def ps = As.map(X => s"$X:Gen[$X]") mkString ", "
+  def fs = As.map(X => s"${X.toLowerCase}←$X") mkString ";"
+
+  rt :+= s"def tuple$i[$Ac]($ps): Gen[($Ac)] = for {$fs} yield (${Ac.toLowerCase})"
+  ra :+= s"def apply$i[$Ac,Z](z: ($Ac)⇒Z)($ps): Gen[Z] = for {$fs} yield z(${Ac.toLowerCase})"
+}
+println((rt++ra) mkString "\n")
+println()
