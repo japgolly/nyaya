@@ -109,8 +109,8 @@ object Nyaya extends Build {
     (_: Project).settings(s: _*)
   }
 
-  def crossDialect(/*pname: String,*/ dir: String, common: PE, specific: Dialect => PE) = {
-    val pname = s"nyaya-$dir"
+  def crossDialect(shortName: String, common: PE, specific: Dialect => PE) = {
+    val pname, dir = s"nyaya-$shortName"
     def mk(d: Dialect) = {
       val n = s"$pname-${d.name}"
       Project(n, file(dir))
@@ -134,7 +134,6 @@ object Nyaya extends Build {
     val monocle = "1.0.1"
     val rng     = "1.3.0"
   }
-
 
   // ==============================================================================================
   override def rootProject = Some(root)
