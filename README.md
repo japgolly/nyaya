@@ -51,7 +51,7 @@ This property checks that each number in a list is even, divisible by 3 and divi
 val even = Prop.test[Int]("even", _ % 2 == 0)
 val div3 = Prop.test[Int]("div3", _ % 3 == 0)
 val div5 = Prop.test[Int]("div5", _ % 5 == 0)
-val prop = (even & mod3 & mod5).forallF[List] rename "Example"
+val prop = (even & div3 & div5).forallF[List] rename "Example"
 ```
 This is a sample failure report:
 ```
