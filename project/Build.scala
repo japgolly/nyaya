@@ -23,7 +23,7 @@ object Nyaya extends Build {
 
     _.settings(
       organization       := "com.github.japgolly.nyaya",
-      version            := "0.5.0",
+      version            := "0.5.1-SNAPSHOT",
       homepage           := Some(url("https://github.com/japgolly/nyaya")),
       licenses           += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
       scalaVersion       := Scala211,
