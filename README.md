@@ -146,12 +146,36 @@ use `Eval` instead of `Prop`, the difference being that `Eval` is evaluated imme
 
 `Eval` has all the same logic operations that `Prop` has; implication, negation, forall, etc.
 
-A nice benefit of this approach is that your data generators do less work. If you're testing `(s: String) => s.reverse.reverse == s` and `(a: String, b: String) => (a + b).length == a.length + b.length` then you gain nothing by ensuring that the reverse test gets a string different than `a` or `b`. It's more efficient to generate two strings and pick one to use for the reverse test.
+A nice benefit of this approach is that your data generators do less work. If you're testing 2 string props:
+
+1. `(s: String) => s.reverse.reverse == s`
+2. `(a: String, b: String) => (a + b).length == a.length + b.length`
+
+then you gain nothing by ensuring that the reverse test gets a string different than `a` or `b`. It's more efficient to generate two strings and pick one to use for the reverse test.
 
 ##### Example
 See [MultimapTest.scala](https://github.com/japgolly/nyaya/blob/master/nyaya-test/src/test/scala/japgolly/nyaya/util/MultimapTest.scala) for a real example.
 
 ### Proving
+
+You can _prove_ a proposition by testing it with all possible, or legal values.
+`Domain` exists for this purpose and should be used in place of `Gen`.
+
+##### Example
+```scala
+// This is (the type of) proposition we want to prove
+val prop: Prop[Option[Boolean]] = ...
+
+// There are three possibilities: None, Some(false), Some(true)
+// Establishing all possible values is easy
+val domain: Prop[Option[Boolean]] =
+  Domain.boolean.option
+
+import japgolly.nyaya.test.PropTest._
+
+domain mustProve prop       // Method 1
+prop mustBeProvedBy domain  // Method 2
+```
 
 ### Uniqueness
 * Validation
@@ -162,11 +186,11 @@ See [MultimapTest.scala](https://github.com/japgolly/nyaya/blob/master/nyaya-tes
 * uniqueness: Validate uniqueness within data. Easily generate data with complex uniquess constraints.
 
 ### Other validation
-* `CycleDetector` - Easily detect cycles in recursive data. Directed and undirected checks available.
-* Set membership tests:
+* Set membership tests. All give detailed info on failure.
   * `Prop.whitelist` - Test that all members are on a whitelist.
   * `Prop.blacklist` - Test that no members are on a blacklist.
   * `Prop.allPresent` - Test that no required items are missing.
+* `CycleDetector` - Easily detect cycles in recursive data. Directed and undirected checks available.
 
 
 Quick Overview
