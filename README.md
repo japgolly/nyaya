@@ -137,9 +137,19 @@ This is where things may start to differ from what you're used to...
 What happens when your proposition needs a little extra data just for testing? Wouldn't that require type gymnastics
 for composition? Yes. But there's another way...
 
-When writing a suite of propositions to test behaviour 
-Eval
-STATE vs BEHAVIOUR!
+When writing a suite of propositions to test behaviour, there are often many props with similar inputs. The strategy
+thus far has been to create a context (class) in which an iteration of random data has been generated (supplied via
+class constructor), and then test within that context.
+So instead of composing `Prop[Set[A]]` with `Prop[(Set[A],A,A)]` (which needs two As just for testing),
+you instead create a context class like `class SetTest[A](s: Set[A], a1: A, a2: A)` and within that
+use `Eval` instead of `Prop`, the difference being that `Eval` is evaluated immediately and doesn't need input later.
+
+`Eval` has all the same logic operations that `Prop` has; implication, negation, forall, etc.
+
+A nice benefit of this approach is that your data generators do less work. If you're testing `(s: String) => s.reverse.reverse == s` and `(a: String, b: String) => (a + b).length == a.length + b.length` then you gain nothing by ensuring that the reverse test gets a string different than `a` or `b`. It's more efficient to generate two strings and pick one to use for the reverse test.
+
+##### Example
+See [MultimapTest.scala](https://github.com/japgolly/nyaya/blob/master/nyaya-test/src/test/scala/japgolly/nyaya/util/MultimapTest.scala) for a real example.
 
 ### Proving
 
