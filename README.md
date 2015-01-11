@@ -30,9 +30,9 @@ It's been used for months and months behind closed doors; I consider it useful a
 
 As for the API itself, I don't know how little or large future change will be.
 
-For example, on a separate branch I have shrinking working that is way more effective than
-my experience with ScalaCheck's, but haven't decided how or if I'll merge it. It could
-be quite distruptive to the API. (?)
+For example, on a separate branch I have shrinking working that is more effective than
+what I've seen with ScalaCheck or QuickCheck, but haven't decided how or if I'll merge it.
+It could be quite distruptive to the API. (?)
 
 
 Features
