@@ -111,7 +111,34 @@ Generators for each are:
       Gen.double.triple.option)
 ```
 
-### Testing with Random Data
+### Testing with Random Data (pt.1)
+
+* Different settings for JVM/JS. By default…
+  * JVM tests are large in quantity and data size, and they run in parallel.
+  * JS tests are smaller in quantity and data size, and run on a single-thread.
+* Settings can be configured per-test or per-module if required. (Here, implicits are used for the `Settings`.)
+* A debug-mode is available in `Settings` to display verbose info about the testing and data-generation. It also has a nice little max line length so the output remains comprehensible. And it's in colour. Whoa!....
+
+##### Example
+```scala
+val gen : Gen[A] = ...
+val prop: Prop[A] = ...
+
+import japgolly.nyaya.test.PropTest._
+
+gen mustSatisfy prop        // Method 1
+prop mustBeSatisfiedBy gen  // Method 2
+```
+
+### Testing with Random Data (pt.2)
+
+This is where things may start to differ from what you're used to...
+What happens when your proposition needs a little extra data just for testing? Wouldn't that require type gymnastics
+for composition? Yes. But there's another way...
+
+When writing a suite of propositions for a 
+Eval
+STATE vs BEHAVIOUR!
 
 ### Proving
 
