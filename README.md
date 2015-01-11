@@ -1,13 +1,14 @@
 Nyaya
 =====
 
-Nyaya is a library to validate propositions/properties about your data…
-* …in tests using random data.
-* …at non-prod runtime using real data.
+Nyaya is a library to validate propositions/properties/laws…
+* …in tests using random data. (behaviour)
+* …at (non-prod) runtime using real data. (state)
 
 Nyaya is
 * Built for Scala.JS and standard Scala.
-* Includes tools for uniqueness validation, and generating *compliant* random data.
+* Addresses the overlap between testing state, and testing behaviour via state.
+* Includes tools for uniqueness validation, and generating random data that complies with complex uniquess constraints.
 
 It was initially created because ScalaCheck wasn't available on Scala.JS.
 Rather than being a port or clone, it's evolved into its own unique solution building on good and bad experiences using ScalaCheck, and my own needs, and values.
@@ -136,7 +137,7 @@ This is where things may start to differ from what you're used to...
 What happens when your proposition needs a little extra data just for testing? Wouldn't that require type gymnastics
 for composition? Yes. But there's another way...
 
-When writing a suite of propositions for a 
+When writing a suite of propositions to test behaviour 
 Eval
 STATE vs BEHAVIOUR!
 
