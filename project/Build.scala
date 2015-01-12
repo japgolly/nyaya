@@ -23,7 +23,7 @@ object Nyaya extends Build {
 
     _.settings(
       organization       := "com.github.japgolly.nyaya",
-      version            := "0.5.1-SNAPSHOT",
+      version            := "0.5.0",
       homepage           := Some(url("https://github.com/japgolly/nyaya")),
       licenses           += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
       scalaVersion       := Scala211,
@@ -117,8 +117,9 @@ object Nyaya extends Build {
         .configure(commonSettings(Some(d)))
         .configure(common, specific(d))
         .settings(
-          name := n,
-          target := baseDirectory.value / "target" / d.name)
+          name       := n,
+          moduleName := pname,
+          target     := baseDirectory.value / "target" / d.name)
     }
     lazy val jvm = mk(JVM)
     lazy val js  = mk(JS)
