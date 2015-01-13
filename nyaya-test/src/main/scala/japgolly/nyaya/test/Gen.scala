@@ -230,8 +230,10 @@ object Gen {
   def charof(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] =
     oneof(ev, rs.foldLeft(s.to[Seq])(_ ++ _.toSeq): _*)
 
-//  def oneofUnsafe[A](s: Seq[A]): Gen[A] =
-//    oneof(s.head, s.tail: _*)
+  def oneofSeq[A](as: Seq[A]): Gen[Option[A]] =
+    as.headOption.fold[Gen[Option[A]]](
+      Gen insert None)(
+      Gen.oneof(_, as.tail: _*).option)
 
   def shuffle[T, CC[X] <: TraversableOnce[X]](xs: CC[T])(implicit bf: CanBuildFrom[CC[T], T, CC[T]]): Gen[CC[T]] =
     Gen.insert(xs).shuffle
