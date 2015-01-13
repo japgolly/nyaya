@@ -235,6 +235,15 @@ object Gen {
       Gen insert None)(
       Gen.oneof(_, as.tail: _*).option)
 
+  /** Provides random subsets of the input set.
+    * Randomly deletes elements. */
+  def subset[A](as: TraversableOnce[A]): Gen[Vector[A]] =
+    Gen.sequence(
+      as.foldLeft(Vector.empty[Gen[(A, Boolean)]])((q, a) => q :+ Gen.boolean.map(b => (a,b)))
+    ).map(
+      _.foldLeft(Vector.empty[A]){ case (q, (a,b)) => if (b) q :+ a else q }
+    )
+
   def shuffle[T, CC[X] <: TraversableOnce[X]](xs: CC[T])(implicit bf: CanBuildFrom[CC[T], T, CC[T]]): Gen[CC[T]] =
     Gen.insert(xs).shuffle
 
