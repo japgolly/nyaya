@@ -18,10 +18,10 @@ Rather than being a port or clone, it's evolved into its own unique solution bui
 SBT setup:
 ```scala
 // Proposition creation & assertion
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-core" % "0.5.0"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-core" % "0.5.1"
 
 // Proposition testing & random data generation
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.5.0" % "test"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.5.1" % "test"
 ```
 
 Status
