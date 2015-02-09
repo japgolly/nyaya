@@ -3,12 +3,13 @@ import Keys._
 
 import com.typesafe.sbt.pgp.PgpKeys._
 
-import scala.scalajs.sbtplugin.ScalaJSPlugin._
-import scala.scalajs.sbtplugin.ScalaJSPlugin.ScalaJSKeys._
+import org.scalajs.sbtplugin.ScalaJSPlugin
+import ScalaJSPlugin._
+import ScalaJSPlugin.autoImport._
 
 object Nyaya extends Build {
 
-  val Scala211 = "2.11.4"
+  val Scala211 = "2.11.5"
 
   type PE = Project => Project
 
@@ -18,7 +19,7 @@ object Nyaya extends Build {
 
   def commonSettings(d: Option[Dialect]): PE = {
     def jvmSettings: PE = identity
-    def jsSettings : PE = _.settings(scalaJSSettings: _*).configure(sourceMapsToGithub)
+    def jsSettings : PE = _.enablePlugins(ScalaJSPlugin).configure(sourceMapsToGithub)
     def aggSettings: PE = preventPublication
 
     _.settings(
@@ -87,21 +88,18 @@ object Nyaya extends Build {
     )
 
   def utestSettings(d: Dialect, scope: String = "test"): PE = {
-    def ver   = utest.jsrunner.Plugin.utestVersion
-    def stage = fastOptStage
-    d match {
-      case JVM =>
-        _.settings(
-          testFrameworks += new TestFramework("utest.runner.JvmFramework"),
-          libraryDependencies += "com.lihaoyi" %% "utest" % ver % scope)
-      case JS =>
-        _.settings(utest.jsrunner.Plugin.utestJsSettings: _*)
-          .settings(
-            test      in Test := (test      in(Test, stage)).value,
-            testOnly  in Test := (testOnly  in(Test, stage)).evaluated,
-            testQuick in Test := (testQuick in(Test, stage)).evaluated,
-            libraryDependencies += "com.lihaoyi" %%%! "utest" % ver % scope)
+    val utestVer = "0.3.0"
+    val a: PE = _.settings(
+      testFrameworks += new TestFramework("utest.runner.Framework")
+    )
+    val b: PE = d match {
+      case JVM => _.settings(
+                    libraryDependencies += "com.lihaoyi" %% "utest" % utestVer)
+      case JS  => _.settings(
+                    libraryDependencies += "com.lihaoyi" %%%! "utest" % utestVer,
+                    scalaJSStage in Test := FastOptStage)
     }
+    a compose b
   }
 
   def addCommandAliases(m: (String, String)*) = {
