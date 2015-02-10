@@ -94,9 +94,9 @@ object Nyaya extends Build {
     )
     val b: PE = d match {
       case JVM => _.settings(
-                    libraryDependencies += "com.lihaoyi" %% "utest" % utestVer)
+                    libraryDependencies += "com.lihaoyi" %% "utest" % utestVer % scope)
       case JS  => _.settings(
-                    libraryDependencies += "com.lihaoyi" %%%! "utest" % utestVer,
+                    libraryDependencies += "com.lihaoyi" %%%! "utest" % utestVer % scope,
                     scalaJSStage in Test := FastOptStage)
     }
     a compose b
