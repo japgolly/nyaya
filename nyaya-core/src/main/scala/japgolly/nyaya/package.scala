@@ -28,7 +28,7 @@ package object nyaya {
   implicit class LogicPropExt[A](val _l: Prop[A]) extends AnyVal {
     @inline def apply                     (a: A)        : Eval       = Prop.run(_l)(a)
     @inline def ∀      [B, F[_]: Foldable](f: B => F[A]): Prop[B]    = forall(f)
-    @inline def forall [B, F[_]: Foldable](f: B => F[A]): Prop[B]    = Prop.forall(f, _l)
+    @inline def forall [B, F[_]: Foldable](f: B => F[A]): Prop[B]    = Prop.forall(f)(_ => _l)
     @inline def forallF[F[_]: Foldable]                 : Prop[F[A]] = forall(j => j)
 
     @elidable(elidable.ASSERTION)

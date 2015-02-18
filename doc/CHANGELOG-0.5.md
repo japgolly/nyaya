@@ -1,3 +1,8 @@
+## 0.5.4 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.4))
+
+* Changed signature of `Prop.forall`.
+
+
 ## 0.5.3 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.2...v0.5.3))
 
 * Fix μTest being exported from core module.

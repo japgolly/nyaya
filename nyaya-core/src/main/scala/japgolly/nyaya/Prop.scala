@@ -56,9 +56,10 @@ object Prop {
   def assert[A](l: => Prop[A])(a: => A): Unit =
     l(a).assertSuccess()
 
-  def forall[A, F[_] : Foldable, B](f: A => F[B], lb: Prop[B]): Prop[A] =
+  def forall[A, F[_]: Foldable, B](f: A => F[B])(prop: A => Prop[B]): Prop[A] =
     eval[A](a => {
-      val es = f(a).foldLeft(List.empty[Eval])((q, b) => run(lb)(b) :: q)
+      val p  = prop(a)
+      val es = f(a).foldLeft(List.empty[Eval])((q, b) => run(p)(b) :: q)
       val ho = es.headOption
       val n  = Need(ho.fold("∅")(e => s"∀{${e.name.value}}"))
       val i  = Input(a)
