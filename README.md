@@ -1,7 +1,7 @@
 Nyaya
 =====
 
-(Nya-[what?](http://en.wikipedia.org/wiki/Nyaya) Anyway...)
+(Nya-[what?](http://en.wikipedia.org/wiki/Nyaya) Oh [as in...](http://en.wikipedia.org/wiki/History_of_logic) Cool ok.)
 
 Nyaya is a library to validate propositions/properties/laws…
 * …in tests using random data. (behaviour)
