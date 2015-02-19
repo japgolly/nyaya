@@ -130,6 +130,8 @@ object Gen {
   def lift[A](f: Size => Rng[A]) =
     new GenS[A](s => f(Size(s.value)))
 
+  def genSize: Gen[GenSize] = new GenS(Rng.insert)
+
   def double         : Gen[Double]  = Rng.double.gen
   def float          : Gen[Float]   = Rng.float.gen
   def long           : Gen[Long]    = rng_long.gen
