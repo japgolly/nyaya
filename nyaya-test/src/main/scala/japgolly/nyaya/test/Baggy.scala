@@ -49,14 +49,16 @@ object Baggy {
   implicit object VectorBaggy extends Baggy[Vector] {
     override def empty   [A]                             = Vector.empty
     override def contains[A](h: Vector[A], a: A)         = h contains a
-    override def add     [A](h: Vector[A], a: A)         = h + a
+    override def add     [A](h: Vector[A], a: A)         = h :+ a
     override def append  [A](h: Vector[A], i: Vector[A]) = h ++ i
   }
 
-  implicit final class BaggyExt[H[_], A](val h: H[A]) extends AnyVal {
-    def contains(a: A)   (implicit H: Baggy[H]) = H.contains(h, a)
-    def +       (a: A)   (implicit H: Baggy[H]) = H.add(h, a)
-    def ++      (i: H[A])(implicit H: Baggy[H]) = H.append(h, i)
-    //def addAll  (as: A*) (implicit H: Baggy[H]) = as.foldLeft(h)(_ + _)
+  object Implicits {
+    implicit final class BaggyExt[H[_], A](val h: H[A]) extends AnyVal {
+      def contains(a: A)   (implicit H: Baggy[H]) = H.contains(h, a)
+      def +       (a: A)   (implicit H: Baggy[H]) = H.add(h, a)
+      def ++      (i: H[A])(implicit H: Baggy[H]) = H.append(h, i)
+      //def addAll  (as: A*) (implicit H: Baggy[H]) = as.foldLeft(h)(_ + _)
+    }
   }
 }

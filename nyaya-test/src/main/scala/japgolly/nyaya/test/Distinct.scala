@@ -6,6 +6,7 @@ import scalaz.Leibniz.===
 import scalaz.std.stream._
 import scalaz.syntax.foldable._
 import Baggy._
+import Baggy.Implicits._
 import Distinct.Fixer
 
 sealed trait DistinctFn[A, B] {
