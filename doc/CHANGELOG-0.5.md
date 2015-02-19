@@ -1,3 +1,14 @@
+## 0.5.5 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.4...v0.5.5))
+
+* Added to `Gen` instances:
+  * `strengthL`
+  * `strengthR`
+  * `mapByEachKey`
+  * `mapByKeySubset`
+* Added to the `Gen` object:
+  * `traverse`
+  * `traverseG`
+
 ## 0.5.4 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.4))
 
 * Changed signature of `Prop.forall`.

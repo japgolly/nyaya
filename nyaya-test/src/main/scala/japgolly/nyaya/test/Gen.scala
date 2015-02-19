@@ -64,6 +64,15 @@ class Gen[A](val f: GenSize => Rng[A]) {
   def mapBy[K](k: Gen[K]): Gen[Map[K, A]] = Gen.pair(k, this).list.map(_.toMap)
   def mapTo[V](v: Gen[V]): Gen[Map[A, V]] = v mapBy this
 
+  def mapByKeySubset[K](legalKeys: TraversableOnce[K]): Gen[Map[K, A]] =
+    Gen.subset(legalKeys).flatMap(mapByEachKey)
+
+  def mapByEachKey[K](keys: TraversableOnce[K]): Gen[Map[K, A]] =
+    Gen.insert(keys).flatMap(ks => Gen.traverse(ks.toStream)(strengthL).map(_.toMap))
+
+  def strengthL[B](b: B): Gen[(B, A)] = map((b, _))
+  def strengthR[B](b: B): Gen[(A, B)] = map((_, b))
+
   /** Returns a new collection of the same type in a randomly chosen order.
     *
     *  @return         the shuffled collection
@@ -192,7 +201,9 @@ object Gen {
   def pair[A, B](A: Gen[A], B: Gen[B]): Gen[(A, B)] = tuple2(A, B)
   def triple[A, B, C](A: Gen[A], B: Gen[B], C: Gen[C]): Gen[(A, B, C)] = tuple3(A, B, C)
 
-  def sequence[T[_], A](x: T[Gen[A]])(implicit T: Traverse[T]): Gen[T[A]] = T.sequence(x)
+  def traverse [T[_], A, B](gs: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(f)
+  def traverseG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
+  def sequence [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
 
   def sequencePair[X, A](x: X, r: Gen[A]): Gen[(X, A)] = sequence[({type f[x] = (X, x)})#f, A]((x, r))
 
