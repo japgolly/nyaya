@@ -112,6 +112,10 @@ class GenS[A](f: GenSize => Rng[A]) extends Gen(f) {
 
   def sup: Gen[A] = this
 }
+object GenS {
+  def apply[A](g: GenSize => Gen[A]): GenS[A] =
+    new GenS[A](sz => g(sz).f(sz))
+}
 
 object Gen {
 

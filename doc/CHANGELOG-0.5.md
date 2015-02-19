@@ -1,6 +1,7 @@
 ## 0.5.6 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.5...v0.5.6))
 
 * Bugfix for `Multimap[?, Vector, ?]`
+* Added `GenS(GenSize => Gen[A])`
 
 ## 0.5.5 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.4...v0.5.5))
 
