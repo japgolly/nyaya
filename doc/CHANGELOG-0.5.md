@@ -2,6 +2,8 @@
 
 * Bugfix for `Multimap[?, Vector, ?]`
 * Added `GenS(GenSize => Gen[A])`
+* Added `util.Platform.choose(jvm,js)` and helper `jvm |SJS| js`
+  to choose a value depending on which platform the code is running.
 
 ## 0.5.5 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.4...v0.5.5))
 
