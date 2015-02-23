@@ -247,7 +247,10 @@ object Gen {
   // -------------------------------------------------------------------------------------------------------------------
 
   def oneofG[A](a: Gen[A], as: Gen[A]*): Gen[A] =
-    Rng.oneof(a, as: _*).gen.flatMap(r => r)
+    Rng.oneof(a, as: _*).gen flatMap identity
+
+  def oneofGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] =
+    Rng.oneofL(gs).gen flatMap identity
 
   def charof(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] =
     oneof(ev, rs.foldLeft(s.to[Seq])(_ ++ _.toSeq): _*)
