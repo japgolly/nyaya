@@ -21,6 +21,8 @@
 * Added `Platform.choose(jvm,js)` and helper `jvm 'JVM|JS' js`
   to choose a value depending on which platform the code is running.
 
+* Removed `Gen.oneofGC`. Import `Gen.Covariance._` and use `Gen.oneofG` instead.
+
 ## 0.5.3 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.2...v0.5.3))
 
 * Fix μTest being exported from core module.
