@@ -26,13 +26,14 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.5.7" % 
 
 Status
 ======
-It's been used for months and months behind closed doors; I consider it useful and stable.
+It's been used extensively behind closed doors since mid-2014; I consider it stable.
 
-As for the API itself, I don't know how little or large future change will be.
+The API may experience minor changes but nothing too major.
 
-For example, on a separate branch I have shrinking working that is more effective than
-what I've seen with ScalaCheck or QuickCheck, but haven't decided how or if I'll merge it.
-It could be quite distruptive to the API. (?)
+There's one exception: shrinking. Nyaya doesn't come with shrinking functionality,
+but it may. On a separate branch I have shrinking working that is more effective than
+what I've seen with ScalaCheck or QuickCheck, but I haven't decided if I'll merge it.
+If merged, it would likely require significant API changes.
 
 
 Features
