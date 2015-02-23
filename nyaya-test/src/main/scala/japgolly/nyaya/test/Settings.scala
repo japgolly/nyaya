@@ -22,8 +22,12 @@ case class Settings(
   lazy val sampleProgressFmt = s"[%${sampleSizeLen}d/${sampleSize.value}] "
 
   // Convenience
-  def setSingleThreaded: Settings = copy(executor = SingleThreadedExecutor)
-  def setDebug         : Settings = copy(debug = true)
+  def setSingleThreaded     : Settings = copy(executor    = SingleThreadedExecutor)
+  def setSampleSize(i: Int) : Settings = copy(sampleSize  = SampleSize(i))
+  def setGenSize(i: Int)    : Settings = copy(genSize     = GenSize(i))
+  def setSeed(s: Long)      : Settings = copy(seed        = Some(s))
+  def setDebug              : Settings = copy(debug       = true)
+  def setDebugMaxLen(i: Int): Settings = copy(debugMaxLen = i)
 }
 
 object Settings {
