@@ -41,6 +41,6 @@ package object util {
   }
 
   @inline implicit final class NyayaUtilAnyExt[A](val _a: A) extends AnyVal {
-    @inline def `|SJS|`(js: => A): A = Platform.choose(_a, js)
+    @inline def `JVM|JS`(js: => A): A = Platform.choose(_a, js)
   }
 }

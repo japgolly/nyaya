@@ -17,7 +17,7 @@
 
 * Added `GenS.apply(GenSize => Gen[A])`
 
-* Added `Platform.choose(jvm,js)` and helper `jvm |SJS| js`
+* Added `Platform.choose(jvm,js)` and helper `jvm 'JVM|JS' js`
   to choose a value depending on which platform the code is running.
 
 ## 0.5.3 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.2...v0.5.3))
