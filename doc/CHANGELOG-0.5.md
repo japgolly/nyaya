@@ -13,9 +13,10 @@
 * Added to `object Gen`:
   * `traverse`
   * `traverseG`
-  * `genSize`
 
-* Added `GenS.apply(GenSize => Gen[A])`
+* Added to `object GenS`:
+  * `apply(GenSize => Gen[A])`
+  * `choosesize`
 
 * Added `Platform.choose(jvm,js)` and helper `jvm 'JVM|JS' js`
   to choose a value depending on which platform the code is running.

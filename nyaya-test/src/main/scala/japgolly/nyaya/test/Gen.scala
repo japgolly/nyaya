@@ -112,9 +112,19 @@ class GenS[A](f: GenSize => Rng[A]) extends Gen(f) {
 
   def sup: Gen[A] = this
 }
+
 object GenS {
   def apply[A](g: GenSize => Gen[A]): GenS[A] =
     new GenS[A](sz => g(sz).f(sz))
+
+  /** Returns a number from 0 up to GenSize. [0,GenSize) */
+  def choosesize: GenS[Int] =
+    GenS(sz =>
+      if (sz.value <= 0)
+        Gen.insert(sz.value)
+      else
+        Gen.chooseint(0, sz.value - 1))
+
 }
 
 object Gen {
@@ -133,8 +143,6 @@ object Gen {
 
   def lift[A](f: Size => Rng[A]) =
     new GenS[A](s => f(Size(s.value)))
-
-  def genSize: Gen[GenSize] = new GenS(Rng.insert)
 
   def double         : Gen[Double]  = Rng.double.gen
   def float          : Gen[Float]   = Rng.float.gen
