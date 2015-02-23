@@ -1,25 +1,24 @@
-## 0.5.6 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.5...v0.5.6))
+## 0.5.7 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.7))
 
 * Bugfix for `Multimap[?, Vector, ?]`
-* Added `GenS(GenSize => Gen[A])`
-* Added `util.Platform.choose(jvm,js)` and helper `jvm |SJS| js`
-  to choose a value depending on which platform the code is running.
 
-## 0.5.5 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.4...v0.5.5))
+* Changed signature of `Prop.forall`.
 
-* Added to `Gen` instances:
+* Added to `class Gen`:
   * `strengthL`
   * `strengthR`
   * `mapByEachKey`
   * `mapByKeySubset`
-* Added to the `Gen` object:
+
+* Added to `object Gen`:
   * `traverse`
   * `traverseG`
   * `genSize`
 
-## 0.5.4 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.4))
+* Added `GenS.apply(GenSize => Gen[A])`
 
-* Changed signature of `Prop.forall`.
+* Added `Platform.choose(jvm,js)` and helper `jvm |SJS| js`
+  to choose a value depending on which platform the code is running.
 
 ## 0.5.3 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.2...v0.5.3))
 
