@@ -11,6 +11,8 @@
   * `mapByKeySubset`
 
 * Added to `object Gen`:
+  * `byName`
+  * `byNeed`
   * `newOrOld`
   * `oneofGL`
   * `traverse`
