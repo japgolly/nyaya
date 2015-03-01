@@ -15,7 +15,7 @@ Nyaya is
 It was initially created because ScalaCheck wasn't available on Scala.JS.
 Rather than being a port or clone, it's evolved into its own unique solution building on good and bad experiences using ScalaCheck, and my own needs, and values.
 
-SBT setup:
+#### SBT setup:
 ```scala
 // Proposition creation & assertion
 libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-core" % "0.5.7"
@@ -23,6 +23,9 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-core" % "0.5.7"
 // Proposition testing & random data generation
 libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.5.7" % "test"
 ```
+
+#### Changelog:
+See [doc/CHANGELOG-0.5.md](https://github.com/japgolly/nyaya/blob/master/doc/CHANGELOG-0.5.md)
 
 Status
 ======
