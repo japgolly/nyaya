@@ -65,8 +65,52 @@ object Eval {
           s"Inputs: $as\nDups: $d"
         }
     })
+
+  /**
+   * Test that all Cs are on a whitelist.
+   */
+  def whitelist[B, C](name: => String, input: Any, whitelist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
+      setTest(name, input, true, "Whitelist", whitelist, "Found    ", testData, "Illegal  ")
+
+  /**
+   * Test that no Cs are on a blacklist.
+   */
+  def blacklist[B, C](name: => String, input: Any, blacklist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
+      setTest(name, input, false, "Blacklist", blacklist, "Found    ", testData, "Illegal  ")
+
+  /**
+   * Test that all Bs are present in Cs.
+   */
+  def allPresent[B, C](name: => String, input: Any, required: Set[B], testData: Traversable[C])(implicit ev: B <:< C): EvalL =
+    atom(name, input, {
+      val cs = testData.toSet
+      val rs = required.filterNot(cs contains _)
+      setMembershipResult(input, "Required", required, "Found   ", testData, "Missing ", rs)
+    })
+
+  private[this] def setTest[A, B, C](name: => String, input: Any, expect: Boolean,
+                                     bsName: String, bs: Set[B],
+                                     csName: String, cs: Traversable[C],
+                                     failureName: String)(implicit ev: C <:< B): EvalL =
+    atom(name, input, {
+      val rs = cs.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
+      setMembershipResult(input, bsName, bs, csName, cs, failureName, rs)
+    })
+
+  private[this] def setMembershipResult(input: Any,
+                                        asName: String, as: Traversable[_],
+                                        bsName: String, bs: Traversable[_],
+                                        failureName: String, problems: Set[_]): FailureReasonO =
+    if (problems.isEmpty)
+      None
+    else
+      Some(s"$input\n$asName: (${as.size}) $as\n$bsName: (${bs.size}) $bs\n$failureName: ${fmtSet(problems)}")
+
+  private[this] def fmtSet(s: Set[_]): String =
+    s.toStream.map(_.toString).sorted.distinct.mkString("{", ", ", "}")
 }
 
+// =====================================================================================================================
 import Eval.Failures
 
 final case class Eval private[nyaya] (name: Name, input: Input, failures: Failures) {

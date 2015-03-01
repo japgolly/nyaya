@@ -88,7 +88,7 @@ object Prop {
   @inline def whitelist[A](name: String) = new WhitelistB[A](name)
   final class WhitelistB[A](val name: String) extends AnyVal {
     def apply[B, C](whitelist: A => Set[B], testData: A => Traversable[C])(implicit ev: C <:< B): Prop[A] =
-      setTest(name, true, "Whitelist", whitelist, "Found    ", testData, "Illegal  ")
+      eval(a => Eval.whitelist(name, a, whitelist(a), testData(a)))
   }
 
   /**
@@ -97,7 +97,7 @@ object Prop {
   @inline def blacklist[A](name: String) = new BlacklistB[A](name)
   final class BlacklistB[A](val name: String) extends AnyVal {
     def apply[B, C](blacklist: A => Set[B], testData: A => Traversable[C])(implicit ev: C <:< B): Prop[A] =
-      setTest(name, false, "Blacklist", blacklist, "Found    ", testData, "Illegal  ")
+      eval(a => Eval.blacklist(name, a, blacklist(a), testData(a)))
   }
 
   /**
@@ -106,37 +106,6 @@ object Prop {
   @inline def allPresent[A](name: String) = new AllPresentB[A](name)
   final class AllPresentB[A](val name: String) extends AnyVal {
     def apply[B, C](requiredSubset: A => Set[B], testData: A => Traversable[C])(implicit ev: B <:< C): Prop[A] =
-      atom[A](name, a => {
-        val bs  = requiredSubset(a)
-        val cs1 = testData(a)
-        val cs2 = cs1.toSet
-        val rs = bs.filterNot(cs2 contains _)
-        setMembershipResult(a, "Required", bs, "Found   ", cs1, "Missing ", rs)
-      })
+      eval(a => Eval.allPresent(name, a, requiredSubset(a), testData(a)))
   }
-
-  private[this] def fmtSet(s: Set[_]): String =
-    s.toStream.map(_.toString).sorted.distinct.mkString("{", ", ", "}")
-
-  private[this] def setTest[A, B, C](name: String, expect: Boolean,
-                                     bsName: String, getBs: A => Set[B],
-                                     csName: String, getCs: A => Traversable[C],
-                                     failureName: String)(implicit ev: C <:< B): Prop[A] =
-    atom[A](name, a => {
-      val bs = getBs(a)
-      val cs = getCs(a)
-      val rs = cs.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
-        setMembershipResult(a, bsName, bs, csName, cs, failureName, rs)
-    })
-
-
-
-  private[this] def setMembershipResult(input: Any,
-                                        asName: String, as: Traversable[_],
-                                        bsName: String, bs: Traversable[_],
-                                        failureName: String, problems: Set[_]): FailureReasonO =
-    if (problems.isEmpty)
-      None
-    else
-      Some(s"$input\n$asName: (${as.size}) $as\n$bsName: (${bs.size}) $bs\n$failureName: ${fmtSet(problems)}")
 }
