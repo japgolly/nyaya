@@ -80,19 +80,7 @@ object Prop {
     distinct[B](name).contramap(f(_).toStream)
 
   def distinct[A](name: => String): Prop[Stream[A]] =
-    atom[Stream[A]](s"each $name is unique", as => {
-      val dups = (Map.empty[A, Int] /: as)((q, a) => q + (a -> (q.getOrElse(a, 0) + 1))).filter(_._2 > 1)
-      if (dups.isEmpty)
-        None
-      else
-        Some{
-          val d = dups.toStream
-            .sortBy(_._1.toString)
-            .map { case (a, i) => s"$a → $i"}
-            .mkString("{", ", ", "}")
-          s"Inputs: $as\nDups: $d"
-        }
-    })
+    eval(as => Eval.distinct(name, as, as))
 
   /**
    * Test that all of A's Cs are on a whitelist.

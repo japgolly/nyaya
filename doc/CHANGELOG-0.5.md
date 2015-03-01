@@ -1,3 +1,10 @@
+## 0.5.8
+
+* Eval and EvalOver learned:
+  * `distinct`
+  * `distinctC`
+
+
 ## 0.5.7 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.7))
 
 * Bugfix for `Multimap[?, Vector, ?]`

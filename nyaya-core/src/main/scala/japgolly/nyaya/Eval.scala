@@ -1,7 +1,8 @@
 package japgolly.nyaya
 
 import scala.annotation.elidable
-import scalaz.{Value, Need, Equal, Contravariant}
+import scala.collection.GenTraversable
+import scalaz.{Value, Need, Equal, Contravariant, Foldable}
 import japgolly.nyaya.util.Multimap
 import japgolly.nyaya.util.Util
 
@@ -29,14 +30,14 @@ object Eval {
   def pass(name: String = "Pass", input: Any = ()): EvalL =
     test(name, input, true)
 
-  def atom(name: => String, a: Any, failure: FailureReasonO): EvalL =
-    Atom[Eval_, Nothing](Eval(Need(name), Input(a), failure.fold(root)(root.add(_, Nil))))
+  def atom(name: => String, input: Any, failure: FailureReasonO): EvalL =
+    Atom[Eval_, Nothing](Eval(Need(name), Input(input), failure.fold(root)(root.add(_, Nil))))
 
-  def test(name: => String, a: Any, t: Boolean): EvalL =
-    atom(name, a, Prop.reasonBool(t, a))
+  def test(name: => String, input: Any, t: Boolean): EvalL =
+    atom(name, input, Prop.reasonBool(t, input))
 
-  def equal[A: Equal](name: => String, a: Any, actual: A, expect: A): EvalL =
-    atom(name, a, Prop.reasonEq(actual, expect))
+  def equal[A: Equal](name: => String, input: Any, actual: A, expect: A): EvalL =
+    atom(name, input, Prop.reasonEq(actual, expect))
 
   def equal[A](name: => String, a: A) = new EqualB[A](name, a)
   final class EqualB[A](name: String, a: A)  {
@@ -46,6 +47,24 @@ object Eval {
   @elidable(elidable.ASSERTION)
   def assert(l: => EvalL): Unit =
     run(l).assertSuccess()
+
+  def distinctC[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
+    distinct(name, input, as.toStream)
+
+  def distinct[A](name: => String, input: Any, as: Stream[A]): EvalL =
+    atom(s"each $name is unique", input, {
+      val dups = (Map.empty[A, Int] /: as)((q, a) => q + (a -> (q.getOrElse(a, 0) + 1))).filter(_._2 > 1)
+      if (dups.isEmpty)
+        None
+      else
+        Some{
+          val d = dups.toStream
+            .sortBy(_._1.toString)
+            .map { case (a, i) => s"$a → $i"}
+            .mkString("{", ", ", "}")
+          s"Inputs: $as\nDups: $d"
+        }
+    })
 }
 
 import Eval.Failures
