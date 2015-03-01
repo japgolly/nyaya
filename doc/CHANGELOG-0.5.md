@@ -5,6 +5,7 @@
   * `blacklist`
   * `distinct`
   * `distinctC`
+  * `forall`
   * `whitelist`
 
 

@@ -3,6 +3,7 @@ package japgolly.nyaya
 import scala.annotation.elidable
 import scala.collection.GenTraversable
 import scalaz.{Value, Need, Equal, Contravariant, Foldable}
+import scalaz.syntax.foldable._
 import japgolly.nyaya.util.Multimap
 import japgolly.nyaya.util.Util
 
@@ -47,6 +48,21 @@ object Eval {
   @elidable(elidable.ASSERTION)
   def assert(l: => EvalL): Unit =
     run(l).assertSuccess()
+
+  def forall[F[_]: Foldable, B, C](input: Any, fb: F[B], p: Prop[C])(implicit ev: B <:< C): EvalL = {
+    val es = fb.foldLeft(List.empty[Eval])((q, b) => Prop.run(p)(b) :: q)
+    val ho = es.headOption
+    val n  = Need(ho.fold("∅")(e => s"∀{${e.name.value}}"))
+    val i  = Input(input)
+    val r  = es.filter(_.failure) match {
+      case Nil =>
+        Eval.success(n, i)
+      case fs@(_ :: _) =>
+        val causes = fs.foldLeft(Eval.root)((q, e) => q.add(e.name.value, List(e)))
+        Eval(n, i, causes)
+    }
+    r.liftL
+  }
 
   def distinctC[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
     distinct(name, input, as.toStream)

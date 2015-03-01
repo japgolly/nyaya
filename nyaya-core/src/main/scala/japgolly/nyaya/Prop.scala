@@ -56,22 +56,8 @@ object Prop {
   def assert[A](l: => Prop[A])(a: => A): Unit =
     l(a).assertSuccess()
 
-  def forall[A, F[_]: Foldable, B](f: A => F[B])(prop: A => Prop[B]): Prop[A] =
-    eval[A](a => {
-      val p  = prop(a)
-      val es = f(a).foldLeft(List.empty[Eval])((q, b) => run(p)(b) :: q)
-      val ho = es.headOption
-      val n  = Need(ho.fold("∅")(e => s"∀{${e.name.value}}"))
-      val i  = Input(a)
-      val r  = es.filter(_.failure) match {
-                 case Nil =>
-                   Eval.success(n, i)
-                 case fs@(_ :: _) =>
-                   val causes = fs.foldLeft(Eval.root)((q, e) => q.add(e.name.value, List(e)))
-                   Eval(n, i, causes)
-               }
-      r.liftL
-    })
+  def forall[A, F[_]: Foldable, B, C](f: A => F[B])(prop: A => Prop[C])(implicit ev: B <:< C): Prop[A] =
+    eval(a => Eval.forall(a, f(a), prop(a)))
 
   def distinctC[C[_], A](name: => String)(implicit ev: C[A] <:< GenTraversable[A]): Prop[C[A]] =
     distinct(name, _.toStream)
