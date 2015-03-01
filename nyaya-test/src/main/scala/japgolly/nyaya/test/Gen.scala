@@ -260,6 +260,12 @@ object Gen {
       Gen insert None)(
       Gen.oneof(_, as.tail: _*).option)
 
+  def oneofO[A](as: Seq[A]): Option[Gen[A]] =
+    if (as.isEmpty)
+      None
+    else
+      Some(oneof(as.head, as.tail: _*))
+
   /** Provides random subsets of the input set.
     * Randomly deletes elements. */
   def subset[A](as: TraversableOnce[A]): Gen[Vector[A]] =

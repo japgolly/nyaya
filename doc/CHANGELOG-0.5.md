@@ -8,6 +8,9 @@
   * `forall`
   * `whitelist`
 
+* Added to `object Gen`:
+  * `oneofO`
+
 
 ## 0.5.7 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.7))
 
