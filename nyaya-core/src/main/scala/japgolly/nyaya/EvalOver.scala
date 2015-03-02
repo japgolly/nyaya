@@ -1,7 +1,7 @@
 package japgolly.nyaya
 
 import scala.collection.GenTraversable
-import scalaz.{Foldable, Equal}
+import scalaz.{\/, Foldable, Equal}
 
 final case class EvalOver(input: Any) {
 
@@ -19,6 +19,9 @@ final case class EvalOver(input: Any) {
 
   def equal[A: Equal](name: => String, actual: A, expect: A): EvalL =
     Eval.equal(name, input, actual, expect)
+
+  def either[A](name: => String, data: String \/ A)(f: A => EvalL): EvalL =
+    Eval.either(name, input, data)(f)
 
   def forall[F[_]: Foldable, B, C](fb: F[B], p: Prop[C])(implicit ev: B <:< C): EvalL =
     Eval.forall(input, fb, p)

@@ -2,9 +2,8 @@ package japgolly.nyaya
 
 import scala.annotation.elidable
 import scala.collection.GenTraversable
-import scalaz.{Need, Equal, Foldable, Contravariant}
+import scalaz.{\/, Equal, Foldable, Contravariant}
 import scalaz.syntax.equal._
-import scalaz.syntax.foldable._
 
 final class PropA[A] private[nyaya](val t: A => EvalL)
 
@@ -45,6 +44,9 @@ object Prop {
   final class EqualB[A](val name: String) extends AnyVal {
     def apply[B: Equal](actual: A => B, expect: A => B): Prop[A] = equal(name, actual, expect)
   }
+
+  def either[A, B](name: => String, f: A => String \/ B)(p: Prop[B]): Prop[A] =
+    eval(a => Eval.either(name, a, f(a))(p(_).liftL))
 
   def reason(b: Boolean, r: => String): FailureReasonO =
     if (b) None else Some(r)

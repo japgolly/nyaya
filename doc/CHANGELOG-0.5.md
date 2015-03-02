@@ -5,11 +5,13 @@
   * `blacklist`
   * `distinct`
   * `distinctC`
+  * `either`
   * `fail`
   * `forall`
   * `whitelist`
 
 * Added to `object Prop`:
+  * `either`
   * `fail`
 
 * Added to `object Gen`:

@@ -2,7 +2,7 @@ package japgolly.nyaya
 
 import scala.annotation.elidable
 import scala.collection.GenTraversable
-import scalaz.{Value, Need, Equal, Contravariant, Foldable}
+import scalaz._
 import scalaz.syntax.foldable._
 import japgolly.nyaya.util.Multimap
 import japgolly.nyaya.util.Util
@@ -47,6 +47,9 @@ object Eval {
   final class EqualB[A](name: String, a: A)  {
     def apply[B: Equal](actual: A => B, expect: A => B): EvalL = equal(name, a, actual(a), expect(a))
   }
+
+  def either[A](name: => String, input: Any, data: String \/ A)(f: A => EvalL): EvalL =
+    data.fold(fail(name, _, input), f)
 
   @elidable(elidable.ASSERTION)
   def assert(l: => EvalL): Unit =
