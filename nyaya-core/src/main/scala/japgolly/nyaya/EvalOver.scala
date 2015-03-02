@@ -23,8 +23,8 @@ final case class EvalOver(input: Any) {
   def either[A](name: => String, data: String \/ A)(f: A => EvalL): EvalL =
     Eval.either(name, input, data)(f)
 
-  def forall[F[_]: Foldable, B, C](fb: F[B], p: Prop[C])(implicit ev: B <:< C): EvalL =
-    Eval.forall(input, fb, p)
+  def forall[F[_]: Foldable, B](fb: F[B])(each: B => EvalL): EvalL =
+    Eval.forall(input, fb)(each)
 
   def distinctC[A](name: => String, as: GenTraversable[A]): EvalL =
     Eval.distinctC(name, input, as)

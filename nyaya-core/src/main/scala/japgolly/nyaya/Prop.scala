@@ -62,7 +62,10 @@ object Prop {
     l(a).assertSuccess()
 
   def forall[A, F[_]: Foldable, B, C](f: A => F[B])(prop: A => Prop[C])(implicit ev: B <:< C): Prop[A] =
-    eval(a => Eval.forall(a, f(a), prop(a)))
+    eval { a =>
+      val p = prop(a)
+      Eval.forall(a, f(a))(p(_).liftL)
+    }
 
   def distinctC[C[_], A](name: => String)(implicit ev: C[A] <:< GenTraversable[A]): Prop[C[A]] =
     distinct(name, _.toStream)

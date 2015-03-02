@@ -55,8 +55,8 @@ object Eval {
   def assert(l: => EvalL): Unit =
     run(l).assertSuccess()
 
-  def forall[F[_]: Foldable, B, C](input: Any, fb: F[B], p: Prop[C])(implicit ev: B <:< C): EvalL = {
-    val es = fb.foldLeft(List.empty[Eval])((q, b) => Prop.run(p)(b) :: q)
+  def forall[F[_]: Foldable, B](input: Any, fb: F[B])(each: B => EvalL): EvalL = {
+    val es = fb.foldLeft(List.empty[Eval])((q, b) => run(each(b)) :: q)
     val ho = es.headOption
     val n  = Need(ho.fold("∅")(e => s"∀{${e.name.value}}"))
     val i  = Input(input)
