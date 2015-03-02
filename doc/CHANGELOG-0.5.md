@@ -17,6 +17,8 @@
 * Added to `object Gen`:
   * `oneofO`
 
+* More methods to `Multimap`.
+
 
 ## 0.5.7 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.3...v0.5.7))
 

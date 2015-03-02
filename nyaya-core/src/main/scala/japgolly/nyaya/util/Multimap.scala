@@ -33,6 +33,10 @@ final class Multimap[K, L[_], V](val m: Map[K, L[V]])(implicit L: MultiValues[L]
     case _                    => false
   }
 
+  @inline def keys   = m.keys
+  @inline def keySet = m.keySet
+  @inline def values = m.values
+
   @inline private[this] def copy(m: Map[K, L[V]]) = new Multimap[K, L, V](m)
 
   def apply   (k: K): L[V]            = m getOrEmpty k
@@ -65,13 +69,16 @@ final class Multimap[K, L[_], V](val m: Map[K, L[V]])(implicit L: MultiValues[L]
   def unlink(a: K, b: V)(implicit e: K =:= V, f: V =:= K) =
     copy(m.mod(a, _ del1 b).mod(b, _ del1 a))
 
-  def streamKV: Stream[(K, V)] =
-    m.toStream.flatMap(kv => kv._2.stream.map(v => (kv._1, v)))
+  def allValues                        : Stream[V]     = vstreamf(L.stream)
+  def streamKV                         : Stream[(K,V)] = m.toStream.flatMap(kv => kv._2.stream.map(v => (kv._1, v)))
+  def vstream [A](f: L[V] => A)        : Stream[A]     = values.toStream.map(f)
+  def vstreamf[A](f: L[V] => Stream[A]): Stream[A]     = values.toStream.flatMap(f)
 
-  def isEmpty    = m.isEmpty
-  def nonEmpty   = m.nonEmpty
-  def keyCount   = m.size
-  def valueCount = m.valuesIterator.foldLeft(0)(_ + _.count)
+
+  def isEmpty     = m.isEmpty
+  def nonEmpty    = m.nonEmpty
+  def keyCount    = m.size
+  def valueCount  = m.valuesIterator.foldLeft(0)(_ + _.count)
   def sizeSummary = SizeSummary(m.valuesIterator.foldLeft(Vector.empty[Int])(_ :+ _.count))
 }
 
@@ -89,7 +96,7 @@ object Multimap {
       @inline def addks(ks: L[K], v: V)     (implicit L: MultiValues[L]): Map[K, L[V]] = ks.foldl(m)(_.add(_, v))
       @inline def mod(k: K, f: L[V] => L[V])(implicit L: MultiValues[L]): Map[K, L[V]] = put(k, f(getOrEmpty(k)))
       @inline def put(k: K, v: L[V])        (implicit L: MultiValues[L]): Map[K, L[V]] =
-        if (v.isEmpty) m - k else m + (k -> v)
+        if (v.isEmpty) m - k else m.updated(k, v)
     }
 
     implicit final class MultiValueOps[L[_], A](val as: L[A]) extends AnyVal {
