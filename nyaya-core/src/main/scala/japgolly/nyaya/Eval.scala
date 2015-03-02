@@ -31,6 +31,9 @@ object Eval {
   def pass(name: String = "Pass", input: Any = ()): EvalL =
     test(name, input, true)
 
+  def fail(name: => String, reason: String, input: Any = ()): EvalL =
+    atom(name, input, Some(reason))
+
   def atom(name: => String, input: Any, failure: FailureReasonO): EvalL =
     Atom[Eval_, Nothing](Eval(Need(name), Input(input), failure.fold(root)(root.add(_, Nil))))
 

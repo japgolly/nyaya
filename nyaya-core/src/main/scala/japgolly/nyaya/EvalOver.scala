@@ -8,6 +8,9 @@ final case class EvalOver(input: Any) {
   def pass: EvalL =
     Eval.pass(input = this.input)
 
+  def fail(name: => String, reason: String): EvalL =
+    Eval.fail(name, reason, input)
+
   def atom(name: => String, failure: FailureReasonO): EvalL =
     Eval.atom(name, input, failure)
 

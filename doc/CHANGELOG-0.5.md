@@ -1,12 +1,16 @@
 ## 0.5.8
 
-* Eval and EvalOver learned:
+* `object Eval` and `EvalOver` learned:
   * `allPresent`
   * `blacklist`
   * `distinct`
   * `distinctC`
+  * `fail`
   * `forall`
   * `whitelist`
+
+* Added to `object Prop`:
+  * `fail`
 
 * Added to `object Gen`:
   * `oneofO`

@@ -20,6 +20,9 @@ object Prop {
   def pass[A](name: String = "Pass"): Prop[A] =
     test(name, _ => true)
 
+  def fail[A](name: => String, reason: String): Prop[A] =
+    eval(a => Eval.fail(name, reason, a))
+
   def atom[A](name: => String, t: A => FailureReasonO): Prop[A] =
     eval(a => Eval.atom(name, a, t(a)))
 
