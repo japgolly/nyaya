@@ -61,7 +61,10 @@ object Prop {
   def assert[A](l: => Prop[A])(a: => A): Unit =
     l(a).assertSuccess()
 
-  def forall[A, F[_]: Foldable, B, C](f: A => F[B])(prop: A => Prop[C])(implicit ev: B <:< C): Prop[A] =
+  def forall[A, F[_]: Foldable, B](f: A => F[B])(prop: A => Prop[B]): Prop[A] =
+    forallS(f)(prop)
+
+  def forallS[A, F[_]: Foldable, B, C](f: A => F[B])(prop: A => Prop[C])(implicit ev: B <:< C): Prop[A] =
     eval { a =>
       val p = prop(a)
       Eval.forall(a, f(a))(p(_).liftL)
