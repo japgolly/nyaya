@@ -129,9 +129,13 @@ object Nyaya extends Build {
   }
 
   object vers {
-    val scalaz  = "7.1.0"
+    val scalaz  = "7.1.1"
     val monocle = "1.0.1"
     val rng     = "1.3.0"
+
+    val scalazJs  = scalaz  + "-2"
+    val monocleJs = monocle + "-2"
+    val rngJs     = rng     + "-2"
   }
 
   // ==============================================================================================
@@ -153,7 +157,7 @@ object Nyaya extends Build {
           "org.scalaz" %% "scalaz-core" % vers.scalaz))
       case JS  =>
         _.settings(libraryDependencies ++= Seq(
-          "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % s"${vers.scalaz}-4"))
+          "com.github.japgolly.fork.scalaz" %%% "scalaz-core" % vers.scalazJs))
     }))
 
   lazy val (ntest, ntestJvm, ntestJs) = crossDialect("test",
@@ -168,8 +172,8 @@ object Nyaya extends Build {
       case JS  =>
         _.dependsOn(coreJs)
           .settings(libraryDependencies ++= Seq(
-            "com.github.japgolly.fork.monocle" %%% "monocle-core"  % vers.monocle,
-            "com.github.japgolly.fork.monocle" %%% "monocle-macro" % vers.monocle % "test",
-            "com.github.japgolly.fork.nicta"   %%% "rng"           % vers.rng))
+            "com.github.japgolly.fork.monocle" %%% "monocle-core"  % vers.monocleJs,
+            "com.github.japgolly.fork.monocle" %%% "monocle-macro" % vers.monocleJs % "test",
+            "com.github.japgolly.fork.nicta"   %%% "rng"           % vers.rngJs))
     }))
 }
