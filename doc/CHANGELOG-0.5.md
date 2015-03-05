@@ -1,4 +1,4 @@
-## 0.5.8
+## 0.5.8 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.7...v0.5.8))
 
 * `object Eval` and `EvalOver` learned:
   * `allPresent`
