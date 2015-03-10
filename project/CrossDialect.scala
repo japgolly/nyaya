@@ -20,6 +20,7 @@ object Dialect {
     def jsVersion(v: String) = copy(jsV = v)
     def jsVersion(f: String => String) = copy(jsV = f(jsV))
     def %(s: String) = copy(scope = Some(s))
+    def myJsFork(n: String) = jsGroup("com.github.japgolly.fork."+n)
     def apply(d: Dialect) = {
       val l = d match {
         case JVM => jvmG %% jvmA % jvmV
