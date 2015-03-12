@@ -25,6 +25,12 @@ trait Domain[A] {
   def ***[B](b: Domain[B]): Domain[(A, B)] =
     new Domain.Pair(this, b)
 
+  def pair: Domain[(A, A)] =
+    this *** this
+
+  def triple: Domain[(A, A, A)] =
+    this *** pair map (t => (t._1, t._2._1, t._2._2))
+
   def toStream: Stream[A] =
     (0 until size).toStream.map(apply)
 }

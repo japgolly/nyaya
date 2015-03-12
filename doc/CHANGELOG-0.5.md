@@ -1,3 +1,10 @@
+## 0.5.9
+
+* `Domain` learned:
+  * `pair`
+  * `triple`
+
+
 ## 0.5.8 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.7...v0.5.8))
 
 * `object Eval` and `EvalOver` learned:
