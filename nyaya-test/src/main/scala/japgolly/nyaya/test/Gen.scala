@@ -133,7 +133,7 @@ object Gen {
     def bind[A, B](a: Gen[A])(f: A => Gen[B]) = a flatMap f
     def point[A](a: => A) = insert(a)
   }
-  
+
   object Covariance {
     implicit def genCovariance[A, B >: A](r: Gen[A]) = r.subst[B]
   }
@@ -143,6 +143,9 @@ object Gen {
 
   def lift[A](f: Size => Rng[A]) =
     new GenS[A](s => f(Size(s.value)))
+
+  def lazily[A, B](f: => Gen[A]): Gen[A] =
+    Gen.insert(Need(f)).flatMap(_.value)
 
   def double         : Gen[Double]  = Rng.double.gen
   def float          : Gen[Float]   = Rng.float.gen

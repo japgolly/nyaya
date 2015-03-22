@@ -4,6 +4,9 @@
   * `pair`
   * `triple`
 
+* `object Gen` learned:
+  * `lazily`
+
 * Upgraded Scala.JS to 0.6.2.
 * Upgraded Scala 2.11 to 2.11.6.
 
