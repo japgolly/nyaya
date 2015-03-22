@@ -1,5 +1,7 @@
 ## 0.5.9
 
+* `Gen.map{By,To}` now limit their sizes.
+
 * `Domain` learned:
   * `pair`
   * `triple`

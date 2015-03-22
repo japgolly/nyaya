@@ -61,8 +61,8 @@ class Gen[A](val f: GenSize => Rng[A]) {
       flatMap(a => that.map(b => Both(a, b))))
   }
 
-  def mapBy[K](k: Gen[K]): Gen[Map[K, A]] = Gen.pair(k, this).list.map(_.toMap)
-  def mapTo[V](v: Gen[V]): Gen[Map[A, V]] = v mapBy this
+  def mapBy[K](k: Gen[K]): GenS[Map[K, A]] = GenS(sz => Gen.pair(k, this).list.lim(sz.value).map(_.toMap))
+  def mapTo[V](v: Gen[V]): GenS[Map[A, V]] = v mapBy this
 
   def mapByKeySubset[K](legalKeys: TraversableOnce[K]): Gen[Map[K, A]] =
     Gen.subset(legalKeys).flatMap(mapByEachKey)
