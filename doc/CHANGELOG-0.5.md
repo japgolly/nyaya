@@ -4,6 +4,9 @@
   * `pair`
   * `triple`
 
+* Upgraded Scala.JS to 0.6.2.
+* Upgraded Scala 2.11 to 2.11.6.
+
 
 ## 0.5.8 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.7...v0.5.8))
 

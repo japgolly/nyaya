@@ -9,7 +9,7 @@ import Typical.{settings => _, _}
 
 object Nyaya extends Build {
 
-  val Scala211 = "2.11.5"
+  val Scala211 = "2.11.6"
 
   val commonSettings: CDS =
     CDS.all(
