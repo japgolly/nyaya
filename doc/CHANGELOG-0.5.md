@@ -1,4 +1,4 @@
-## 0.5.9
+## 0.5.9 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.8...v0.5.9))
 
 * `Gen.map{By,To}` now limit their sizes.
 
