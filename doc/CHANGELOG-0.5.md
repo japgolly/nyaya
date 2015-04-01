@@ -1,3 +1,7 @@
+## 0.5.10 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.9...v0.5.10))
+
+* Upgraded Monocle to 1.1.0.
+
 ## 0.5.9 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.8...v0.5.9))
 
 * `Gen.map{By,To}` now limit their sizes.
