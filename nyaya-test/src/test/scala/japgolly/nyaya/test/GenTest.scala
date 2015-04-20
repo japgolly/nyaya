@@ -1,5 +1,6 @@
 package japgolly.nyaya.test
 
+import scalaz.NonEmptyList
 import scalaz.std.AllInstances._
 import utest._
 import japgolly.nyaya._
@@ -19,7 +20,15 @@ object GenTest extends TestSuite {
       after  <- Gen.shuffle(before)
     } yield (before, after)
 
+  def assertType[T](f: => T): Unit = ()
+
   override def tests = TestSuite {
     'shuffle - shuffleGen.mustSatisfy(shuffleProp)
+    'charToString {
+      assertType[GenS[String]](Gen.char.string)
+      assertType[GenS[String]](Gen.char.string1)
+      assertType[Gen[String]]((null: Gen[List[Char]]).string)
+      assertType[Gen[String]]((null: Gen[NonEmptyList[Char]]).string1)
+    }
   }
 }
