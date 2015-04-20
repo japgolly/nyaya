@@ -3,7 +3,6 @@ package japgolly.nyaya
 import scalaz.{Need, NonEmptyList, Contravariant}
 import scalaz.syntax.foldable1._
 
-final case class Atom         [P[_], A   ](f: P[A])                        extends Logic[P, A]
 final case class Named        [P[_], A   ](n: Name, l: Logic[P, A])        extends Logic[P, A]
 final case class Mapped       [P[_], A, B](m: A => B, l: Logic[P, B])      extends Logic[P, A]
 final case class Negation     [P[_], A   ](l: Logic[P, A])                 extends Logic[P, A]
@@ -12,6 +11,9 @@ final case class Disjunction  [P[_], A   ](ls: NonEmptyList[Logic[P, A]])  exten
 final case class Implication  [P[_], A   ](a: Logic[P, A], c: Logic[P, A]) extends Logic[P, A]
 final case class Reduction    [P[_], A   ](c: Logic[P, A], a: Logic[P, A]) extends Logic[P, A]
 final case class Biconditional[P[_], A   ](p: Logic[P, A], q: Logic[P, A]) extends Logic[P, A]
+final case class Atom         [P[_], A   ](n: Option[Name], f: P[A])       extends Logic[P, A] {
+  override def toString = n.fold(s"Atom($f)")(_.value)
+}
 
 object Logic {
   private[nyaya] def evalChildren[P[_], A](x: P[A] => Eval, ls: NonEmptyList[Logic[P, A]])
@@ -69,7 +71,7 @@ sealed abstract class Logic[P[_], A] {
 
   final def ∨(q: Logic[P, A]): Logic[P, A] = this match {
     case Disjunction(ls)        => Disjunction(q <:: ls)
-    case Atom(_)
+    case Atom(_, _)
          | Named(_, _)
          | Mapped(_, _)
          | Negation(_)
@@ -81,7 +83,7 @@ sealed abstract class Logic[P[_], A] {
 
   final def ∧(q: Logic[P, A]): Logic[P, A] = this match {
     case Conjunction(ls)        => Conjunction(q <:: ls)
-    case Atom(_)
+    case Atom(_, _)
          | Named(_, _)
          | Mapped(_, _)
          | Negation(_)
@@ -94,7 +96,7 @@ sealed abstract class Logic[P[_], A] {
   final def contramap[B](f: B => A): Logic[P, B] = this match {
     case Mapped(m, l)        => Mapped(m compose f, l)
     case Negation(l)         => Negation(l contramap f)
-    case Atom(_)
+    case Atom(_, _)
        | Named(_, _)
        | Disjunction(_) | Conjunction(_) // https://github.com/japgolly/nyaya/issues/11
        | Implication(_, _)
@@ -110,7 +112,7 @@ sealed abstract class Logic[P[_], A] {
     case Conjunction(ls)               => Disjunction(ls.map(~_))
     case Biconditional(Negation(p), q) => p ⇔ q
     case Biconditional(p, q)           => p ⇔ ~q
-    case Atom(_)
+    case Atom(_, _)
       | Implication(_, _)
       | Reduction(_, _)                => Negation(this)
     //case Implication(a, c)           => a ∧ ~c
@@ -119,7 +121,7 @@ sealed abstract class Logic[P[_], A] {
   final def rename(n: => String): Logic[P, A] = this match {
     case Named(_, l)         => Named(Need(n), l)
     case Mapped(m, l)        => Mapped(m, l rename n)
-    case Atom(_)
+    case Atom(_, _)
        | Negation(_)
        | Conjunction(_)
        | Disjunction(_)
@@ -129,7 +131,7 @@ sealed abstract class Logic[P[_], A] {
   }
 
   final def run(x: P[A] => Eval)(implicit F: Contravariant[P]): Eval = this match {
-    case Atom(fa)            => x(fa)
+    case Atom(_, fa)         => x(fa)
     case Named(n, l)         => l.run(x).rename(n)
     case Mapped(m, l)        => l.run(fb => x(F.contramap(fb)(m)))
     case Implication(a, c)   => Logic.bibool(x, a, c)(_ + " ⇒ "+ _, !_ || _ , "Implication failed.")

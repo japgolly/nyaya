@@ -34,8 +34,10 @@ object Eval {
   def fail(name: => String, reason: String, input: Any = ()): EvalL =
     atom(name, input, Some(reason))
 
-  def atom(name: => String, input: Any, failure: FailureReasonO): EvalL =
-    Atom[Eval_, Nothing](Eval(Need(name), Input(input), failure.fold(root)(root.add(_, Nil))))
+  def atom(name: => String, input: Any, failure: FailureReasonO): EvalL = {
+    val n = Need(name)
+    Atom[Eval_, Nothing](Some(n), Eval(n, Input(input), failure.fold(root)(root.add(_, Nil))))
+  }
 
   def test(name: => String, input: Any, t: Boolean): EvalL =
     atom(name, input, Prop.reasonBool(t, input))
@@ -73,8 +75,10 @@ object Eval {
   def distinctC[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
     distinct(name, input, as.toStream)
 
+  def distinctName(name: => String) = s"each $name is unique"
+
   def distinct[A](name: => String, input: Any, as: Stream[A]): EvalL =
-    atom(s"each $name is unique", input, {
+    atom(distinctName(name), input, {
       val dups = (Map.empty[A, Int] /: as)((q, a) => q + (a -> (q.getOrElse(a, 0) + 1))).filter(_._2 > 1)
       if (dups.isEmpty)
         None
@@ -140,7 +144,7 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
   def rename(f: Name => Name): Eval    = copy(name = f(name))
   def success                : Boolean = failures.isEmpty
   def failure                : Boolean = !success
-  def liftL                  : EvalL   = Atom[Eval_, Nothing](this)
+  def liftL                  : EvalL   = Atom[Eval_, Nothing](Some(name), this)
 
   lazy val reasonsAndCauses =
     failures.m.mapValues(_.flatten)

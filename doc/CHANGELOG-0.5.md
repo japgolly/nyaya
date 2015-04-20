@@ -10,6 +10,7 @@
   * `unicodeString1`
 * Added `.string{,1}` to `Char`, `List[Char]`, `NonEmptyList[Char]` generators.
 * Contramap doesn't distribute over conjunctions or disjunctions. (Better performance).
+* Propagate names to Atom where possible.
 
 ## 0.5.10 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.9...v0.5.10))
 

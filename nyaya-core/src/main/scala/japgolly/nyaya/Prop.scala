@@ -2,7 +2,7 @@ package japgolly.nyaya
 
 import scala.annotation.elidable
 import scala.collection.GenTraversable
-import scalaz.{\/, Equal, Foldable, Contravariant}
+import scalaz.{\/, Equal, Foldable, Contravariant, Need}
 import scalaz.syntax.equal._
 
 final class PropA[A] private[nyaya](val t: A => EvalL)
@@ -20,13 +20,16 @@ object Prop {
     test(name, _ => true)
 
   def fail[A](name: => String, reason: String): Prop[A] =
-    eval(a => Eval.fail(name, reason, a))
+    evaln(name, a => Eval.fail(name, reason, a))
 
   def atom[A](name: => String, t: A => FailureReasonO): Prop[A] =
-    eval(a => Eval.atom(name, a, t(a)))
+    evaln(name, a => Eval.atom(name, a, t(a)))
 
   def eval[A](q: A => EvalL): Prop[A] =
-    Atom[PropA, A](new PropA(q))
+    Atom[PropA, A](None, new PropA(q))
+
+  def evaln[A](name: => String, q: A => EvalL): Prop[A] =
+    Atom[PropA, A](Some(Need(name)), new PropA(q))
 
   def run[A](l: Prop[A])(a: A): Eval =
     l.run(p => Eval.run(p.t(a)))
@@ -46,7 +49,7 @@ object Prop {
   }
 
   def either[A, B](name: => String, f: A => String \/ B)(p: Prop[B]): Prop[A] =
-    eval(a => Eval.either(name, a, f(a))(p(_).liftL))
+    evaln(name, a => Eval.either(name, a, f(a))(p(_).liftL))
 
   def reason(b: Boolean, r: => String): FailureReasonO =
     if (b) None else Some(r)
@@ -77,7 +80,7 @@ object Prop {
     distinct[B](name).contramap(f(_).toStream)
 
   def distinct[A](name: => String): Prop[Stream[A]] =
-    eval(as => Eval.distinct(name, as, as))
+    evaln(Eval distinctName name, as => Eval.distinct(name, as, as))
 
   /**
    * Test that all of A's Cs are on a whitelist.
@@ -85,7 +88,7 @@ object Prop {
   @inline def whitelist[A](name: String) = new WhitelistB[A](name)
   final class WhitelistB[A](val name: String) extends AnyVal {
     def apply[B, C](whitelist: A => Set[B], testData: A => Traversable[C])(implicit ev: C <:< B): Prop[A] =
-      eval(a => Eval.whitelist(name, a, whitelist(a), testData(a)))
+      evaln(s"$name whitelist", a => Eval.whitelist(name, a, whitelist(a), testData(a)))
   }
 
   /**
@@ -94,7 +97,7 @@ object Prop {
   @inline def blacklist[A](name: String) = new BlacklistB[A](name)
   final class BlacklistB[A](val name: String) extends AnyVal {
     def apply[B, C](blacklist: A => Set[B], testData: A => Traversable[C])(implicit ev: C <:< B): Prop[A] =
-      eval(a => Eval.blacklist(name, a, blacklist(a), testData(a)))
+      evaln(s"$name blacklist", a => Eval.blacklist(name, a, blacklist(a), testData(a)))
   }
 
   /**
@@ -103,6 +106,6 @@ object Prop {
   @inline def allPresent[A](name: String) = new AllPresentB[A](name)
   final class AllPresentB[A](val name: String) extends AnyVal {
     def apply[B, C](requiredSubset: A => Set[B], testData: A => Traversable[C])(implicit ev: B <:< C): Prop[A] =
-      eval(a => Eval.allPresent(name, a, requiredSubset(a), testData(a)))
+      evaln(s"$name allPresent", a => Eval.allPresent(name, a, requiredSubset(a), testData(a)))
   }
 }
