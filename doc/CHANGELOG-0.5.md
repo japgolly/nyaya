@@ -1,5 +1,10 @@
 ## 0.5.11 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.10...v0.5.11))
 
+* `Domain` learned:
+  * `array`
+  * `list`
+  * `seq`
+  * `vector`
 * Added `.string{,1}` to `Char`, `List[Char]`, `NonEmptyList[Char]` generators.
 
 ## 0.5.10 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.9...v0.5.10))
