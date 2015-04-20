@@ -94,10 +94,9 @@ sealed abstract class Logic[P[_], A] {
   final def contramap[B](f: B => A): Logic[P, B] = this match {
     case Mapped(m, l)        => Mapped(m compose f, l)
     case Negation(l)         => Negation(l contramap f)
-    case Disjunction(ls)     => Disjunction(ls.map(_ contramap f))
-    case Conjunction(ls)     => Conjunction(ls.map(_ contramap f))
     case Atom(_)
        | Named(_, _)
+       | Disjunction(_) | Conjunction(_) // https://github.com/japgolly/nyaya/issues/11
        | Implication(_, _)
        | Reduction(_, _)
        | Biconditional(_, _) => Mapped(f, this)
