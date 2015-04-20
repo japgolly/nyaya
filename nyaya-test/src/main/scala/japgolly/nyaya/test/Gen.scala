@@ -1,5 +1,7 @@
 package japgolly.nyaya.test
 
+import java.nio.charset.Charset
+
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.NumericRange
 import com.nicta.rng.{Rng, Size}
@@ -246,6 +248,19 @@ object Gen {
     Rng.int.flatMap(a => Rng.int.map(b =>
       (a.toLong << 32) | b.toLong
     ))
+
+  val utf16 = Charset.forName("UTF-16")
+  def unicodestring: GenS[String] = byte.list.map(mkUnicodeString)
+  def unicodestring1: GenS[String] = byte.list1.map(b => mkUnicodeString(b.list))
+  def mkUnicodeString(bs: List[Byte]): String = new String(bs.toArray, utf16)
+
+//  def codepoint: Gen[Int] = chooseint(0, 0x10ffff)
+//  def unicodestring: GenS[String] = codepoint.list map mkUnicodeString
+//  def unicodestring1: GenS[String] = codepoint.list1.map(l => mkUnicodeString(l.list))
+//  def mkUnicodeString(is: List[Int]): String = {
+//    val a = is.toArray
+//    new String(a, 0, a.length)
+//  }
 
   // -------------------------------------------------------------------------------------------------------------------
 
