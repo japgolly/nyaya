@@ -107,7 +107,7 @@ case class Foo(a: Int, b: String) {
 * When building random data generators, under the covers, this uses [NICTA/rng](https://github.com/NICTA/rng).
 * I find NICTA/rng combinators ***immensely*** powerful and easy and powerful to work with, much better than typeclasses. As such, many useful combinators have been added as this project was used for real.
 * I've never been a fan of `Gen` and `Arbitrary` in ScalaCheck. This has `Gen` but no `Arbitrary`. If you want to use this library and want implicits, using implicit `Gen`s by yourself will suffice.
-* No `suchThat` or filtering available. Don't generate data just to throw it away, no, write an accurate generator. If a number is too large then keep halving it until its not. There are better ways than throw-away-retry.
+* No `suchThat` or filtering available. Don't generate data just to throw it away. Instead, write an accurate generator. If a number is too large then keep halving it until its not. There are better ways than throw-away-retry.
 
 ##### Example
 Say we have these data types
@@ -119,7 +119,7 @@ Say we have these data types
 Generators for each are:
 ```scala
   lazy val id: Gen[Id] =
-    Gen.positiveint map Id.apply
+    Gen.positiveInt map Id.apply
   
   lazy val blah: Gen[Blah] =
     Gen.apply2(Blah.apply)(
