@@ -2,7 +2,7 @@ package japgolly.nyaya.test
 
 import japgolly.nyaya.util.{MultiValues, Multimap}
 import monocle._
-import scalaz.{NonEmptyList, Foldable, State}
+import scalaz.{NonEmptyList, Foldable, State, Traverse}
 import scalaz.Leibniz.===
 import scalaz.std.stream._
 import scalaz.syntax.foldable._
@@ -43,6 +43,18 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
   @inline final def at[M, N](l: PPrism[M, N, A, B]): Distinct[M, X, H, Y, Z, N] =
     at(l.asOptional)
 
+  def at[M, N](l: PTraversal[M, N, A, B]): Distinct[M, X, H, Y, Z, N] =
+    dimaps[M, N](m => a_sb => State { h0 =>
+      var h = h0
+      val n =
+        l.modify(a => {
+          val (h2, b) = a_sb(a).run(h)
+          h = h2
+          b
+        })(m)
+      (h, n)
+    })
+
   @inline final def contramap[C](f: C => A, g: (C, B) => C): Distinct[C, X, H, Y, Z, C] =
     dimap(f, g)
 
@@ -63,6 +75,9 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
         })
       (h, fb)
     })
+
+  def liftT[F[_] : Traverse]: Distinct[F[A], X, H, Y, Z, F[B]] =
+    at(PTraversal.fromTraverse[F, A, B])
 
   def liftL[R]: Distinct[(A, R), X, H, Y, Z, (B, R)] =
     dimap[(A, R), (B, R)](_._1, (a, b) => (b, a._2))

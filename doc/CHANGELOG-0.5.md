@@ -2,6 +2,8 @@
 
 * `Distinct` learned:
   * `liftMultimapValues`
+  * `liftT`
+  * `at(PTraversal)`
 * Speed up `Distinct.lift`.
 
 * Upgraded Scala.JS to 0.6.3.
