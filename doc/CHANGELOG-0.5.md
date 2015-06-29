@@ -1,3 +1,9 @@
+## 0.5.12 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.11...v0.5.12))
+
+* `Distinct` learned:
+  * `liftMultimapValues`
+
+
 ## 0.5.11 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.10...v0.5.11))
 
 * `Domain` learned:

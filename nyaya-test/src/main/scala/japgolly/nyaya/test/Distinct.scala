@@ -1,5 +1,6 @@
 package japgolly.nyaya.test
 
+import japgolly.nyaya.util.{MultiValues, Multimap}
 import monocle._
 import scalaz.{NonEmptyList, Foldable, State}
 import scalaz.Leibniz.===
@@ -68,6 +69,11 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
 
   def liftMapValues[K]: Distinct[Map[K, A], X, H, Y, Z, Map[K, B]] =
     liftR[K].lift[Stream].dimap[Map[K, A], Map[K, B]](_.toStream, (_, l) => l.toMap)
+
+  def liftMultimapValues[K, L[_], VA, VB]
+        (implicit l: MultiValues[L], va: Map[K, L[VA]] =:= Map[K, A], vb: Map[K, B] =:= Map[K, L[VB]])
+        : Distinct[Multimap[K, L, VA], X, H, Y, Z, Multimap[K, L, VB]] =
+    liftMapValues[K].dimap[Multimap[K, L, VA], Multimap[K, L, VB]](x => va(x.m), (_, x) => Multimap(vb(x)))
 
   def compose[M](f: Distinct[M, X, H, Y, Z, A]): Distinct[M, X, H, Y, Z, B] =
     f + this
