@@ -53,13 +53,16 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
     Distinct[M, X, H, Y, Z, N](fixer, m => x_sz => f(m)(a => t(a)(x_sz)))
 
   def lift[F[_] : Foldable : Baggy]: Distinct[F[A], X, H, Y, Z, F[B]] =
-    dimaps[F[A], F[B]](fa => ab => State(h0 =>
-      fa.foldl((h0, implicitly[Baggy[F]].empty[B]))(q => a => {
-        val (h1, fb) = q
-        val (h2, b) = ab(a).run(h1)
-        (h2, fb + b)
-      })
-    ))
+    dimaps[F[A], F[B]](fa => ab => State { h0 =>
+      var h = h0
+      val fb =
+        fa.foldl(implicitly[Baggy[F]].empty[B])(q => a => {
+          val (h2, b) = ab(a).run(h)
+          h = h2
+          q + b
+        })
+      (h, fb)
+    })
 
   def liftL[R]: Distinct[(A, R), X, H, Y, Z, (B, R)] =
     dimap[(A, R), (B, R)](_._1, (a, b) => (b, a._2))
