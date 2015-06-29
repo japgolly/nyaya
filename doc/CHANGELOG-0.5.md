@@ -3,6 +3,7 @@
 * `Distinct` learned:
   * `liftMultimapValues`
 
+* Upgraded Scala.JS to 0.6.3.
 
 ## 0.5.11 ([commit log](https://github.com/japgolly/nyaya/compare/v0.5.10...v0.5.11))
 
