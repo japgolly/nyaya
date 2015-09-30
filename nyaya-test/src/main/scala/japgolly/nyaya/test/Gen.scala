@@ -13,7 +13,7 @@ class Gen[A](val f: GenSize => Rng[A]) {
     f(gs).fill(ss.value).map(EphemeralStream(_: _*))
 
   def map     [B](g: A => B)           = new Gen[B](s => f(s) map g)
-  def mapr    [B](g: Rng[A] => Rng[B]) = new Gen[B](g compose f)
+  def mapR    [B](g: Rng[A] => Rng[B]) = new Gen[B](g compose f)
   def flatMap [B](g: A => Gen[B])      = new Gen[B](s => f(s).flatMap(a => g(a).f(s)))
   def flatMapS[B](g: A => GenS[B])     = new GenS[B](s => f(s).flatMap(a => g(a).f(s)))
 
@@ -30,10 +30,10 @@ class Gen[A](val f: GenSize => Rng[A]) {
   private def sizeOp[B, C](g: Rng[A] => Size => Rng[B], h: B => C): GenS[C] =
     new GenS(s => g(f(s))(s.value) map h)
 
-  private def combrng[B, C](b: Gen[B], c: (Rng[A], Rng[B]) => Rng[C]): Gen[C] =
+  private def combineRng[B, C](b: Gen[B], c: (Rng[A], Rng[B]) => Rng[C]): Gen[C] =
     new Gen(s => c(f(s), b.f(s)))
 
-  def fill(n: Int): Gen[List[A]]             = mapr(_ fill n)
+  def fill(n: Int): Gen[List[A]]             = mapR(_ fill n)
   def list        : GenS[List[A]]            = sizeOp(_.list)
   def list1       : GenS[NonEmptyList[A]]    = sizeOp(_.list1)
   def set         : GenS[Set[A]]             = sizeOp(_.list, (_: List[A]).toSet)
@@ -44,20 +44,20 @@ class Gen[A](val f: GenSize => Rng[A]) {
   def estream1    : GenS[EphemeralStream[A]] = estream.flatMap(s => this.map(_ ##:: s))
   def stream      : GenS[Stream[A]]          = estream.map(_.toStream)
   def stream1     : GenS[Stream[A]]          = stream.flatMap(s => this.map(_ #:: s))
-  def option      : Gen[Option[A]]           = mapr(_.option)
-  def pair        : Gen[(A, A)]              = mapr(r => Rng.pair(r, r))
-  def triple      : Gen[(A, A, A)]           = mapr(r => Rng.triple(r, r, r))
+  def option      : Gen[Option[A]]           = mapR(_.option)
+  def pair        : Gen[(A, A)]              = mapR(r => Rng.pair(r, r))
+  def triple      : Gen[(A, A, A)]           = mapR(r => Rng.triple(r, r, r))
 
-  def ***       [X](x: Gen[X]): Gen[(A, X)]       = combrng[X, (A, X)](x, _ *** _)
-  def \/        [X](x: Gen[X]): Gen[A \/ X]       = combrng[X, A \/ X](x, _ \/ _)
-  def +++       [X](x: Gen[X]): Gen[A \/ X]       = combrng[X, A \/ X](x, _ +++ _)
-  def validation[X](x: Gen[X]): Gen[A \?/ X]      = combrng[X, A \?/ X](x, _ validation _)
-  def \?/       [X](x: Gen[X]): Gen[A \?/ X]      = combrng[X, A \?/ X](x, _ \?/ _)
-  def either    [X](x: Gen[X]): Gen[Either[A, X]] = combrng[X, Either[A, X]](x, _ eitherS _)
+  def ***       [X](x: Gen[X]): Gen[(A, X)]       = combineRng[X, (A, X)](x, _ *** _)
+  def \/        [X](x: Gen[X]): Gen[A \/ X]       = combineRng[X, A \/ X](x, _ \/ _)
+  def +++       [X](x: Gen[X]): Gen[A \/ X]       = combineRng[X, A \/ X](x, _ +++ _)
+  def validation[X](x: Gen[X]): Gen[A \?/ X]      = combineRng[X, A \?/ X](x, _ validation _)
+  def \?/       [X](x: Gen[X]): Gen[A \?/ X]      = combineRng[X, A \?/ X](x, _ \?/ _)
+  def either    [X](x: Gen[X]): Gen[Either[A, X]] = combineRng[X, Either[A, X]](x, _ eitherS _)
 
   def \&/[X](that: Gen[X]): Gen[A \&/ X] = {
     import scalaz.\&/._
-    Gen.oneofG(
+    Gen.oneOfG(
       this.map(This.apply),
       that.map(That.apply),
       flatMap(a => that.map(b => Both(a, b))))
@@ -94,7 +94,7 @@ class Gen[A](val f: GenSize => Rng[A]) {
       Gen.insert(new ArrayBuffer[T] ++= xs).flatMap { buf =>
         var g = Gen.insert(buf)
         for (n <- buf.length to 2 by -1) {
-          g = g.flatMap(buf => Gen.chooseint(0, n - 1).map(k => swap(buf, n - 1, k)))
+          g = g.flatMap(buf => Gen.chooseInt(0, n - 1).map(k => swap(buf, n - 1, k)))
         }
         g.map(buf => (bf(xs) ++= buf).result())
       }
@@ -109,7 +109,7 @@ class GenS[A](f: GenSize => Rng[A]) extends Gen(f) {
   }
 
   override def map    [B](g: A => B)           = new GenS[B](s => f(s) map g)
-  override def mapr   [B](g: Rng[A] => Rng[B]) = new GenS[B](g compose f)
+  override def mapR   [B](g: Rng[A] => Rng[B]) = new GenS[B](g compose f)
   override def flatMap[B](g: A => Gen[B])      = new GenS[B](s => f(s).flatMap(a => g(a).f(s)))
 
   def sup: Gen[A] = this
@@ -120,12 +120,12 @@ object GenS {
     new GenS[A](sz => g(sz).f(sz))
 
   /** Returns a number from 0 up to GenSize. [0,GenSize) */
-  def choosesize: GenS[Int] =
+  def chooseSize: GenS[Int] =
     GenS(sz =>
       if (sz.value <= 0)
         Gen.insert(sz.value)
       else
-        Gen.chooseint(0, sz.value - 1))
+        Gen.chooseInt(0, sz.value - 1))
 
 }
 
@@ -157,21 +157,21 @@ object Gen {
   def short          : Gen[Short]   = Rng.short.gen
   def unit           : Gen[Unit]    = Rng.unit.gen
   def boolean        : Gen[Boolean] = Rng.boolean.gen
-  def positivedouble : Gen[Double]  = Rng.positivedouble.gen
-  def negativedouble : Gen[Double]  = Rng.negativedouble.gen
-  def positivefloat  : Gen[Float]   = Rng.positivefloat.gen
-  def negativefloat  : Gen[Float]   = Rng.negativefloat.gen
-  def positivelong   : Gen[Long]    = Rng.positivelong.gen
-  def negativelong   : Gen[Long]    = Rng.negativelong.gen
-  def positiveint    : Gen[Int]     = Rng.positiveint.gen
-  def negativeint    : Gen[Int]     = Rng.negativeint.gen
+  def positiveDouble : Gen[Double]  = Rng.positivedouble.gen
+  def negativeDouble : Gen[Double]  = Rng.negativedouble.gen
+  def positiveFloat  : Gen[Float]   = Rng.positivefloat.gen
+  def negativeFloat  : Gen[Float]   = Rng.negativefloat.gen
+  def positiveLong   : Gen[Long]    = Rng.positivelong.gen
+  def negativeLong   : Gen[Long]    = Rng.negativelong.gen
+  def positiveInt    : Gen[Int]     = Rng.positiveint.gen
+  def negativeInt    : Gen[Int]     = Rng.negativeint.gen
   def digit          : Gen[Digit]   = Rng.digit.gen
   def numeric        : Gen[Char]    = Rng.numeric.gen
   def char           : Gen[Char]    = Rng.char.gen
   def upper          : Gen[Char]    = Rng.upper.gen
   def lower          : Gen[Char]    = Rng.lower.gen
   def alpha          : Gen[Char]    = Rng.alpha.gen
-  def alphanumeric   : Gen[Char]    = Rng.alphanumeric.gen
+  def alphaNumeric   : Gen[Char]    = Rng.alphanumeric.gen
 
   def digits              : GenS[List[Digit]]         = lift(Rng.digits)
   def digits1             : GenS[NonEmptyList[Digit]] = lift(Rng.digits1)
@@ -185,37 +185,37 @@ object Gen {
   def lowers1             : GenS[NonEmptyList[Char]]  = lift(Rng.lowers1)
   def alphas              : GenS[List[Char]]          = lift(Rng.alphas)
   def alphas1             : GenS[NonEmptyList[Char]]  = lift(Rng.alphas1)
-  def alphanumerics       : GenS[List[Char]]          = lift(Rng.alphanumerics)
-  def alphanumerics1      : GenS[NonEmptyList[Char]]  = lift(Rng.alphanumerics1)
+  def alphaNumerics       : GenS[List[Char]]          = lift(Rng.alphanumerics)
+  def alphaNumerics1      : GenS[NonEmptyList[Char]]  = lift(Rng.alphanumerics1)
   def string              : GenS[String]              = lift(Rng.string)
   def string1             : GenS[String]              = lift(Rng.string1)
-  def upperstring         : GenS[String]              = lift(Rng.upperstring)
-  def upperstring1        : GenS[String]              = lift(Rng.upperstring1)
-  def lowerstring         : GenS[String]              = lift(Rng.lowerstring)
-  def lowerstring1        : GenS[String]              = lift(Rng.lowerstring1)
-  def alphastring         : GenS[String]              = lift(Rng.alphastring)
-  def alphastring1        : GenS[String]              = lift(Rng.alphastring1)
-  def numericstring       : GenS[String]              = lift(Rng.numericstring)
-  def numericstring1      : GenS[String]              = lift(Rng.numericstring1)
-  def alphanumericstring  : GenS[String]              = lift(Rng.alphanumericstring)
-  def alphanumericstring1 : GenS[String]              = lift(Rng.alphanumericstring1)
+  def upperString         : GenS[String]              = lift(Rng.upperstring)
+  def upperString1        : GenS[String]              = lift(Rng.upperstring1)
+  def lowerString         : GenS[String]              = lift(Rng.lowerstring)
+  def lowerString1        : GenS[String]              = lift(Rng.lowerstring1)
+  def alphaSstring         : GenS[String]              = lift(Rng.alphastring)
+  def alphaString1        : GenS[String]              = lift(Rng.alphastring1)
+  def numericSstring       : GenS[String]              = lift(Rng.numericstring)
+  def numericString1      : GenS[String]              = lift(Rng.numericstring1)
+  def alphanumericString  : GenS[String]              = lift(Rng.alphanumericstring)
+  def alphanumericString1 : GenS[String]              = lift(Rng.alphanumericstring1)
   def identifier          : GenS[NonEmptyList[Char]]  = lift(Rng.identifier)
-  def identifierstring    : GenS[String]              = lift(Rng.identifierstring)
-  def propernoun          : GenS[NonEmptyList[Char]]  = lift(Rng.propernoun)
-  def propernounstring    : GenS[String]              = lift(Rng.propernounstring)
+  def identifierString    : GenS[String]              = lift(Rng.identifierstring)
+  def properNoun          : GenS[NonEmptyList[Char]]  = lift(Rng.propernoun)
+  def properNounString    : GenS[String]              = lift(Rng.propernounstring)
 
   def insert[A]    (a: A)                  : Gen[A]      = Rng.insert(a).gen
   /** Args are inclusive. [l,h] */
-  def chooselong   (l: Long, h: Long)      : Gen[Long]   = Rng.chooselong(l,h).gen
+  def chooseLong   (l: Long, h: Long)      : Gen[Long]   = Rng.chooselong(l,h).gen
   /** Args are inclusive. [l,h] */
-  def choosedouble (l: Double, h: Double)  : Gen[Double] = Rng.choosedouble(l,h).gen
+  def chooseDouble (l: Double, h: Double)  : Gen[Double] = Rng.choosedouble(l,h).gen
   /** Args are inclusive. [l,h] */
-  def choosefloat  (l: Float, h: Float)    : Gen[Float]  = Rng.choosefloat(l,h).gen
+  def chooseFloat  (l: Float, h: Float)    : Gen[Float]  = Rng.choosefloat(l,h).gen
   /** Args are inclusive. [l,h] */
-  def chooseint    (l: Int, h: Int)        : Gen[Int]    = Rng.chooseint(l,h).gen
-  def oneofL[A]    (x: NonEmptyList[A])    : Gen[A]      = Rng.oneofL(x).gen
-  def oneof[A]     (a: A, as: A*)          : Gen[A]      = Rng.oneof(a, as: _*).gen
-  def oneofV[A]    (x: OneAnd[Vector, A])  : Gen[A]      = Rng.oneofV(x).gen
+  def chooseInt    (l: Int, h: Int)        : Gen[Int]    = Rng.chooseint(l,h).gen
+  def oneOfL[A]    (x: NonEmptyList[A])    : Gen[A]      = Rng.oneofL(x).gen
+  def oneOf[A]     (a: A, as: A*)          : Gen[A]      = Rng.oneof(a, as: _*).gen
+  def oneOfV[A]    (x: OneAnd[Vector, A])  : Gen[A]      = Rng.oneofV(x).gen
 
   def pair[A, B](A: Gen[A], B: Gen[B]): Gen[(A, B)] = tuple2(A, B)
   def triple[A, B, C](A: Gen[A], B: Gen[B], C: Gen[C]): Gen[(A, B, C)] = tuple3(A, B, C)
@@ -250,11 +250,11 @@ object Gen {
     ))
 
   val utf16 = Charset.forName("UTF-16")
-  def unicodestring: GenS[String] = byte.list.map(mkUnicodeString)
-  def unicodestring1: GenS[String] = byte.list1.map(b => mkUnicodeString(b.list))
+  def unicodeString: GenS[String] = byte.list.map(mkUnicodeString)
+  def unicodeString1: GenS[String] = byte.list1.map(b => mkUnicodeString(b.list))
   def mkUnicodeString(bs: List[Byte]): String = new String(bs.toArray, utf16)
 
-//  def codepoint: Gen[Int] = chooseint(0, 0x10ffff)
+//  def codepoint: Gen[Int] = chooseInt(0, 0x10ffff)
 //  def unicodestring: GenS[String] = codepoint.list map mkUnicodeString
 //  def unicodestring1: GenS[String] = codepoint.list1.map(l => mkUnicodeString(l.list))
 //  def mkUnicodeString(is: List[Int]): String = {
@@ -264,25 +264,25 @@ object Gen {
 
   // -------------------------------------------------------------------------------------------------------------------
 
-  def oneofG[A](a: Gen[A], as: Gen[A]*): Gen[A] =
+  def oneOfG[A](a: Gen[A], as: Gen[A]*): Gen[A] =
     Rng.oneof(a, as: _*).gen flatMap identity
 
-  def oneofGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] =
+  def oneOfGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] =
     Rng.oneofL(gs).gen flatMap identity
 
-  def charof(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] =
-    oneof(ev, rs.foldLeft(s.to[Seq])(_ ++ _.toSeq): _*)
+  def charOf(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] =
+    oneOf(ev, rs.foldLeft(s.to[Seq])(_ ++ _.toSeq): _*)
 
-  def oneofSeq[A](as: Seq[A]): Gen[Option[A]] =
+  def oneOfSeq[A](as: Seq[A]): Gen[Option[A]] =
     as.headOption.fold[Gen[Option[A]]](
       Gen insert None)(
-      Gen.oneof(_, as.tail: _*).option)
+      Gen.oneOf(_, as.tail: _*).option)
 
-  def oneofO[A](as: Seq[A]): Option[Gen[A]] =
+  def oneOfO[A](as: Seq[A]): Option[Gen[A]] =
     if (as.isEmpty)
       None
     else
-      Some(oneof(as.head, as.tail: _*))
+      Some(oneOf(as.head, as.tail: _*))
 
   /** Provides random subsets of the input set.
     * Randomly deletes elements. */
@@ -304,7 +304,7 @@ object Gen {
       if (l.isEmpty)
         n
       else
-        Gen.oneofL(NonEmptyList.nel(l.head, l.tail))
+        Gen.oneOfL(NonEmptyList.nel(l.head, l.tail))
     }
     Gen.boolean.flatMap(b => if (b) n else o)
   }

@@ -38,6 +38,6 @@ object GenTest extends TestSuite {
       assertType[Gen[String]]((null: Gen[List[Char]]).string)
       assertType[Gen[String]]((null: Gen[NonEmptyList[Char]]).string1)
     }
-    'unicodeString - Gen.unicodestring.mustSatisfy(validUnicode)// (DefaultSettings.propSettings.setSampleSize(500000))
+    'unicodeString - Gen.unicodeString.mustSatisfy(validUnicode)// (DefaultSettings.propSettings.setSampleSize(500000))
   }
 }
