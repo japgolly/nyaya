@@ -9,8 +9,5 @@ package japgolly.nyaya.test
 object DefaultSettings {
 
   implicit val propSettings =
-    Settings(
-      executor   = ParallelExecutor(),
-      sampleSize = SampleSize(100),
-      genSize    = GenSize(200))
+    Settings(executor = ParallelExecutor())
 }

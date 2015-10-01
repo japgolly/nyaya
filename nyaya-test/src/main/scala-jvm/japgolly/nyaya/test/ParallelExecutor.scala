@@ -9,7 +9,7 @@ import Executor.{DataCtx, Data}
 // TODO data SampleSize = TotalSamples(n) | Fn(qty|%, gensize|%) | PerWorker(sampleSize)
 
 object ParallelExecutor {
-  def defaultThreadCount = 1.max(Runtime.getRuntime.availableProcessors - 1)
+  val defaultThreadCount = 1.max(Runtime.getRuntime.availableProcessors - 1)
 
   def merge[A](a: RunState[A], b: RunState[A]): RunState[A] = {
     val runs = a.runs max b.runs

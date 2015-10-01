@@ -25,7 +25,7 @@ final case class SampleSize(value: Int) {
 case class Settings(
   executor   : Executor          = SingleThreadedExecutor,
   sizeDist   : Settings.SizeDist = Seq(1 → \/-(GenSize(4)), 1 → -\/(0.2), 8 → -\/(0.8)),
-  sampleSize : SampleSize        = SampleSize(100),
+  sampleSize : SampleSize        = SampleSize(96),
   genSize    : GenSize           = GenSize(40),
   seed       : Option[Long]      = None,
   debug      : Boolean           = false,
