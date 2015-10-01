@@ -300,17 +300,19 @@ object Gen {
     i.toChar
   }
 
-  private val charsNumeric      = ('0' to '9').toArray
-  private val charsUpper        = ('A' to 'Z').toArray
-  private val charsLower        = ('a' to 'z').toArray
-  private val charsAlpha        = charsUpper ++ charsLower
-  private val charsAlphaNumeric = charsAlpha ++ charsNumeric
+  private[this] val charsNumeric      = ('0' to '9').toArray
+  private[this] val charsUpper        = ('A' to 'Z').toArray
+  private[this] val charsLower        = ('a' to 'z').toArray
+  private[this] val charsAlpha        = charsUpper ++ charsLower
+  private[this] val charsAlphaNumeric = charsAlpha ++ charsNumeric
+  private[this] val charsAscii        = (' ' to '~').toArray
 
-  def numeric     : Gen[Char] = chooseArray_!(charsNumeric)
-  def upper       : Gen[Char] = chooseArray_!(charsUpper)
-  def lower       : Gen[Char] = chooseArray_!(charsLower)
-  def alpha       : Gen[Char] = chooseArray_!(charsAlpha)
-  def alphaNumeric: Gen[Char] = chooseArray_!(charsAlphaNumeric)
+  val numeric     : Gen[Char] = chooseArray_!(charsNumeric)
+  val upper       : Gen[Char] = chooseArray_!(charsUpper)
+  val lower       : Gen[Char] = chooseArray_!(charsLower)
+  val alpha       : Gen[Char] = chooseArray_!(charsAlpha)
+  val alphaNumeric: Gen[Char] = chooseArray_!(charsAlphaNumeric)
+  val ascii       : Gen[Char] = chooseArray_!(charsAscii)
 
   private def mkString(cs: Gen[Char], size: Gen[Int]): Gen[String] = Gen {c =>
     var i = size run c
@@ -340,6 +342,11 @@ object Gen {
   def numericString1     (implicit ss: SizeSpec): Gen[String] = stringOf1(numeric)     (ss)
   def alphaNumericString (implicit ss: SizeSpec): Gen[String] = stringOf (alphaNumeric)(ss)
   def alphaNumericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alphaNumeric)(ss)
+  def asciiString        (implicit ss: SizeSpec): Gen[String] = stringOf (ascii)       (ss)
+  def asciiString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(ascii)       (ss)
+
+  @inline def unicodeString (implicit ss: SizeSpec): Gen[String] = string(ss)
+  @inline def unicodeString1(implicit ss: SizeSpec): Gen[String] = string1(ss)
 
   def chooseChar(c: Char, s: String, rs: NumericRange[Char]*): Gen[Char] = {
     val cs = rs.foldLeft(s.to[Vector] :+ c)(_ ++ _)
