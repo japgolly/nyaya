@@ -280,8 +280,21 @@ object Gen {
   def alpha       : Gen[Char] = chooseArray_!(charsAlpha)
   def alphaNumeric: Gen[Char] = chooseArray_!(charsAlphaNumeric)
 
-  def stringOf (cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = cs fillSS ss
-  def stringOf1(cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = cs fillSS1 ss
+  private def mkString(cs: Gen[Char], size: Gen[Int]): Gen[String] = Gen {c =>
+    var i = size run c
+    if (i == 0)
+      ""
+    else {
+      val array = new Array[Char](i)
+      while (i > 0) {
+        i -= 1
+        array(i) = cs run c
+      }
+      new String(array)
+    }
+  }
+  def stringOf (cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = mkString(cs, ss.gen)
+  def stringOf1(cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = mkString(cs, ss.gen1)
 
   def string             (implicit ss: SizeSpec): Gen[String] = stringOf (char)        (ss)
   def string1            (implicit ss: SizeSpec): Gen[String] = stringOf1(char)        (ss)
