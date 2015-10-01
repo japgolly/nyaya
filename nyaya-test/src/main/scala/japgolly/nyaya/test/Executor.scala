@@ -1,15 +1,15 @@
 package japgolly.nyaya.test
 
-import scalaz.EphemeralStream
 import japgolly.nyaya.Prop
 import PTest._
 
 object Executor {
   type DebugPrefix = String
-  type Data[A] = (SampleSize, Option[Long], DebugPrefix) => EphemeralStream[A]
+  case class DataCtx(sampleSize: SampleSize, seed: Option[Long], debugPrefix: DebugPrefix)
+  type Data[A] = DataCtx => GenDataIterator[A]
 }
 
-import Executor.Data
+import Executor.{DataCtx, Data}
 
 trait Executor {
   def run[A](p: Prop[A], g: Data[A], S: Settings): RunState[A]
@@ -18,7 +18,7 @@ trait Executor {
 
 object SingleThreadedExecutor extends Executor {
   override def run[A](p: Prop[A], g: Data[A], S: Settings): RunState[A] = {
-    val data = g(S.sampleSize, S.seed, "")
+    val data = g(DataCtx(S.sampleSize, S.seed, ""))
     var i = 0
     testN(p, data, () => {i+=1; i}, S)
   }

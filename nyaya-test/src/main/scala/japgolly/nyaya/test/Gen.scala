@@ -172,12 +172,6 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   // ------------------------------------------------------
   import scalaz._
 
-  def estream[B >: A](implicit ss: SizeSpec): Gen[EphemeralStream[B]] =
-    fillFoldSS(ss, EphemeralStream.emptyEphemeralStream[B])(_.##::(_))
-
-  def estream1[B >: A](implicit ss: SizeSpec): Gen[EphemeralStream[B]] =
-    fillFoldSS1(ss, EphemeralStream.emptyEphemeralStream[B])(_.##::(_))
-
   def nel(implicit ss: SizeSpec): Gen[NonEmptyList[A]] =
     for {h <- this; t <- list(ss)} yield NonEmptyList.nel(h, t)
 

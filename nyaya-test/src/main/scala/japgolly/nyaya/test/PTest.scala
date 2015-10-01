@@ -1,8 +1,10 @@
 package japgolly.nyaya.test
 
-import scalaz.EphemeralStream
+import scala.annotation.tailrec
+import scala.collection.generic.CanBuildFrom
 import japgolly.nyaya._
 import Executor.Data
+import GenDataIterator.BatchSize
 
 case class RunState[A](runs: Int, result: Result[A])
 object RunState {
@@ -11,44 +13,102 @@ object RunState {
   def empty[A] = RunState[A](0, Satisfied)
 }
 
+abstract class GenDataIterator[A] {
+  def hasNext: Boolean
+  def next(): A
+
+  final def nextOption(): Option[A] =
+    if (hasNext)
+      Some(next())
+    else
+      None
+
+  final def to[C[_]](implicit cbf: CanBuildFrom[Nothing, A, C[A]]): C[A] = {
+    val b = cbf()
+    while (hasNext) b += next()
+    b.result()
+  }
+
+  final def toList: List[A] = to[List]
+
+  final def toVector: Vector[A] = to[Vector]
+
+  final def toStream: Stream[A] =
+    if (hasNext)
+      Stream.cons(next(), toStream)
+    else
+      Stream.empty
+}
+
+object GenDataIterator {
+  case class BatchSize(samples: SampleSize, genSize: GenSize)
+
+  def planBatchSizes(sampleSize: SampleSize, sizeDist: Settings.SizeDist, genSize: GenSize): Vector[BatchSize] = {
+    val empty = Vector.empty[BatchSize]
+    if (sizeDist.isEmpty)
+      empty :+ BatchSize(sampleSize, genSize)
+    else {
+      var total = sizeDist.foldLeft(0)(_ + _._1)
+      var rem = sampleSize.value
+      sizeDist.foldLeft(empty) { (q, x) =>
+        val si = x._1
+        val gg = x._2
+        val gs = gg.fold[GenSize](p => genSize.map(v => (v * p + 0.5).toInt max 0), identity)
+        val ss = SampleSize((si.toDouble / total * rem + 0.5).toInt)
+        total -= si
+        rem -= ss.value
+        q :+ BatchSize(ss, gs)
+      }
+    }
+  }
+
+  def apply[A](gen: Gen[A], ctx: GenCtx, plan: Vector[BatchSize], logNewBatch: BatchSize => Unit): GenDataIterator[A] = {
+    var remainingPlan = plan
+    var remainingInThisBatch = 0
+
+    @tailrec
+    def prepareNextBatch(): Boolean =
+      if (remainingPlan.isEmpty)
+        false
+      else {
+        val bs = remainingPlan.head
+        remainingPlan = remainingPlan.tail
+        if (bs.samples.value == 0)
+          prepareNextBatch()
+        else {
+          logNewBatch(bs)
+          remainingInThisBatch = bs.samples.value
+          ctx.setGenSize(bs.genSize)
+          true
+        }
+      }
+
+    new GenDataIterator[A] {
+      override def hasNext =
+        (remainingInThisBatch > 0) || prepareNextBatch()
+
+      override def next(): A = {
+        remainingInThisBatch -= 1
+        gen run ctx
+      }
+    }
+  }
+}
+
 object PTest {
+  private[this] val dontLogNewBatch = (_: Any) => ()
 
   private[this] def prepareData[A](gen: Gen[A], sizeDist: Settings.SizeDist, genSize: GenSize, debug: Boolean): Data[A] =
-    (sampleSize, seedOption, debugPrefix) => {
+    dataCtx => {
+      val logNewBatch: (BatchSize) => Unit =
+        if (debug)
+          bs => println(s"${dataCtx.debugPrefix}Generating ${bs.samples.value} samples @ sz ${bs.genSize.value}...")
+        else
+          dontLogNewBatch
 
-      val plan: Seq[(SampleSize, GenSize)] =
-        if (sizeDist.isEmpty)
-          ((sampleSize, genSize)) :: Nil
-        else {
-          var total = sizeDist.foldLeft(0)(_ + _._1)
-          var rem = sampleSize.value
-          sizeDist.map { x =>
-            val si = x._1
-            val gg = x._2
-            val gs = gg.fold[GenSize](p => genSize.map(v => (v * p + 0.5).toInt max 0), identity)
-            val ss = SampleSize((si.toDouble / total * rem + 0.5).toInt)
-            total -= si
-            rem -= ss.value
-            (ss, gs)
-          }
-        }
-
-      val dataGen =
-        plan.foldLeft(Gen pure EphemeralStream.emptyEphemeralStream[A]) { (q, x) =>
-          val ss = x._1
-          val gs = x._2
-          Gen { c =>
-            val as = q.run(c)
-            as ++ { // ++ is non-strict
-              if (debug) println(s"${debugPrefix}Generating ${ss.value} samples @ sz ${gs.value}...")
-              c.setGenSize(gs)
-              gen.estream(ss.value).run(c)
-            }
-          }
-        }
-
-      val ctx = GenCtx(genSize, seedOption)
-      dataGen run ctx
+      val plan = GenDataIterator.planBatchSizes(dataCtx.sampleSize, sizeDist, genSize)
+      val ctx = GenCtx(genSize, dataCtx.seed)
+      GenDataIterator(gen, ctx, plan, logNewBatch)
     }
 
   def test[A](p: Prop[A], gen: Gen[A], S: Settings): RunState[A] = {
@@ -56,8 +116,7 @@ object PTest {
     S.executor.run(p, prepareData(gen, S.sizeDist, S.genSize, S.debug), S)
   }
 
-  private[test] def testN[A](p: Prop[A], data: EphemeralStream[A], runInc: () => Int, S: Settings): RunState[A] = {
-    val it = EphemeralStream.toIterable(data).iterator
+  private[test] def testN[A](p: Prop[A], it: GenDataIterator[A], runInc: () => Int, S: Settings): RunState[A] = {
     var rs = RunState.empty[A]
     while (rs.success && it.hasNext) {
       val a = try it.next() catch {case t: Throwable => t.printStackTrace(); throw t} // TODO Do better!

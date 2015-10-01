@@ -4,7 +4,7 @@ import java.util.concurrent._, atomic.AtomicInteger
 import japgolly.nyaya.Prop
 import ParallelExecutor._
 import PTest._
-import Executor.Data
+import Executor.{DataCtx, Data}
 
 // TODO data SampleSize = TotalSamples(n) | Fn(qty|%, gensize|%) | PerWorker(sampleSize)
 
@@ -46,7 +46,7 @@ case class ParallelExecutor(workers: Int = defaultThreadCount) extends Executor 
     val ai = new AtomicInteger(0)
     def task(worker: Int) = mkTask {
       val dp = debugPrefixes(worker)
-      val data = g(sss(worker), S.seed.map(_ + worker.toLong), dp)
+      val data = g(DataCtx(sss(worker), S.seed.map(_ + worker.toLong), dp))
       testN(p, data, ai.incrementAndGet, S)
     }
     runAsync2(workers, task)
