@@ -9,5 +9,5 @@ package japgolly.nyaya.test
 object DefaultSettings {
 
   implicit val propSettings =
-    Settings(genSize = GenSize(20))
+    Settings(genSize = GenSize(16))
 }
