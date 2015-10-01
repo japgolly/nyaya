@@ -35,7 +35,7 @@ object GenTest extends TestSuite {
       m  <- Gen.char.mapByEachKey(is)
     } yield (is, m)
 
-  def fillProp =
+  val fillProp =
     Prop.equal[(Int, Vector[Unit]), Int]("fill.length", _._1, _._2.length)
   val fillGen =
     for {
@@ -62,6 +62,7 @@ object GenTest extends TestSuite {
     'fill           - fillGen                                       .mustSatisfy(fillProp)
     'shuffle        - shuffleGen                                    .mustSatisfy(shuffleProp)
     'subset         - Gen.int.set.subset                            .mustSatisfy(didntCrash)
+    'subset1        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)
     'take           - Gen.int.set.take(0 to 210)                    .mustSatisfy(didntCrash)
     'mapBy          - Gen.int.mapBy(Gen.char)                       .mustSatisfy(didntCrash)
     'mapByKeySubset - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)

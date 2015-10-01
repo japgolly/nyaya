@@ -99,10 +99,23 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     Gen(c => c.srnd.shuffle(run(c)))
 
   def subset[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
+    Gen(c => Gen.runSubset(run(c), c))
+
+  /**
+   * Generates a non-empty subset, unless the underlying seq is empty (in which case this returns an empty seq too).
+   */
+  def subset1[C[X] <: IndexedSeq[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
     Gen { c =>
-      val r = cbf()
-      run(c) foreach (b => if (c.nextBit()) r += b)
-      r.result()
+      val a = run(c)
+      var r = Gen.runSubset[C, B](run(c), c)
+      if (r.isEmpty && a.nonEmpty) {
+        val b = cbf()
+        b.sizeHint(1)
+        val i = c.rnd.nextInt(a.length)
+        b += a(i)
+        r = b.result()
+      }
+      r
     }
 
   def take[C[X] <: TraversableOnce[X], B](n: SizeSpec)(implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
@@ -220,6 +233,12 @@ object Gen {
       override def bind[A, B](fa: Gen[A])(f: A => Gen[B])    : Gen[B] = fa flatMap f
       override def map[A,B](fa: Gen[A])(f: A => B)           : Gen[B] = fa map f
     }
+
+  private[Gen] def runSubset[C[X] <: TraversableOnce[X], A](as: C[A], c: GenCtx)(implicit cbf: CanBuildFrom[Nothing, A, C[A]]): C[A] = {
+    val r = cbf()
+    as foreach (b => if (c.nextBit()) r += b)
+    r.result()
+  }
 
   def setSeed(seed: Long): Gen[Unit] =
     Gen(_ setSeed seed)
@@ -407,6 +426,12 @@ object Gen {
 
   @inline def subset[A, C[X] <: TraversableOnce[X]](as: C[A])(implicit bf: CanBuildFrom[Nothing, A, C[A]]): Gen[C[A]] =
     pure(as).subset
+
+  /**
+   * Generates a non-empty subset, unless the underlying seq is empty (in which case this returns an empty seq too).
+   */
+  @inline def subset1[A, C[X] <: IndexedSeq[X]](as: C[A])(implicit bf: CanBuildFrom[Nothing, A, C[A]]): Gen[C[A]] =
+    pure(as).subset1
 
   /** Randomly either generates a new value, or chooses one from a known set. */
   def newOrOld[A](newGen: => Gen[A], old: => Seq[A]): Gen[A] = {
