@@ -423,13 +423,13 @@ object Gen {
   def chooseGen[A](a: Gen[A], as: Gen[A]*): Gen[A] =
     choose(a, as: _*).flatten
 
-  def chooseOption[A](as: Seq[A]): Gen[Option[A]] =
+  def tryChoose[A](as: Seq[A]): Gen[Option[A]] =
     if (as.isEmpty)
       pure(None)
     else
       choose_!(as).option
 
-  def tryChoose[A](as: Seq[A]): Option[Gen[A]] =
+  def tryGenChoose[A](as: Seq[A]): Option[Gen[A]] =
     if (as.isEmpty)
       None
     else
@@ -450,7 +450,7 @@ object Gen {
   /** Randomly either generates a new value, or chooses one from a known set. */
   def newOrOld[A](newGen: => Gen[A], old: => Seq[A]): Gen[A] = {
     lazy val n: Gen[A] = newGen
-    lazy val o: Gen[A] = tryChoose(old) getOrElse n
+    lazy val o: Gen[A] = tryGenChoose(old) getOrElse n
     Gen(c => (if (c.nextBit()) n else o) run c)
   }
 
