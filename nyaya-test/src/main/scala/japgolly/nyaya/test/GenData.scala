@@ -16,6 +16,10 @@ abstract class GenData[+A] {
     else
       None
 
+  final def foreach[U](f: A => U): Unit =
+    while (hasNext)
+      f(next())
+
   final def to[B](implicit cbf: CanBuildFrom[Nothing, A, B]): B = {
     val b = cbf()
     while (hasNext) b += next()
