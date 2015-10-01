@@ -17,7 +17,7 @@ sealed abstract class Result[+A] {
   }
 }
 
-case object      Satisfied                        extends Result[Nothing]
-case object      Proved                           extends Result[Nothing]
-final case class Falsified[A](a: A, f: Eval)      extends Result[A]
-final case class Error    [A](a: A, e: Throwable) extends Result[A]
+case object      Satisfied                                extends Result[Nothing]
+case object      Proved                                   extends Result[Nothing]
+final case class Falsified[A](a: A, f: Eval)              extends Result[A]
+final case class Error    [A](a: Option[A], e: Throwable) extends Result[A]

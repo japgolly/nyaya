@@ -119,9 +119,22 @@ object PTest {
   private[test] def testN[A](p: Prop[A], it: GenDataIterator[A], runInc: () => Int, S: Settings): RunState[A] = {
     var rs = RunState.empty[A]
     while (rs.success && it.hasNext) {
-      val a = try it.next() catch {case t: Throwable => t.printStackTrace(); throw t} // TODO Do better!
-      rs = RunState(runInc(), test1(p, a))
-      if (S.debug) debug1(a, rs, S)
+      val run = runInc()
+      try {
+        val a = it.next()
+
+        try {
+          rs = RunState(run, Result(a, p(a)))
+          if (S.debug) debug1(a, rs, S)
+        } catch {
+          case e: Throwable =>
+            rs = RunState(run, Error(Some(a), e))
+        }
+
+      } catch {
+        case e: Throwable =>
+          rs = RunState(run, Error(None, e))
+      }
     }
     rs
   }
@@ -141,13 +154,6 @@ object PTest {
     //if (al > 200) println()
   }
 
-  private[test] def test1[A](p: Prop[A], a: A): Result[A] =
-    try {
-      Result(a, p(a))
-    } catch {
-      case e: Throwable => Error(a, e)
-    }
-
   def prove[A](p: Prop[A], d: Domain[A], S1: Settings): RunState[A] = {
     val S = S1.copy(sampleSize = SampleSize(d.size))
     if (S.debug) println(s"\n$p\nAttempting to prove with ${d.size} values...")
@@ -165,8 +171,16 @@ object PTest {
     var i = start
     while (rs.success && i < d.size) {
       val a = d(i)
-      rs = RunState(runInc(i), test1(p, a))
-      if (S.debug) debug1(a, rs, S)
+      val run = runInc(i)
+
+      try {
+        rs = RunState(run, Result(a, p(a)))
+        if (S.debug) debug1(a, rs, S)
+      } catch {
+        case e: Throwable =>
+          rs = RunState(run, Error(Some(a), e))
+      }
+
       i += step
     }
     rs
