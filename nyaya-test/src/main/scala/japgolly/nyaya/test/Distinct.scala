@@ -64,6 +64,18 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
   def dimaps[M, N](f: M => (A => S[B]) => S[N]): Distinct[M, X, H, Y, Z, N] =
     Distinct[M, X, H, Y, Z, N](fixer, m => x_sz => f(m)(a => t(a)(x_sz)))
 
+  def traversal[S, T](traversal: PTraversal[S, T, A, B]): Distinct[S, X, H, Y, Z, T] =
+    dimaps[S, T](t => d_sd => State { h0 =>
+      var h = h0
+      val t2 =
+        traversal.modify({ data =>
+          val (h2, d2) = d_sd(data).run(h)
+          h = h2
+          d2
+        })(t)
+      (h, t2)
+    })
+
   def lift[F[_] : Foldable : Baggy]: Distinct[F[A], X, H, Y, Z, F[B]] =
     dimaps[F[A], F[B]](fa => ab => State { h0 =>
       var h = h0
