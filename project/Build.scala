@@ -27,7 +27,6 @@ object Nyaya extends Build {
     ) :+ Typical.settings("nyaya")
 
   val scalaz = Library("org.scalaz", "scalaz-core", "7.1.1").myJsFork("scalaz").jsVersion(_+"-2")
-  val rng    = Library("com.nicta",  "rng",         "1.3.0").myJsFork("nicta" ).jsVersion(_+"-2")
 
   def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.1.0").myJsFork("monocle")//.jsVersion(_+"-2")
   val monocleCore  = monocle("core")
@@ -55,6 +54,6 @@ object Nyaya extends Build {
     crossDialectProject("nyaya-test", commonSettings
       .dependsOn(coreJvm, coreJs)
       .configure(utestSettings("compile"))
-      .addLibs(monocleCore, monocleMacro % "test", rng)
+      .addLibs(monocleCore, monocleMacro % "test")
     )
 }

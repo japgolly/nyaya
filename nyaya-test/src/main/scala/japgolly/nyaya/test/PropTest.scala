@@ -56,29 +56,29 @@ trait PropTestOps {
   private[this] def fail(s: String, e: Throwable = null): Nothing =
     throw new java.lang.AssertionError(s, e)
 
-  implicit def autoToOpsPropExt  [A](p: Prop[A])   = new PropExt(p)
-  implicit def autoToOpsGenExt   [A](p: Gen[A])    = new GenExt(p)
-  implicit def autoToOpsDomainExt[A](p: Domain[A]) = new DomainExt(p)
+  @inline implicit def autoToOpsPropExt  [A](p: Prop[A])   = new PropExt(p)
+  @inline implicit def autoToOpsGenExt   [A](g: Gen[A])    = new GenExt(g.run)
+  @inline implicit def autoToOpsDomainExt[A](d: Domain[A]) = new DomainExt(d)
 }
 
 import PropTestOps._
 
-class PropExt[A](val _p: Prop[A]) extends AnyVal {
-  def mustBeSatisfiedBy         (g: Gen[A])(implicit S: Settings) = testProp(_p, g)
-  def mustBeSatisfiedBy_[B <: A](g: Gen[B])(implicit S: Settings) = testProp(_p, g.subst[A])
+class PropExt[A](private val p: Prop[A]) extends AnyVal {
+  def mustBeSatisfiedBy         (g: Gen[A])(implicit S: Settings) = testProp(p, g)
+  def mustBeSatisfiedBy_[B <: A](g: Gen[B])(implicit S: Settings) = testProp(p, g)
 
-  def mustBeProvedBy         (d: Domain[A])(implicit S: Settings) = proveProp(_p, d)
-  def mustBeProvedBy_[B <: A](d: Domain[B])(implicit S: Settings) = proveProp(_p, d.subst[A])
+  def mustBeProvedBy         (d: Domain[A])(implicit S: Settings) = proveProp(p, d)
+  def mustBeProvedBy_[B <: A](d: Domain[B])(implicit S: Settings) = proveProp(p, d.subst[A])
 }
 
-class GenExt[A](val _g: Gen[A]) extends AnyVal {
-  def mustSatisfy         (p: Prop[A])   (implicit S: Settings) = testProp(p, _g)
-  def mustSatisfyE        (f: A => EvalL)(implicit S: Settings) = testProp(Prop eval f, _g)
-  def _mustSatisfy[B >: A](p: Prop[B])   (implicit S: Settings) = testProp(p, _g.subst[B])
+class GenExt[A](private val g: Gen.Run[A]) extends AnyVal {
+  def mustSatisfy         (p: Prop[A])   (implicit S: Settings) = testProp(p, Gen(g))
+  def mustSatisfyE        (f: A => EvalL)(implicit S: Settings) = testProp(Prop eval f, Gen(g))
+  def _mustSatisfy[B >: A](p: Prop[B])   (implicit S: Settings) = testProp(p, Gen(g))
 }
 
-class DomainExt[A](val _d: Domain[A]) extends AnyVal {
-  def mustProve         (p: Prop[A])   (implicit S: Settings) = proveProp(p, _d)
-  def mustProveE        (f: A => EvalL)(implicit S: Settings) = proveProp(Prop eval f, _d)
-  def _mustProve[B >: A](p: Prop[B])   (implicit S: Settings) = proveProp(p, _d.subst[B])
+class DomainExt[A](private val d: Domain[A]) extends AnyVal {
+  def mustProve         (p: Prop[A])   (implicit S: Settings) = proveProp(p, d)
+  def mustProveE        (f: A => EvalL)(implicit S: Settings) = proveProp(Prop eval f, d)
+  def _mustProve[B >: A](p: Prop[B])   (implicit S: Settings) = proveProp(p, d.subst[B])
 }

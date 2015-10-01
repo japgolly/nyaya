@@ -1,321 +1,458 @@
 package japgolly.nyaya.test
 
-import java.nio.charset.Charset
-
+import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.immutable.NumericRange
-import com.nicta.rng.{Rng, Size}
-import scalaz._, Scalaz._, Validation._
+import scala.collection.immutable.{NumericRange, IndexedSeq}
+import scala.collection.mutable.ArrayBuffer
+import SizeSpec.DisableDefault._
 
-class Gen[A](val f: GenSize => Rng[A]) {
+final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
-  def data(gs: GenSize, ss: SampleSize): Rng[EphemeralStream[A]] =
-    f(gs).fill(ss.value).map(EphemeralStream(_: _*))
+  def map[B](f: A => B): Gen[B] =
+    Gen(f compose run)
 
-  def map     [B](g: A => B)           = new Gen[B](s => f(s) map g)
-  def mapR    [B](g: Rng[A] => Rng[B]) = new Gen[B](g compose f)
-  def flatMap [B](g: A => Gen[B])      = new Gen[B](s => f(s).flatMap(a => g(a).f(s)))
-  def flatMapS[B](g: A => GenS[B])     = new GenS[B](s => f(s).flatMap(a => g(a).f(s)))
+  def flatMap[B](f: A => Gen[B]): Gen[B] =
+    Gen(c => f(run(c)).run(c))
 
-  def subst[B >: A]    : Gen[B] = map[B](a => a)
+  def flatten[B](implicit ev: A <:< Gen[B]): Gen[B] =
+    flatMap(ev)
 
   def withFilter(p: A => Boolean): Gen[A] =
     map(a => if (p(a)) a else
-    // This seems crazy to be but it's how scala.Future does it
+    // This is what scala.Future does
       throw new NoSuchElementException("Gen.withFilter predicate is not satisfied"))
 
-  private def sizeOp[B](g: Rng[A] => Size => Rng[B]): GenS[B] =
-    new GenS(s => g(f(s))(s.value))
+  def option: Gen[Option[A]] =
+    Gen(c => if (c.nextBit()) None else Some(run(c)))
 
-  private def sizeOp[B, C](g: Rng[A] => Size => Rng[B], h: B => C): GenS[C] =
-    new GenS(s => g(f(s))(s.value) map h)
+  def pair: Gen[(A, A)] =
+    Gen(c => (run(c), run(c)))
 
-  private def combineRng[B, C](b: Gen[B], c: (Rng[A], Rng[B]) => Rng[C]): Gen[C] =
-    new Gen(s => c(f(s), b.f(s)))
-
-  def fill(n: Int): Gen[List[A]]             = mapR(_ fill n)
-  def list        : GenS[List[A]]            = sizeOp(_.list)
-  def list1       : GenS[NonEmptyList[A]]    = sizeOp(_.list1)
-  def set         : GenS[Set[A]]             = sizeOp(_.list, (_: List[A]).toSet)
-  def set1        : GenS[Set[A]]             = sizeOp(_.list1, (_: NonEmptyList[A]).list.toSet)
-  def vector      : GenS[Vector[A]]          = sizeOp(_.vector)
-  def vector1     : GenS[Vector[A]]          = vector.flatMap(s => this.map(s :+ _))
-  def estream     : GenS[EphemeralStream[A]] = sizeOp(_.stream)
-  def estream1    : GenS[EphemeralStream[A]] = estream.flatMap(s => this.map(_ ##:: s))
-  def stream      : GenS[Stream[A]]          = estream.map(_.toStream)
-  def stream1     : GenS[Stream[A]]          = stream.flatMap(s => this.map(_ #:: s))
-  def option      : Gen[Option[A]]           = mapR(_.option)
-  def pair        : Gen[(A, A)]              = mapR(r => Rng.pair(r, r))
-  def triple      : Gen[(A, A, A)]           = mapR(r => Rng.triple(r, r, r))
-
-  def ***       [X](x: Gen[X]): Gen[(A, X)]       = combineRng[X, (A, X)](x, _ *** _)
-  def \/        [X](x: Gen[X]): Gen[A \/ X]       = combineRng[X, A \/ X](x, _ \/ _)
-  def +++       [X](x: Gen[X]): Gen[A \/ X]       = combineRng[X, A \/ X](x, _ +++ _)
-  def validation[X](x: Gen[X]): Gen[A \?/ X]      = combineRng[X, A \?/ X](x, _ validation _)
-  def \?/       [X](x: Gen[X]): Gen[A \?/ X]      = combineRng[X, A \?/ X](x, _ \?/ _)
-  def either    [X](x: Gen[X]): Gen[Either[A, X]] = combineRng[X, Either[A, X]](x, _ eitherS _)
-
-  def \&/[X](that: Gen[X]): Gen[A \&/ X] = {
-    import scalaz.\&/._
-    Gen.oneOfG(
-      this.map(This.apply),
-      that.map(That.apply),
-      flatMap(a => that.map(b => Both(a, b))))
-  }
-
-  def mapBy[K](k: Gen[K]): GenS[Map[K, A]] = GenS(sz => Gen.pair(k, this).list.lim(sz.value).map(_.toMap))
-  def mapTo[V](v: Gen[V]): GenS[Map[A, V]] = v mapBy this
-
-  def mapByKeySubset[K](legalKeys: TraversableOnce[K]): Gen[Map[K, A]] =
-    Gen.subset(legalKeys).flatMap(mapByEachKey)
-
-  def mapByEachKey[K](keys: TraversableOnce[K]): Gen[Map[K, A]] =
-    Gen.insert(keys).flatMap(ks => Gen.traverse(ks.toStream)(strengthL).map(_.toMap))
+  def triple: Gen[(A, A, A)] =
+    Gen(c => (run(c), run(c), run(c)))
 
   def strengthL[B](b: B): Gen[(B, A)] = map((b, _))
   def strengthR[B](b: B): Gen[(A, B)] = map((_, b))
 
-  /** Returns a new collection of the same type in a randomly chosen order.
-    *
-    *  @return         the shuffled collection
-    */
-  def shuffle[T, CC[X] <: TraversableOnce[X]](implicit ev: A <:< CC[T], bf: CanBuildFrom[CC[T], T, CC[T]]): Gen[CC[T]] =
-    // Copied from scala.util.Random.shuffle
-    flatMap { xs =>
-      import scala.collection.mutable.ArrayBuffer
+  def ***[B](g: Gen[B]): Gen[(A, B)] =
+    for {a <- this; b <- g} yield (a, b)
 
-      @inline def swap(buf: ArrayBuffer[T], i1: Int, i2: Int): ArrayBuffer[T] = {
-        val tmp = buf(i1)
-        buf(i1) = buf(i2)
-        buf(i2) = tmp
-        buf
-      }
+  def either[B](g: Gen[B]): Gen[Either[A, B]] =
+    Gen(c => if (c.nextBit()) Left(run(c)) else Right(g run c))
 
-      Gen.insert(new ArrayBuffer[T] ++= xs).flatMap { buf =>
-        var g = Gen.insert(buf)
-        for (n <- buf.length to 2 by -1) {
-          g = g.flatMap(buf => Gen.chooseInt(0, n - 1).map(k => swap(buf, n - 1, k)))
-        }
-        g.map(buf => (bf(xs) ++= buf).result())
+  def fillFold[B](n: Int, z: B)(f: (B, A) => B): Gen[B] =
+    Gen { c =>
+      var b = z
+      var i = n
+      while (i > 0) {
+        b = f(b, run(c))
+        i -= 1
       }
+      b
     }
-}
 
-class GenS[A](f: GenSize => Rng[A]) extends Gen(f) {
-  /** Apply an upper bound to the GenSize. */
-  def lim(size: Int) = {
-    val t = GenSize(size)
-    new GenS[A](s => f(if (s.value > size) t else s))
+  @inline def fillFoldSS[B](ss: SizeSpec, z: B)(f: (B, A) => B): Gen[B] =
+    ss.gen flatMap (fillFold[B](_, z)(f))
+
+  @inline def fillFoldSS1[B](ss: SizeSpec, z: B)(f: (B, A) => B): Gen[B] =
+    ss.gen1 flatMap (fillFold[B](_, z)(f))
+
+  def fill[B](n: Int)(implicit cbf: CanBuildFrom[Nothing, A, B]): Gen[B] = {
+    if (n >= 100000)
+      println(s"WARNING: Gen.fill instructed to create very large data: n=$n")
+    Gen { c =>
+      val b = cbf()
+      var i = n
+      while (i > 0) {
+        val x = run(c)
+        b += x
+        i -= 1
+        assert(i < 10000)
+      }
+      b.result()
+    }
   }
 
-  override def map    [B](g: A => B)           = new GenS[B](s => f(s) map g)
-  override def mapR   [B](g: Rng[A] => Rng[B]) = new GenS[B](g compose f)
-  override def flatMap[B](g: A => Gen[B])      = new GenS[B](s => f(s).flatMap(a => g(a).f(s)))
+  @inline def fillSS[B](ss: SizeSpec)(implicit cbf: CanBuildFrom[Nothing, A, B]): Gen[B] =
+    ss.gen flatMap fill[B]
 
-  def sup: Gen[A] = this
-}
+  @inline def fillSS1[B](ss: SizeSpec)(implicit cbf: CanBuildFrom[Nothing, A, B]): Gen[B] =
+    ss.gen1 flatMap fill[B]
 
-object GenS {
-  def apply[A](g: GenSize => Gen[A]): GenS[A] =
-    new GenS[A](sz => g(sz).f(sz))
+  def list       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS(ss)
+  def set[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS(ss)
+  def stream     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS(ss)
+  def vector     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS(ss)
 
-  /** Returns a number from 0 up to GenSize. [0,GenSize) */
-  def chooseSize: GenS[Int] =
-    GenS(sz =>
-      if (sz.value <= 0)
-        Gen.insert(sz.value)
-      else
-        Gen.chooseInt(0, sz.value - 1))
+  def list1       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS1(ss)
+  def set1[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS1(ss)
+  def stream1     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS1(ss)
+  def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
 
+  def shuffle[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[C[B], B, C[B]]): Gen[C[B]] =
+    Gen(c => c.srnd.shuffle(run(c)))
+
+  def subset[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
+    Gen { c =>
+      val r = cbf()
+      run(c) foreach (b => if (c.nextBit()) r += b)
+      r.result()
+    }
+
+  def take[C[X] <: TraversableOnce[X], B](n: SizeSpec)(implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
+    Gen { c =>
+      val takeSize = n.gen run c
+      if (takeSize == 0)
+        cbf().result()
+      else {
+        val orig = ev(run(c))
+
+        // First shuffle (copied from scala.util.Random.shuffle)
+        val buf = new ArrayBuffer[B] ++= orig
+        def swap(i1: Int, i2: Int) {
+          val tmp = buf(i1)
+          buf(i1) = buf(i2)
+          buf(i2) = tmp
+        }
+        for (n <- buf.length to 2 by -1) {
+          val k = c.rnd.nextInt(n)
+          swap(n - 1, k)
+        }
+
+        // Now take
+        var i = takeSize min buf.length
+        val b = cbf()
+        b.sizeHint(i)
+        while (i > 0) {
+          i -= 1
+          b += buf(i)
+        }
+        b.result()
+    }
+  }
+
+  def mapBy[K](gk: Gen[K])(implicit ss: SizeSpec): Gen[Map[K, A]] =
+    // GenS(sz => Gen.pair(k, this).list.lim(sz.value).map(_.toMap)) <-- old impl, below is faster
+    Gen { c =>
+      var m = Map.empty[K, A]
+      var i = ss.gen.run(c)
+      while (i > 0) {
+        val k = gk run c
+        val a = run(c)
+        m = m.updated(k, a)
+        i -= 1
+      }
+      m
+    }
+
+  @inline def mapTo[K >: A, V](gv: Gen[V])(implicit ss: SizeSpec): Gen[Map[K, V]] =
+    gv.mapBy(this: Gen[K])(ss)
+
+  def mapByKeySubset[K](legalKeys: TraversableOnce[K]): Gen[Map[K, A]] =
+    // Gen.subset(legalKeys).flatMap(mapByEachKey) <-- works fine, below is faster
+    Gen { c =>
+      var m = Map.empty[K, A]
+      legalKeys.foreach(k =>
+        if (c.nextBit())
+          m = m.updated(k, run(c)))
+      m
+    }
+
+  def mapByEachKey[K](keys: TraversableOnce[K]): Gen[Map[K, A]] =
+    // Gen.traverse(keys)(strengthL).map(_.toMap) <-- works fine, below is faster
+    Gen { c =>
+      var m = Map.empty[K, A]
+      keys.foreach(k =>
+        m = m.updated(k, run(c)))
+      m
+    }
+
+  // ------------------------------------------------------
+  // Scalaz stuff
+  // ------------------------------------------------------
+  import scalaz._
+
+  def estream[B >: A](implicit ss: SizeSpec): Gen[EphemeralStream[B]] =
+    fillFoldSS(ss, EphemeralStream.emptyEphemeralStream[B])(_.##::(_))
+
+  def estream1[B >: A](implicit ss: SizeSpec): Gen[EphemeralStream[B]] =
+    fillFoldSS1(ss, EphemeralStream.emptyEphemeralStream[B])(_.##::(_))
+
+  def nel(implicit ss: SizeSpec): Gen[NonEmptyList[A]] =
+    for {h <- this; t <- list(ss)} yield NonEmptyList.nel(h, t)
+
+  def \/[B](g: Gen[B]): Gen[A \/ B] =
+    Gen(c => if (c.nextBit()) -\/(run(c)) else \/-(g run c))
+
+  @inline def +++[B](g: Gen[B]): Gen[A \/ B] =
+    \/(g)
+
+  def \&/[B](g: Gen[B]): Gen[A \&/ B] =
+    Gen { c =>
+      import scalaz.\&/._
+      c.rnd.nextInt(3) match {
+        case 0 => Both(run(c), g run c)
+        case 1 => This(run(c))
+        case 2 => That(g run c)
+      }
+    }
 }
 
 object Gen {
+  type Run[+A] = GenCtx => A
 
-  implicit object GenScalaz extends Monad[Gen] {
-    def bind[A, B](a: Gen[A])(f: A => Gen[B]) = a flatMap f
-    def point[A](a: => A) = insert(a)
+  final class GenCharExt(private val g: Run[Char]) extends AnyVal {
+    @inline def string (implicit ss: SizeSpec): Gen[String] = Gen.stringOf (Gen(g))(ss)
+    @inline def string1(implicit ss: SizeSpec): Gen[String] = Gen.stringOf1(Gen(g))(ss)
   }
 
-  object Covariance {
-    implicit def genCovariance[A, B >: A](r: Gen[A]) = r.subst[B]
+  @inline implicit def _GenCharExt(g: Gen[Char]) = new GenCharExt(g.run)
+
+  // ===================================================================================================================
+
+  import scalaz.{Monad, Name, Need, NonEmptyList, Traverse}
+
+  // Do the laws hold?
+  implicit val monadInstance: Monad[Gen] =
+    new Monad[Gen] {
+      override def point[A](a: => A)                         : Gen[A] = Gen pure a
+      override def ap[A, B](fa: => Gen[A])(g: => Gen[A => B]): Gen[B] = g flatMap fa.map
+      override def bind[A, B](fa: Gen[A])(f: A => Gen[B])    : Gen[B] = fa flatMap f
+      override def map[A,B](fa: Gen[A])(f: A => B)           : Gen[B] = fa map f
+    }
+
+  def setSeed(seed: Long): Gen[Unit] =
+    Gen(_ setSeed seed)
+
+  /** Returns a number in [0,GenSize) */
+  val chooseSize: Gen[Int] =
+    Gen(_.nextSize())
+
+  /** Returns a number in [1,GenSize) */
+  val chooseSizeMin1: Gen[Int] =
+    Gen(_.nextSizeMin1())
+
+  def pure[A](a: A): Gen[A] =
+    Gen(_ => a)
+
+  def byName[A](ga: => Gen[A]): Gen[A] =
+    pure(Name(ga)) flatMap (_.value)
+
+  def byNeed[A](ga: => Gen[A]): Gen[A] =
+    pure(Need(ga)) flatMap (_.value)
+
+  @inline def lazily[A](ga: => Gen[A]): Gen[A] = byNeed(ga)
+
+  val int    : Gen[Int]     = Gen(_.rnd.nextInt())
+  val long   : Gen[Long]    = Gen(_.rnd.nextLong())
+  val double : Gen[Double]  = Gen(_.rnd.nextDouble())
+  def float  : Gen[Float]   = Gen(_.rnd.nextFloat())
+  def short  : Gen[Short]   = Gen(_.rnd.nextInt().toShort)
+  def byte   : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
+  val boolean: Gen[Boolean] = Gen(_.nextBit())
+  def unit   : Gen[Unit]    = pure(())
+
+  val positiveInt   : Gen[Int]     = int    map (Math abs _)
+  val positiveLong  : Gen[Long]    = long   map (Math abs _)
+  val positiveDouble: Gen[Double]  = double map (Math abs _)
+  def positiveFloat : Gen[Float]   = float  map (Math abs _)
+  val negativeInt   : Gen[Int]     = positiveInt    map (-_)
+  val negativeLong  : Gen[Long]    = positiveLong   map (-_)
+  val negativeDouble: Gen[Double]  = positiveDouble map (-_)
+  def negativeFloat : Gen[Float]   = positiveFloat  map (-_)
+
+  /*
+  import java.nio.charset.Charset
+  val utf8 = Charset.forName("UTF-8")
+  val valid = (0 to Character.MAX_VALUE).filter{i => val s = i.toChar.toString; new String(s getBytes utf8, utf8) == s}
+  > 0-55295,57344-65535
+  val mimic = (1 to 65535-2048).map(i => if (i>55295) i+2048 else i)
+   */
+  val char: Gen[Char] = Gen { c =>
+    var i = c.rnd.nextInt(63487) + 1 // 1 to 65535-2048
+    if (i > 55295) i += 2048
+    i.toChar
   }
 
-  def unsized[A](rng: Rng[A]) =
-    new Gen[A](_ => rng)
+  private val charsNumeric      = ('0' to '9').toArray
+  private val charsUpper        = ('A' to 'Z').toArray
+  private val charsLower        = ('a' to 'z').toArray
+  private val charsAlpha        = charsUpper ++ charsLower
+  private val charsAlphaNumeric = charsAlpha ++ charsNumeric
 
-  def lift[A](f: Size => Rng[A]) =
-    new GenS[A](s => f(Size(s.value)))
+  def numeric     : Gen[Char] = chooseArray_!(charsNumeric)
+  def upper       : Gen[Char] = chooseArray_!(charsUpper)
+  def lower       : Gen[Char] = chooseArray_!(charsLower)
+  def alpha       : Gen[Char] = chooseArray_!(charsAlpha)
+  def alphaNumeric: Gen[Char] = chooseArray_!(charsAlphaNumeric)
 
-  def lazily[A, B](f: => Gen[A]): Gen[A] =
-    Gen.insert(Need(f)).flatMap(_.value)
+  def stringOf (cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = cs fillSS ss
+  def stringOf1(cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = cs fillSS1 ss
 
-  def double         : Gen[Double]  = Rng.double.gen
-  def float          : Gen[Float]   = Rng.float.gen
-  def long           : Gen[Long]    = rng_long.gen
-  def int            : Gen[Int]     = Rng.int.gen
-  def byte           : Gen[Byte]    = Rng.byte.gen
-  def short          : Gen[Short]   = Rng.short.gen
-  def unit           : Gen[Unit]    = Rng.unit.gen
-  def boolean        : Gen[Boolean] = Rng.boolean.gen
-  def positiveDouble : Gen[Double]  = Rng.positivedouble.gen
-  def negativeDouble : Gen[Double]  = Rng.negativedouble.gen
-  def positiveFloat  : Gen[Float]   = Rng.positivefloat.gen
-  def negativeFloat  : Gen[Float]   = Rng.negativefloat.gen
-  def positiveLong   : Gen[Long]    = Rng.positivelong.gen
-  def negativeLong   : Gen[Long]    = Rng.negativelong.gen
-  def positiveInt    : Gen[Int]     = Rng.positiveint.gen
-  def negativeInt    : Gen[Int]     = Rng.negativeint.gen
-  def digit          : Gen[Digit]   = Rng.digit.gen
-  def numeric        : Gen[Char]    = Rng.numeric.gen
-  def char           : Gen[Char]    = Rng.char.gen
-  def upper          : Gen[Char]    = Rng.upper.gen
-  def lower          : Gen[Char]    = Rng.lower.gen
-  def alpha          : Gen[Char]    = Rng.alpha.gen
-  def alphaNumeric   : Gen[Char]    = Rng.alphanumeric.gen
+  def string             (implicit ss: SizeSpec): Gen[String] = stringOf (char)        (ss)
+  def string1            (implicit ss: SizeSpec): Gen[String] = stringOf1(char)        (ss)
+  def upperString        (implicit ss: SizeSpec): Gen[String] = stringOf (upper)       (ss)
+  def upperString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(upper)       (ss)
+  def lowerString        (implicit ss: SizeSpec): Gen[String] = stringOf (lower)       (ss)
+  def lowerString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(lower)       (ss)
+  def alphaString        (implicit ss: SizeSpec): Gen[String] = stringOf (alpha)       (ss)
+  def alphaString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(alpha)       (ss)
+  def numericString      (implicit ss: SizeSpec): Gen[String] = stringOf (numeric)     (ss)
+  def numericString1     (implicit ss: SizeSpec): Gen[String] = stringOf1(numeric)     (ss)
+  def alphaNumericString (implicit ss: SizeSpec): Gen[String] = stringOf (alphaNumeric)(ss)
+  def alphaNumericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alphaNumeric)(ss)
 
-  def digits              : GenS[List[Digit]]         = lift(Rng.digits)
-  def digits1             : GenS[NonEmptyList[Digit]] = lift(Rng.digits1)
-  def numerics            : GenS[List[Char]]          = lift(Rng.numerics)
-  def numerics1           : GenS[NonEmptyList[Char]]  = lift(Rng.numerics1)
-  def chars               : GenS[List[Char]]          = lift(Rng.chars)
-  def chars1              : GenS[NonEmptyList[Char]]  = lift(Rng.chars1)
-  def uppers              : GenS[List[Char]]          = lift(Rng.uppers)
-  def uppers1             : GenS[NonEmptyList[Char]]  = lift(Rng.uppers1)
-  def lowers              : GenS[List[Char]]          = lift(Rng.lowers)
-  def lowers1             : GenS[NonEmptyList[Char]]  = lift(Rng.lowers1)
-  def alphas              : GenS[List[Char]]          = lift(Rng.alphas)
-  def alphas1             : GenS[NonEmptyList[Char]]  = lift(Rng.alphas1)
-  def alphaNumerics       : GenS[List[Char]]          = lift(Rng.alphanumerics)
-  def alphaNumerics1      : GenS[NonEmptyList[Char]]  = lift(Rng.alphanumerics1)
-  def string              : GenS[String]              = lift(Rng.string)
-  def string1             : GenS[String]              = lift(Rng.string1)
-  def upperString         : GenS[String]              = lift(Rng.upperstring)
-  def upperString1        : GenS[String]              = lift(Rng.upperstring1)
-  def lowerString         : GenS[String]              = lift(Rng.lowerstring)
-  def lowerString1        : GenS[String]              = lift(Rng.lowerstring1)
-  def alphaSstring         : GenS[String]              = lift(Rng.alphastring)
-  def alphaString1        : GenS[String]              = lift(Rng.alphastring1)
-  def numericSstring       : GenS[String]              = lift(Rng.numericstring)
-  def numericString1      : GenS[String]              = lift(Rng.numericstring1)
-  def alphanumericString  : GenS[String]              = lift(Rng.alphanumericstring)
-  def alphanumericString1 : GenS[String]              = lift(Rng.alphanumericstring1)
-  def identifier          : GenS[NonEmptyList[Char]]  = lift(Rng.identifier)
-  def identifierString    : GenS[String]              = lift(Rng.identifierstring)
-  def properNoun          : GenS[NonEmptyList[Char]]  = lift(Rng.propernoun)
-  def properNounString    : GenS[String]              = lift(Rng.propernounstring)
+  def chooseChar(c: Char, s: String, rs: NumericRange[Char]*): Gen[Char] = {
+    val cs = rs.foldLeft(s.to[Vector] :+ c)(_ ++ _)
+    chooseIndexed_!(cs)
+  }
 
-  def insert[A]    (a: A)                  : Gen[A]      = Rng.insert(a).gen
   /** Args are inclusive. [l,h] */
-  def chooseLong   (l: Long, h: Long)      : Gen[Long]   = Rng.chooselong(l,h).gen
+  def chooseInt(l: Int, h: Int): Gen[Int] =
+    chooseIndexed_!(l to h)
+
   /** Args are inclusive. [l,h] */
-  def chooseDouble (l: Double, h: Double)  : Gen[Double] = Rng.choosedouble(l,h).gen
+  def chooseLong(l: Long, h: Long): Gen[Long] =
+    chooseIndexed_!(l to h)
+
   /** Args are inclusive. [l,h] */
-  def chooseFloat  (l: Float, h: Float)    : Gen[Float]  = Rng.choosefloat(l,h).gen
+  def chooseDouble(l: Double, h: Double): Gen[Double] = {
+    var ll = l
+    var hh = h
+    if (h < l) {
+      ll = h
+      hh = l
+    }
+    val diff = hh - ll
+    double map (_ * diff + ll)
+  }
+
   /** Args are inclusive. [l,h] */
-  def chooseInt    (l: Int, h: Int)        : Gen[Int]    = Rng.chooseint(l,h).gen
-  def oneOfL[A]    (x: NonEmptyList[A])    : Gen[A]      = Rng.oneofL(x).gen
-  def oneOf[A]     (a: A, as: A*)          : Gen[A]      = Rng.oneof(a, as: _*).gen
-  def oneOfV[A]    (x: OneAnd[Vector, A])  : Gen[A]      = Rng.oneofV(x).gen
+  def chooseFloat(l: Float, h: Float): Gen[Float] = {
+    var ll = l
+    var hh = h
+    if (h < l) {
+      ll = h
+      hh = l
+    }
+    if ((ll <= 0 && hh <= 0) || (ll >= 0 && hh >= 0)) {
+      val diff = hh - ll
+      float map (ll + diff * _)
+    } else
+      float map (x => ll * (1 - x) + hh * x)
+  }
 
-  def pair[A, B](A: Gen[A], B: Gen[B]): Gen[(A, B)] = tuple2(A, B)
-  def triple[A, B, C](A: Gen[A], B: Gen[B], C: Gen[C]): Gen[(A, B, C)] = tuple3(A, B, C)
+  /**
+   * Randomly selects one of the given elements.
+   *
+   * @param as Possible elements. MUST NOT BE EMPTY.
+   */
+  def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] = {
+    val l = as.length
+    Gen(c => as(c.rnd nextInt l))
+  }
 
-  def traverse [T[_], A, B](gs: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(f)
-  def traverseG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
-  def sequence [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
+  /**
+   * Randomly selects one of the given elements.
+   *
+   * @param as Possible elements. MUST NOT BE EMPTY.
+   */
+  def choose_![A](as: Seq[A]): Gen[A] =
+    as match {
+      case is: IndexedSeq[A] => chooseIndexed_!(is)
+      case _                 => choose(as.head, as.tail: _*)
+    }
 
-  def sequencePair[X, A](x: X, r: Gen[A]): Gen[(X, A)] = sequence[({type f[x] = (X, x)})#f, A]((x, r))
+  def choose[A](a: A, as: A*): Gen[A] =
+    chooseIndexed_!((Vector.empty[A] :+ a) ++ as)
 
-  def distribute  [F[_], B]   (a: Gen[F[B]])(implicit D: Distributive[F])            : F[Gen[B]]             = D.cosequence(a)
-  def distributeR [A, B]      (a: Gen[A => B])                                       : A => Gen[B]           = distribute[({type f[x] = A => x})#f, B](a)
-  def distributeRK[A, B]      (a: Gen[A => B])                                       : Kleisli[Gen, A, B]    = Kleisli(distributeR(a))
-  def distributeK [F[_], A, B](a: Gen[Kleisli[F, A, B]])(implicit D: Distributive[F]): Kleisli[F, A, Gen[B]] = distribute[({type f[x] = Kleisli[F, A, x]})#f, B](a)
+  /**
+   * Randomly selects one of the given elements.
+   *
+   * @param as Possible elements. MUST NOT BE EMPTY.
+   */
+  def chooseArray_![A](as: Array[A]): Gen[A] =
+    Gen(c => as(c.rnd nextInt as.length))
 
-  private def freqRng[A](s: GenSize): ((Int, Gen[A])) => (Int, Rng[A]) =
-    x => (x._1, x._2.f(s))
+  def chooseGen[A](a: Gen[A], as: Gen[A]*): Gen[A] =
+    choose(a, as: _*).flatten
 
-  def frequency[A](x: (Int, Gen[A]), xs: (Int, Gen[A])*): Gen[A] =
-    new Gen[A](s => {
-      val f = freqRng[A](s)
-      Rng.frequency(f(x), xs.map(f): _*)
-    })
+  def chooseOption[A](as: Seq[A]): Gen[Option[A]] =
+    if (as.isEmpty)
+      pure(None)
+    else
+      choose_!(as).option
 
-  def frequencyL[A](l: NonEmptyList[(Int, Gen[A])]): Gen[A] =
-    new Gen[A](s => Rng.frequencyL(l map freqRng[A](s)))
-
-  /** Nicta one uses +. | will be faster. */
-  private[this] def rng_long: Rng[Long] =
-    Rng.int.flatMap(a => Rng.int.map(b =>
-      (a.toLong << 32) | b.toLong
-    ))
-
-  val utf16 = Charset.forName("UTF-16")
-  def unicodeString: GenS[String] = byte.list.map(mkUnicodeString)
-  def unicodeString1: GenS[String] = byte.list1.map(b => mkUnicodeString(b.list))
-  def mkUnicodeString(bs: List[Byte]): String = new String(bs.toArray, utf16)
-
-//  def codepoint: Gen[Int] = chooseInt(0, 0x10ffff)
-//  def unicodestring: GenS[String] = codepoint.list map mkUnicodeString
-//  def unicodestring1: GenS[String] = codepoint.list1.map(l => mkUnicodeString(l.list))
-//  def mkUnicodeString(is: List[Int]): String = {
-//    val a = is.toArray
-//    new String(a, 0, a.length)
-//  }
-
-  // -------------------------------------------------------------------------------------------------------------------
-
-  def oneOfG[A](a: Gen[A], as: Gen[A]*): Gen[A] =
-    Rng.oneof(a, as: _*).gen flatMap identity
-
-  def oneOfGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] =
-    Rng.oneofL(gs).gen flatMap identity
-
-  def charOf(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] =
-    oneOf(ev, rs.foldLeft(s.to[Seq])(_ ++ _.toSeq): _*)
-
-  def oneOfSeq[A](as: Seq[A]): Gen[Option[A]] =
-    as.headOption.fold[Gen[Option[A]]](
-      Gen insert None)(
-      Gen.oneOf(_, as.tail: _*).option)
-
-  def oneOfO[A](as: Seq[A]): Option[Gen[A]] =
+  def tryChoose[A](as: Seq[A]): Option[Gen[A]] =
     if (as.isEmpty)
       None
     else
-      Some(oneOf(as.head, as.tail: _*))
+      Some(choose_!(as))
 
-  /** Provides random subsets of the input set.
-    * Randomly deletes elements. */
-  def subset[A](as: TraversableOnce[A]): Gen[Vector[A]] =
-    Gen.sequence(
-      as.foldLeft(Vector.empty[Gen[(A, Boolean)]])((q, a) => q :+ Gen.boolean.map(b => (a,b)))
-    ).map(
-      _.foldLeft(Vector.empty[A]){ case (q, (a,b)) => if (b) q :+ a else q }
-    )
+  @inline def shuffle[A, C[X] <: TraversableOnce[X]](as: C[A])(implicit bf: CanBuildFrom[C[A], A, C[A]]): Gen[C[A]] =
+    pure(as).shuffle
 
-  def shuffle[T, CC[X] <: TraversableOnce[X]](xs: CC[T])(implicit bf: CanBuildFrom[CC[T], T, CC[T]]): Gen[CC[T]] =
-    Gen.insert(xs).shuffle
+  @inline def subset[A, C[X] <: TraversableOnce[X]](as: C[A])(implicit bf: CanBuildFrom[Nothing, A, C[A]]): Gen[C[A]] =
+    pure(as).subset
 
   /** Randomly either generates a new value, or chooses one from a known set. */
-  def newOrOld[A](newg: => Gen[A])(old: => TraversableOnce[A]): Gen[A] = {
-    lazy val n = newg
-    lazy val o = {
-      val l = old.toList
-      if (l.isEmpty)
-        n
-      else
-        Gen.oneOfL(NonEmptyList.nel(l.head, l.tail))
-    }
-    Gen.boolean.flatMap(b => if (b) n else o)
+  def newOrOld[A](newGen: => Gen[A], old: => Seq[A]): Gen[A] = {
+    lazy val n: Gen[A] = newGen
+    lazy val o: Gen[A] = tryChoose(old) getOrElse n
+    Gen(c => (if (c.nextBit()) n else o) run c)
   }
 
-  def byName[A](ga: => Gen[A]): Gen[A] =
-    Gen.insert(Name(ga)) flatMap (_.value)
+  /** Int = Probability of being chosen. ≥ 0 */
+  type Freq[A] = (Int, Gen[A])
 
-  def byNeed[A](ga: => Gen[A]): Gen[A] =
-    Gen.insert(Need(ga)) flatMap (_.value)
+  def frequency[A](x: Freq[A], xs: Freq[A]*): Gen[A] =
+    frequencyL(NonEmptyList(x, xs: _*))
 
-  // Generated by bin/gen-tuple_rnggen
+  def frequencyL[A](xs: NonEmptyList[Freq[A]]): Gen[A] = {
+    val total = xs.list.foldLeft(0)(_ + _._1)
+    @tailrec def pick(n: Int, head: Freq[A], tail: List[Freq[A]]): Gen[A] = {
+      val q = head._1
+      val r = head._2
+      if (n <= q)
+        r
+      else tail match {
+        case Nil     => r
+        case e :: es => pick(n - q, e, es)
+      }
+    }
+    chooseInt(1, total) flatMap (pick(_, xs.head, xs.tail))
+  }
+
+  // --------------------------------------------------------------
+  // Traverse using plain Scala collections and CanBuildFrom (fast)
+  // --------------------------------------------------------------
+
+  def traverse[T[X] <: TraversableOnce[X], A, B](as: T[A])(f: A => Gen[B])(implicit cbf: CanBuildFrom[T[A], B, T[B]]): Gen[T[B]] =
+    Gen { c =>
+      val r = cbf(as)
+      as.foreach(a => r += f(a).run(c))
+      r.result()
+    }
+
+  def traverseG[T[X] <: TraversableOnce[X], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit cbf: CanBuildFrom[T[Gen[A]], B, T[B]]): Gen[T[B]] =
+    Gen { c =>
+      val r = cbf(gs)
+      gs.foreach(g => r += f(g run c).run(c))
+      r.result()
+    }
+
+  @inline def sequence[T[X] <: TraversableOnce[X], A](gs: T[Gen[A]])(implicit cbf: CanBuildFrom[T[Gen[A]], A, T[A]]): Gen[T[A]] =
+    traverse(gs)(identity)
+
+  // ---------------------
+  // Traverse using Scalaz
+  // ---------------------
+
+  def traverseZ [T[_], A, B](as: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(as)(f)
+  def traverseZG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
+  def sequenceZ [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
+
+
   def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = for {a←A;b←B} yield (a,b)
   def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = for {a←A;b←B;c←C} yield (a,b,c)
   def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = for {a←A;b←B;c←C;d←D} yield (a,b,c,d)
@@ -324,6 +461,7 @@ object Gen {
   def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G} yield (a,b,c,d,e,f,g)
   def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H} yield (a,b,c,d,e,f,g,h)
   def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H;i←I} yield (a,b,c,d,e,f,g,h,i)
+
   def apply2[A,B,Z](z: (A,B)⇒Z)(A:Gen[A], B:Gen[B]): Gen[Z] = for {a←A;b←B} yield z(a,b)
   def apply3[A,B,C,Z](z: (A,B,C)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = for {a←A;b←B;c←C} yield z(a,b,c)
   def apply4[A,B,C,D,Z](z: (A,B,C,D)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = for {a←A;b←B;c←C;d←D} yield z(a,b,c,d)
@@ -332,4 +470,13 @@ object Gen {
   def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G} yield z(a,b,c,d,e,f,g)
   def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H} yield z(a,b,c,d,e,f,g,h)
   def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H;i←I} yield z(a,b,c,d,e,f,g,h,i)
+
+  @inline def lift2[A,B,Z](A:Gen[A], B:Gen[B])(z: (A,B)⇒Z): Gen[Z] = apply2(z)(A,B)
+  @inline def lift3[A,B,C,Z](A:Gen[A], B:Gen[B], C:Gen[C])(z: (A,B,C)⇒Z): Gen[Z] = apply3(z)(A,B,C)
+  @inline def lift4[A,B,C,D,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D])(z: (A,B,C,D)⇒Z): Gen[Z] = apply4(z)(A,B,C,D)
+  @inline def lift5[A,B,C,D,E,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E])(z: (A,B,C,D,E)⇒Z): Gen[Z] = apply5(z)(A,B,C,D,E)
+  @inline def lift6[A,B,C,D,E,F,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F])(z: (A,B,C,D,E,F)⇒Z): Gen[Z] = apply6(z)(A,B,C,D,E,F)
+  @inline def lift7[A,B,C,D,E,F,G,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G])(z: (A,B,C,D,E,F,G)⇒Z): Gen[Z] = apply7(z)(A,B,C,D,E,F,G)
+  @inline def lift8[A,B,C,D,E,F,G,H,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H])(z: (A,B,C,D,E,F,G,H)⇒Z): Gen[Z] = apply8(z)(A,B,C,D,E,F,G,H)
+  @inline def lift9[A,B,C,D,E,F,G,H,I,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I])(z: (A,B,C,D,E,F,G,H,I)⇒Z): Gen[Z] = apply9(z)(A,B,C,D,E,F,G,H,I)
 }

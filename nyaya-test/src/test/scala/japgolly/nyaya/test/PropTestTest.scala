@@ -12,7 +12,7 @@ object PropTestTest extends TestSuite {
 //  implicit def defaultPropSettings = DefaultSettings.propSettings.copy(debug = true)
 
   val prop = Prop.test[List[Int]]("distinct ints", is => is.distinct == is)
-  val intGen = Gen.chooseInt(0,5).list.lim(10).map(Distinct.int.lift[List].run)
+  val intGen = Gen.chooseInt(0,5).list(0 to 10).map(Distinct.int.lift[List].run)
 
   override def tests = TestSuite {
 

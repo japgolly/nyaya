@@ -2,10 +2,23 @@ package japgolly.nyaya.test
 
 import scalaz.{-\/, \/, \/-}
 
+/**
+ * The default maximum size of dynamically-sized data.
+ *
+ * Most significantly translates to collection and string length.
+ */
 final case class GenSize(value: Int) {
-  def map(f: Int => Int) = GenSize(f(value))
+  assert(value >= 0, "GenSize must be ≥ 0.")
+
+  def map(f: Int => Int): GenSize =
+    GenSize(f(value))
 }
-final case class SampleSize(value: Int)  {
+
+/**
+ * How many samples to generate.
+ * How many times each prop is tested.
+ */
+final case class SampleSize(value: Int) {
   def map(f: Int => Int) = SampleSize(f(value))
 }
 

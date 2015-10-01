@@ -1,6 +1,5 @@
 package japgolly.nyaya.test
 
-import com.nicta.rng.Rng
 import scalaz.EphemeralStream
 import japgolly.nyaya._
 import Executor.Data
@@ -15,31 +14,41 @@ object RunState {
 object PTest {
 
   private[this] def prepareData[A](gen: Gen[A], sizeDist: Settings.SizeDist, genSize: GenSize, debug: Boolean): Data[A] =
-    (sampleSize, seedo, debugPrefix) => {
-      val samples: (SampleSize, GenSize) => Rng[EphemeralStream[A]] = (s, g) => {
-        if (debug) println(s"${debugPrefix}Generating ${s.value} samples @ sz ${g.value}...")
-        gen.data(g, s).map(_ take s.value)
-      }
-      val rng =
+    (sampleSize, seedOption, debugPrefix) => {
+
+      val plan: Seq[(SampleSize, GenSize)] =
         if (sizeDist.isEmpty)
-          samples(sampleSize, genSize)
+          ((sampleSize, genSize)) :: Nil
         else {
           var total = sizeDist.foldLeft(0)(_ + _._1)
           var rem = sampleSize.value
-          val plan = sizeDist.map { case (si, gg) =>
+          sizeDist.map { x =>
+            val si = x._1
+            val gg = x._2
             val gs = gg.fold[GenSize](p => genSize.map(v => (v * p + 0.5).toInt max 0), identity)
             val ss = SampleSize((si.toDouble / total * rem + 0.5).toInt)
             total -= si
             rem -= ss.value
             (ss, gs)
           }
-          plan.toStream
-            .map(samples.tupled)
-            .foldLeft(Rng insert EphemeralStream[A])((a, b) => b.flatMap(c => a.map(_ ++ c)))
         }
 
-      seedo.fold(rng)(seed => Rng.setseed(seed).flatMap(_ => rng))
-        .run
+      val dataGen =
+        plan.foldLeft(Gen pure EphemeralStream.emptyEphemeralStream[A]) { (q, x) =>
+          val ss = x._1
+          val gs = x._2
+          Gen { c =>
+            val as = q.run(c)
+            as ++ { // ++ is non-strict
+              if (debug) println(s"${debugPrefix}Generating ${ss.value} samples @ sz ${gs.value}...")
+              c.setGenSize(gs)
+              gen.estream(ss.value).run(c)
+            }
+          }
+        }
+
+      val ctx = GenCtx(genSize, seedOption)
+      dataGen run ctx
     }
 
   def test[A](p: Prop[A], gen: Gen[A], S: Settings): RunState[A] = {
@@ -51,7 +60,7 @@ object PTest {
     val it = EphemeralStream.toIterable(data).iterator
     var rs = RunState.empty[A]
     while (rs.success && it.hasNext) {
-      val a = it.next()
+      val a = try it.next() catch {case t: Throwable => t.printStackTrace(); throw t} // TODO Do better!
       rs = RunState(runInc(), test1(p, a))
       if (S.debug) debug1(a, rs, S)
     }

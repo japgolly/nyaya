@@ -46,7 +46,7 @@ case class ParallelExecutor(workers: Int = defaultThreadCount) extends Executor 
     val ai = new AtomicInteger(0)
     def task(worker: Int) = mkTask {
       val dp = debugPrefixes(worker)
-      val data = g(sss(worker), S.seed.map(_ + worker.toLong), dp).unsafePerformIO()
+      val data = g(sss(worker), S.seed.map(_ + worker.toLong), dp)
       testN(p, data, ai.incrementAndGet, S)
     }
     runAsync2(workers, task)
