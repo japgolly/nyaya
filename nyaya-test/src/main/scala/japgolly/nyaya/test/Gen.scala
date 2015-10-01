@@ -73,7 +73,6 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
         val x = run(c)
         b += x
         i -= 1
-        assert(i < 10000)
       }
       b.result()
     }
@@ -96,7 +95,12 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
 
   def shuffle[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[C[B], B, C[B]]): Gen[C[B]] =
-    Gen(c => c.srnd.shuffle(run(c)))
+    Gen { c =>
+      val orig = run(c)
+      val buf = new ArrayBuffer[B] ++= orig
+      Gen.runShuffle(buf, c.rnd)
+      (cbf(orig) ++= buf).result()
+    }
 
   def subset[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
     Gen(c => Gen.runSubset(run(c), c))
@@ -126,17 +130,9 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       else {
         val orig = ev(run(c))
 
-        // First shuffle (copied from scala.util.Random.shuffle)
+        // First shuffle
         val buf = new ArrayBuffer[B] ++= orig
-        def swap(i1: Int, i2: Int) {
-          val tmp = buf(i1)
-          buf(i1) = buf(i2)
-          buf(i2) = tmp
-        }
-        for (n <- buf.length to 2 by -1) {
-          val k = c.rnd.nextInt(n)
-          swap(n - 1, k)
-        }
+        Gen.runShuffle(buf, c.rnd)
 
         // Now take
         var i = takeSize min buf.length
@@ -238,6 +234,17 @@ object Gen {
     val r = cbf()
     as foreach (b => if (c.nextBit()) r += b)
     r.result()
+  }
+
+  private[Gen] def runShuffle[A](buf: ArrayBuffer[A], r: java.util.Random): Unit = {
+    var n = buf.length
+    while (n > 1) {
+      val k = r.nextInt(n)
+      n -= 1
+      val tmp = buf(n)
+      buf(n) = buf(k)
+      buf(k) = tmp
+    }
   }
 
   def setSeed(seed: Long): Gen[Unit] =

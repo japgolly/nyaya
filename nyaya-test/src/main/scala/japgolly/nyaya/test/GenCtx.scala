@@ -6,8 +6,6 @@ package japgolly.nyaya.test
  * This data is mutable.
  */
 final class GenCtx(val rnd: java.util.Random, _genSize: GenSize) {
-  val srnd = new scala.util.Random(rnd)
-
   private var lastBit = 32
   private var intBits = 0
 
