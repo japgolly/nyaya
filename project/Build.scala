@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import pl.project13.scala.sbt.JmhPlugin
 import com.typesafe.sbt.pgp.PgpKeys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import ScalaJSPlugin._
@@ -24,6 +25,18 @@ object Nyaya extends Build {
                                 "-language:postfixOps", "-language:implicitConversions",
                                 "-language:higherKinds", "-language:existentials"),
         updateOptions      := updateOptions.value.withCachedResolution(true))
+      .configure(
+        addCommandAliases(
+          "C"    -> "root/clean",
+          "/"    -> "project root",
+          "BM"   -> "project benchmark",
+          "cc"   -> ";clear;compile",
+          "ctc"  -> ";clear;test:compile",
+          "ct"   -> ";clear;test",
+          "cq"   -> ";clear;testQuick",
+          "ccc"  -> ";clear;clean;compile",
+          "cctc" -> ";clear;clean;test:compile",
+          "cct"  -> ";clear;clean;test"))
     ) :+ Typical.settings("nyaya")
 
   val scalaz = Library("org.scalaz", "scalaz-core", "7.1.1").myJsFork("scalaz").jsVersion(_+"-2")
@@ -37,7 +50,7 @@ object Nyaya extends Build {
 
   lazy val root = Project("root", file("."))
     .configure(commonSettings(None))
-    .aggregate(core, ntest)
+    .aggregate(core, ntest, benchmark)
 
   // lazy val allJvm = Project("jvm", file(".")) .configure(commonSettings(None))
     // .aggregate(coreJvm, ntestJvm)
@@ -56,4 +69,10 @@ object Nyaya extends Build {
       .configure(utestSettings("compile"))
       .addLibs(monocleCore, monocleMacro % "test")
     )
+
+  lazy val benchmark =
+    Project("benchmark", file("benchmark"))
+      .enablePlugins(JmhPlugin)
+      .configure(commonSettings(JVM), preventPublication)
+      .dependsOn(coreJvm, ntestJvm)
 }
