@@ -6,7 +6,7 @@ import PTest._
 object Executor {
   type DebugPrefix = String
   case class DataCtx(sampleSize: SampleSize, seed: Option[Long], debugPrefix: DebugPrefix)
-  type Data[A] = DataCtx => GenDataIterator[A]
+  type Data[A] = DataCtx => GenData[A]
 }
 
 import Executor.{DataCtx, Data}
