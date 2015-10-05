@@ -407,11 +407,11 @@ object Gen {
   def choose_![A](as: Seq[A]): Gen[A] =
     as match {
       case is: IndexedSeq[A] => chooseIndexed_!(is)
-      case _                 => choose(as.head, as.tail: _*)
+      case _                 => chooseIndexed_!((Vector.newBuilder[A] ++= as).result())
     }
 
   def choose[A](a: A, as: A*): Gen[A] =
-    chooseIndexed_!((Vector.empty[A] :+ a) ++ as)
+    chooseIndexed_!((Vector.newBuilder[A] += a ++= as).result())
 
   /**
    * Randomly selects one of the given elements.
