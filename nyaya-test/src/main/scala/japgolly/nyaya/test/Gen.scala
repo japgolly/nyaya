@@ -354,6 +354,14 @@ object Gen {
     chooseIndexed_!(cs)
   }
 
+  /**
+   * Generate an int ∈ [0,bound).
+   *
+   * @param bound Upper-bound (exclusive).
+   */
+  def chooseInt(bound: Int): Gen[Int] =
+    Gen(_.rnd nextInt bound)
+
   /** Args are inclusive. [l,h] */
   def chooseInt(l: Int, h: Int): Gen[Int] =
     chooseIndexed_!(l to h)
@@ -473,7 +481,7 @@ object Gen {
         case e :: es => pick(n - q, e, es)
       }
     }
-    chooseInt(1, total) flatMap (pick(_, xs.head, xs.tail))
+    chooseInt(total - 1) flatMap (i => pick(i + 1, xs.head, xs.tail))
   }
 
   // --------------------------------------------------------------
