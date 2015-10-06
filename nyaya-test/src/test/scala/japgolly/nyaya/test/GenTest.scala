@@ -1,6 +1,7 @@
 package japgolly.nyaya.test
 
 import java.nio.charset.Charset
+import scalaz.NonEmptyList
 import scalaz.std.AllInstances._
 import utest._
 import japgolly.nyaya._
@@ -43,6 +44,11 @@ object GenTest extends TestSuite {
       v <- Gen.unit.vector(n)
     } yield (n, v)
 
+  val freqArgs: Gen[NonEmptyList[Gen.Freq[Char]]] = {
+    val freq = Gen.chooseInt(16)
+    (freq *** Gen.char.map(Gen.pure)).nel
+  }
+
   // For cases when parametricity means there's nothing useful to test without the ability to write a ∃-test
   def didntCrash[A] = Prop.test[A]("Didn't crash", _ => true)
 
@@ -68,6 +74,7 @@ object GenTest extends TestSuite {
     'mapByKeySubset - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)
     'mapByEachKey   - mapByEachKeyGen                               .mustSatisfy(mapByEachKeyProp)
     'newOrOld       - Gen.int.list.flatMap(Gen.newOrOld(Gen.int, _)).mustSatisfy(didntCrash)
+    'frequency      - freqArgs.flatMap(Gen.frequencyL)              .mustSatisfy(didntCrash)
 
     'sequence - {
       val inp = "heheyay"

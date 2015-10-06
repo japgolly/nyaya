@@ -467,22 +467,30 @@ object Gen {
   type Freq[A] = (Int, Gen[A])
 
   def frequency[A](x: Freq[A], xs: Freq[A]*): Gen[A] =
-    frequencyL(NonEmptyList(x, xs: _*))
+    frequencyL_!(x :: xs.toList)
 
-  def frequencyL[A](xs: NonEmptyList[Freq[A]]): Gen[A] = {
-    val total = xs.list.foldLeft(0)(_ + _._1)
-    @tailrec def pick(n: Int, head: Freq[A], tail: List[Freq[A]]): Gen[A] = {
-      val q = head._1
-      val r = head._2
-      if (n <= q)
-        r
-      else tail match {
-        case Nil     => r
-        case e :: es => pick(n - q, e, es)
+  def frequencyL[A](xs: NonEmptyList[Freq[A]]): Gen[A] =
+    frequencyL_!(xs.list)
+
+  def frequencyL_![A](xs: List[Freq[A]]): Gen[A] =
+    if (xs.lengthCompare(1) == 0)
+      xs.head._2
+    else {
+      val total = xs.foldLeft(0)(_ + _._1)
+      @tailrec def pick(n: Int, head: Freq[A], tail: List[Freq[A]]): Gen[A] = {
+        val q = head._1
+        val r = head._2
+        if (n <= q)
+          r
+        else tail match {
+          case Nil     => r
+          case e :: es => pick(n - q, e, es)
+        }
       }
+      val h = xs.head
+      val t = xs.tail
+      chooseInt(total - 1) flatMap (i => pick(i + 1, h, t))
     }
-    chooseInt(total - 1) flatMap (i => pick(i + 1, xs.head, xs.tail))
-  }
 
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)
