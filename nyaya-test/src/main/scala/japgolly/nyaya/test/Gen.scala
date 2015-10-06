@@ -476,11 +476,18 @@ object Gen {
     if (xs.lengthCompare(1) == 0)
       xs.head._2
     else {
-      val total = xs.foldLeft(0)(_ + _._1)
+      def reportFreqs = xs.map(_._1).mkString("{", ", ", "}")
+      val total = xs.foldLeft(0)((q, x) => {
+        val n = x._1
+        assert(n > 0, s"Gen.frequency: n must be > 0, found $n in $reportFreqs}.")
+        val q2 = q + n
+        assert(q2 > q, s"Gen.frequency: Overflow detected adding $reportFreqs.")
+        q2
+      })
       @tailrec def pick(n: Int, head: Freq[A], tail: List[Freq[A]]): Gen[A] = {
         val q = head._1
         val r = head._2
-        if (n <= q)
+        if (n < q)
           r
         else tail match {
           case Nil     => r
@@ -489,7 +496,7 @@ object Gen {
       }
       val h = xs.head
       val t = xs.tail
-      chooseInt(total - 1) flatMap (i => pick(i + 1, h, t))
+      chooseInt(total - 1) flatMap (pick(_, h, t))
     }
 
   // --------------------------------------------------------------
