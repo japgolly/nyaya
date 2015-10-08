@@ -590,52 +590,52 @@ object Gen {
 
   import scalaz.OneAnd
 
-  @deprecated("Replace Gen.upperString with Gen.upper.string", "0.6.0")
+  @deprecated("Replace with Gen.upper.string", "0.6.0")
   def upperString(implicit ss: SizeSpec): Gen[String] = stringOf(upper)(ss)
 
-  @deprecated("Replace Gen.upperString1 with Gen.upper.string1", "0.6.0")
+  @deprecated("Replace with Gen.upper.string1", "0.6.0")
   def upperString1(implicit ss: SizeSpec): Gen[String] = stringOf1(upper)(ss)
 
-  @deprecated("Replace Gen.lowerString with Gen.lower.string", "0.6.0")
+  @deprecated("Replace with Gen.lower.string", "0.6.0")
   def lowerString(implicit ss: SizeSpec): Gen[String] = stringOf(lower)(ss)
 
-  @deprecated("Replace Gen.lowerString1 with Gen.lower.string1", "0.6.0")
+  @deprecated("Replace with Gen.lower.string1", "0.6.0")
   def lowerString1(implicit ss: SizeSpec): Gen[String] = stringOf1(lower)(ss)
 
-  @deprecated("Replace Gen.alphaString with Gen.alpha.string", "0.6.0")
+  @deprecated("Replace with Gen.alpha.string", "0.6.0")
   def alphaString(implicit ss: SizeSpec): Gen[String] = stringOf(alpha)(ss)
 
-  @deprecated("Replace Gen.alphaString1 with Gen.alpha.string1", "0.6.0")
+  @deprecated("Replace with Gen.alpha.string1", "0.6.0")
   def alphaString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alpha)(ss)
 
-  @deprecated("Replace Gen.numericString with Gen.numeric.string", "0.6.0")
+  @deprecated("Replace with Gen.numeric.string", "0.6.0")
   def numericString(implicit ss: SizeSpec): Gen[String] = stringOf(numeric)(ss)
 
-  @deprecated("Replace Gen.numericString1 with Gen.numeric.string1", "0.6.0")
+  @deprecated("Replace with Gen.numeric.string1", "0.6.0")
   def numericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(numeric)(ss)
 
-  @deprecated("Replace Gen.alphaNumericString with Gen.alphaNumeric.string", "0.6.0")
+  @deprecated("Replace with Gen.alphaNumeric.string", "0.6.0")
   def alphaNumericString(implicit ss: SizeSpec): Gen[String] = stringOf(alphaNumeric)(ss)
 
-  @deprecated("Replace Gen.alphaNumericString1 with Gen.alphaNumeric.string1", "0.6.0")
+  @deprecated("Replace with Gen.alphaNumeric.string1", "0.6.0")
   def alphaNumericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alphaNumeric)(ss)
 
-  @deprecated("Replace Gen.asciiString with Gen.ascii.string", "0.6.0")
+  @deprecated("Replace with Gen.ascii.string", "0.6.0")
   def asciiString(implicit ss: SizeSpec): Gen[String] = stringOf(ascii)(ss)
 
-  @deprecated("Replace Gen.asciiString1 with Gen.ascii.string1", "0.6.0")
+  @deprecated("Replace with Gen.ascii.string1", "0.6.0")
   def asciiString1(implicit ss: SizeSpec): Gen[String] = stringOf1(ascii)(ss)
 
-  @deprecated("Replace Gen.unicodeString with Gen.unicode.string", "0.6.0")
+  @deprecated("Replace with Gen.unicode.string", "0.6.0")
   def unicodeString(implicit ss: SizeSpec): Gen[String] = stringOf(unicode)(ss)
 
-  @deprecated("Replace Gen.unicodeString1 with Gen.unicode.string1", "0.6.0")
+  @deprecated("Replace with Gen.unicode.string1", "0.6.0")
   def unicodeString1(implicit ss: SizeSpec): Gen[String] = stringOf1(unicode)(ss)
 
   // lazy val digit: Gen[Digit] = chooseArray_!(Digit.digits.toArray)
-  // @deprecated("Replace Gen.digits with Gen.digit.list.", "0.6.0")
+  // @deprecated("Replace with Gen.digit.list.", "0.6.0")
   // def digits(implicit ss: SizeSpec): Gen[List[Digit]] = digit.list(ss)
-  // @deprecated("Replace Gen.digits1 with Gen.digit.nel or Gen.digit.list1.", "0.6.0")
+  // @deprecated("Replace with Gen.digit.nel or Gen.digit.list1.", "0.6.0")
   // def digits1(implicit ss: SizeSpec): Gen[NonEmptyList[Digit]] = digit.nel(ss)
 
   //  def identifier          : Gen[NonEmptyList[Char]]  = identifier)
@@ -644,75 +644,75 @@ object Gen {
   //  def properNounString    : Gen[String]              = propernounstring)
   //  def mkUnicodeString(bs: List[Byte]): String = new String(bs.toArray, "UTF-16")
 
-  @deprecated("Replace Gen.numerics with Gen.numeric.list.", "0.6.0")
+  @deprecated("Replace with Gen.numeric.list.", "0.6.0")
   def numerics(implicit ss: SizeSpec): Gen[List[Char]] = numeric.list(ss)
 
-  @deprecated("Replace Gen.chars with Gen.char.list.", "0.6.0")
+  @deprecated("Replace with Gen.char.list.", "0.6.0")
   def chars(implicit ss: SizeSpec): Gen[List[Char]] = char.list(ss)
 
-  @deprecated("Replace Gen.uppers with Gen.upper.list.", "0.6.0")
+  @deprecated("Replace with Gen.upper.list.", "0.6.0")
   def uppers(implicit ss: SizeSpec): Gen[List[Char]] = upper.list(ss)
 
-  @deprecated("Replace Gen.lowers with Gen.lower.list.", "0.6.0")
+  @deprecated("Replace with Gen.lower.list.", "0.6.0")
   def lowers(implicit ss: SizeSpec): Gen[List[Char]] = lower.list(ss)
 
-  @deprecated("Replace Gen.alphas with Gen.alpha.list.", "0.6.0")
+  @deprecated("Replace with Gen.alpha.list.", "0.6.0")
   def alphas(implicit ss: SizeSpec): Gen[List[Char]] = alpha.list(ss)
 
-  @deprecated("Replace Gen.alphaNumerics with Gen.alphaNumeric.list.", "0.6.0")
+  @deprecated("Replace with Gen.alphaNumeric.list.", "0.6.0")
   def alphaNumerics(implicit ss: SizeSpec): Gen[List[Char]] = alphaNumeric.list(ss)
 
-  @deprecated("Replace Gen.numerics1 with Gen.numeric.nel or Gen.numeric.list1.", "0.6.0")
+  @deprecated("Replace with Gen.numeric.nel or Gen.numeric.list1.", "0.6.0")
   def numerics1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = numeric.nel(ss)
 
-  @deprecated("Replace Gen.chars1 with Gen.char.nel or Gen.char.list1.", "0.6.0")
+  @deprecated("Replace with Gen.char.nel or Gen.char.list1.", "0.6.0")
   def chars1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = char.nel(ss)
 
-  @deprecated("Replace Gen.uppers1 with Gen.upper.nel or Gen.upper.list1.", "0.6.0")
+  @deprecated("Replace with Gen.upper.nel or Gen.upper.list1.", "0.6.0")
   def uppers1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = upper.nel(ss)
 
-  @deprecated("Replace Gen.lowers1 with Gen.lower.nel or Gen.lower.list1.", "0.6.0")
+  @deprecated("Replace with Gen.lower.nel or Gen.lower.list1.", "0.6.0")
   def lowers1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = lower.nel(ss)
 
-  @deprecated("Replace Gen.alphas1 with Gen.alpha.nel or Gen.alpha.list1.", "0.6.0")
+  @deprecated("Replace with Gen.alpha.nel or Gen.alpha.list1.", "0.6.0")
   def alphas1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = alpha.nel(ss)
 
-  @deprecated("Replace Gen.alphaNumerics1 with Gen.alphaNumeric.nel or Gen.alphaNumeric.list1.", "0.6.0")
+  @deprecated("Replace with Gen.alphaNumeric.nel or Gen.alphaNumeric.list1.", "0.6.0")
   def alphaNumerics1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = alphaNumeric.nel(ss)
 
-  @deprecated("Replace Gen.charOf with Gen.chooseChar.", "0.6.0")
+  @deprecated("Replace with Gen.chooseChar.", "0.6.0")
   def charOf(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] = chooseChar(ev, s, rs: _*)
 
-  @deprecated("Replace Gen.insert with Gen.pure.", "0.6.0")
+  @deprecated("Replace with Gen.pure.", "0.6.0")
   def insert[A](a: A): Gen[A] = pure(a)
 
-  @deprecated("Replace Gen.oneOfG with Gen.chooseGen.", "0.6.0")
+  @deprecated("Replace with Gen.chooseGen.", "0.6.0")
   def oneOfG[A](a: Gen[A], as: Gen[A]*): Gen[A] = chooseGen(a, as: _*)
 
-  @deprecated("Replace Gen.oneOfGL with Gen.chooseGen.", "0.6.0")
+  @deprecated("Replace with Gen.chooseGen.", "0.6.0")
   def oneOfGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] = chooseGen(gs.head, gs.tail: _*)
 
-  @deprecated("Replace Gen.oneOfSeq with Gen.tryChoose.", "0.6.0")
+  @deprecated("Replace with Gen.tryChoose.", "0.6.0")
   def oneOfSeq[A](as: Seq[A]): Gen[Option[A]] = tryChoose(as)
 
-  @deprecated("Replace Gen.oneOfO with Gen.tryGenChoose.", "0.6.0")
+  @deprecated("Replace with Gen.tryGenChoose.", "0.6.0")
   def oneOfO[A](as: Seq[A]): Option[Gen[A]] = tryGenChoose(as)
 
-  @deprecated("Replace Gen.oneOf with Gen.choose.", "0.6.0")
+  @deprecated("Replace with Gen.choose.", "0.6.0")
   def oneOf[A](a: A, as: A*): Gen[A] = choose(a, as: _*)
 
-  @deprecated("Replace Gen.oneOfL with Gen.choose_!(nel.list).", "0.6.0")
+  @deprecated("Replace with Gen.choose_!(nel.list).", "0.6.0")
   def oneOfL[A](x: NonEmptyList[A]): Gen[A] = choose_!(x.list)
 
-  @deprecated("Replace Gen.oneOfV with Gen.choose.", "0.6.0")
+  @deprecated("Replace with Gen.choose.", "0.6.0")
   def oneOfV[A](x: OneAnd[Vector, A]): Gen[A] = chooseIndexed_!(x.tail :+ x.head)
 
-  @deprecated("Replace `Gen.pair(a, b)` with `a pair b` or `Gen.tuple2`.", "0.6.0")
+  @deprecated("Replace with `a pair b` or `Gen.tuple2`.", "0.6.0")
   def pair[A, B](A: Gen[A], B: Gen[B]): Gen[(A, B)] = tuple2(A, B)
 
-  @deprecated("Replace Gen.triple with Gen.tuple3.", "0.6.0")
+  @deprecated("Replace with Gen.tuple3.", "0.6.0")
   def triple[A, B, C](A: Gen[A], B: Gen[B], C: Gen[C]): Gen[(A, B, C)] = tuple3(A, B, C)
 
-  @deprecated("Replace `Gen.sequencePair(l, g)` with `g strengthL l`.", "0.6.0")
+  @deprecated("Replace with `g strengthL l`.", "0.6.0")
   def sequencePair[X, A](x: X, r: Gen[A]): Gen[(X, A)] = r strengthL x
 }
