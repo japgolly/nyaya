@@ -35,6 +35,15 @@ abstract class GenData[+A] {
       Stream.cons(next(), toStream)
     else
       Stream.empty
+
+  def take(n: Int): GenData[A] = {
+    val underlying = this
+    new GenData[A] {
+      var i = n
+      override def hasNext = i > 0 && underlying.hasNext
+      override def next(): A = { i -= 1; underlying.next() }
+    }
+  }
 }
 
 object GenData {
@@ -90,13 +99,6 @@ object GenData {
       }
     }
   }
-
-  def times[A](f: () => A, n: Int): GenData[A] =
-    new GenData[A] {
-      var i = n
-      override def hasNext = i > 0
-      override def next(): A = { i -= 1; f() }
-    }
 
   def continually[A](f: () => A): GenData[A] =
     new GenData[A] {

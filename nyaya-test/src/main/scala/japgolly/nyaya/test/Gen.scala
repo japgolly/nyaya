@@ -10,10 +10,10 @@ import SizeSpec.DisableDefault._
 final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
   /**
-   * Run this generator and generate the provided number of samples.
+   * Run this generator.
    */
-  def samples(ctx: GenCtx, numberOfSamples: Int): GenData[A] =
-    GenData.times(() => run(ctx), numberOfSamples)
+  def samples(ctx: GenCtx): GenData[A] =
+    GenData.continually(() => run(ctx))
 
   def map[B](f: A => B): Gen[B] =
     Gen(f compose run)
