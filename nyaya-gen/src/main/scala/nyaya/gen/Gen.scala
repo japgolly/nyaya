@@ -15,6 +15,22 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
    *
    * Use `.take(n)` for a finite number of samples.
    */
+  def samples(): Iterator[A] =
+    samples(GenSize.Default)
+
+  /**
+   * Produce an infinite stream of generated data.
+   *
+   * Use `.take(n)` for a finite number of samples.
+   */
+  def samples(genSize: GenSize): Iterator[A] =
+    samples(GenCtx(genSize))
+
+  /**
+   * Produce an infinite stream of generated data.
+   *
+   * Use `.take(n)` for a finite number of samples.
+   */
   def samples(ctx: GenCtx): Iterator[A] =
     new AbstractIterator[A] {
       override def hasNext = true

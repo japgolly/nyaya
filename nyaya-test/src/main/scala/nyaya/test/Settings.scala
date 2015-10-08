@@ -15,7 +15,7 @@ case class Settings(
   executor   : Executor          = SingleThreadedExecutor,
   sizeDist   : Settings.SizeDist = Seq(1 → \/-(GenSize(4)), 1 → -\/(0.5), 8 → -\/(1)),
   sampleSize : SampleSize        = SampleSize(96),
-  genSize    : GenSize           = GenSize(32),
+  genSize    : GenSize           = GenSize.Default,
   seed       : Option[Long]      = None,
   debug      : Boolean           = false,
   debugMaxLen: Int               = 200) {
