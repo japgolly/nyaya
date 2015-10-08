@@ -1,6 +1,7 @@
 package japgolly.nyaya.test
 
 import scala.annotation.tailrec
+import scala.collection.AbstractIterator
 import scala.collection.generic.CanBuildFrom
 
 /**
@@ -32,6 +33,14 @@ abstract class Samples[+A] {
   final def toList       : List  [A] = to[List  [A]]
   final def toVector     : Vector[A] = to[Vector[A]]
   final def toSet[B >: A]: Set   [B] = to[Set   [B]]
+
+  final def toIterator: Iterator[A] = {
+    val underlying = this
+    new AbstractIterator[A] {
+      override def hasNext = underlying.hasNext
+      override def next() = underlying.next()
+    }
+  }
 
   final def toStream: Stream[A] =
     if (hasNext)
