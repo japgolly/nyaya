@@ -74,10 +74,13 @@ Examples:
 | `String` | None. | `Gen.string` |
 | `String` | Length between 4 and 12. | `Gen.string(4 to 12)` |
 | `String` | Exactly 6 chars, A-Za-z0-9. | `Gen.alphaNumeric.string(6)` |
-| `List[Int]` | None.      | `Gen.int.list` |
-| `List[Int]` | Non-empty. | `Gen.int.list1` |
+| `List[Int]` | None.           | `Gen.int.list` |
+| `List[Int]` | Non-empty.      | `Gen.int.list1` |
+| `List[Int]` | Max 8 elements. | `Gen.int.list(0 to 8)` |
+| `Set[Int]`  | Each element ≥ 0. | `Gen.positiveInt.set` |
 | `Map[Int, Option[Boolean]]` | None.        | `Gen.int.mapTo(Gen.boolean.option)` |
 | `Map[Int, Option[Boolean]]` | ≤ 4 entries. | `Gen.int.mapTo(Gen.boolean.option)(0 to 4)` |
+| `Map[String, Set[Int]]` | ≤ 4 elements per set.<br>≤ 10 map entries. | `Gen.int.set(0 to 4).mapBy(Gen.string)(0 to 10)` |
 
 Note: `Gen` does not contain a `.suchThat` or `.filter`.
 Don't generate data just to throw it away. Instead, write an accurate generator.
