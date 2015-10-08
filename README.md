@@ -10,7 +10,7 @@ Nyaya is a Scala/Scala.JS library to:
 
 It is:
 * **Fast**. Maybe it's the fastest Scala random data gen / prop tester?
-* Has a nice, fluent API for generating random data.
+* Has a nice, fluent API for generating random data. [(examples)](doc/FEATURES.md#generating-random-data)
 ```
 scala> import nyaya.gen._
 import nyaya.gen._
