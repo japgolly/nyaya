@@ -50,29 +50,40 @@ object Nyaya extends Build {
 
   lazy val root = Project("root", file("."))
     .configure(commonSettings(None))
-    .aggregate(core, ntest, benchmark)
+    .aggregate(util, prop, gen, ntest, benchmark)
 
   // lazy val allJvm = Project("jvm", file(".")) .configure(commonSettings(None))
     // .aggregate(coreJvm, ntestJvm)
   // lazy val allJs = Project("js", file(".")) .configure(commonSettings(None))
     // .aggregate(coreJs, ntestJs)
 
-  lazy val (core, coreJvm, coreJs) =
-    crossDialectProject("nyaya-core", commonSettings
+  lazy val (util, utilJvm, utilJs) =
+    crossDialectProject("nyaya-util", commonSettings
       .configure(utestSettings())
-      .addLibs(scalaz)
-    )
+      .addLibs(scalaz))
+
+  lazy val (prop, propJvm, propJs) =
+    crossDialectProject("nyaya-prop", commonSettings
+      .dependsOn(utilJvm, utilJs)
+      .configure(utestSettings())
+      .addLibs(scalaz))
+
+  lazy val (gen, genJvm, genJs) =
+    crossDialectProject("nyaya-gen", commonSettings
+      .dependsOn(utilJvm, utilJs)
+      .configure(utestSettings())
+      .addLibs(scalaz, monocleCore, monocleMacro % "test"))
 
   lazy val (ntest, ntestJvm, ntestJs) =
     crossDialectProject("nyaya-test", commonSettings
-      .dependsOn(coreJvm, coreJs)
+      .dependsOn(propJvm, propJs)
+      .dependsOn(genJvm, genJs)
       .configure(utestSettings("compile"))
-      .addLibs(monocleCore, monocleMacro % "test")
-    )
+      .addLibs(monocleCore, monocleMacro % "test"))
 
   lazy val benchmark =
     Project("benchmark", file("benchmark"))
       .enablePlugins(JmhPlugin)
       .configure(commonSettings(JVM), preventPublication)
-      .dependsOn(coreJvm, ntestJvm)
+      .dependsOn(propJvm, genJvm, ntestJvm)
 }
