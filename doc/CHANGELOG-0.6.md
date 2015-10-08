@@ -14,10 +14,11 @@ total test times dropped between 50% to 80%'ish. That's a massive saving!
 ### New Random Data Generator
 
 Mostly for performance reasons, Nyaya no longer depends on [NICTA/rng](https://github.com/NICTA/rng) for random data generation.
-<br>It instead comes with its own, new module.
+<br>It instead comes with its own, new module. [(examples)](doc/FEATURES.md#generating-random-data)
 <br>*(A number of methods on `Gen` won't line up with old NICTA/rng names so there'll be some breakage there.)*
 
 You now have more control over the size of subsets of your random data.
+
 
 Unspecified: (eg. `.list`, `.string`, etc)
 ```
