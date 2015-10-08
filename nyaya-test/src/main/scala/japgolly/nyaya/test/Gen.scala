@@ -10,7 +10,9 @@ import SizeSpec.DisableDefault._
 final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
   /**
-   * Run this generator.
+   * Produce an infinite stream of generated data.
+   *
+   * Use `.take(n)` for a finite number of samples.
    */
   def samples(ctx: GenCtx): Samples[A] =
     Samples.continually(() => run(ctx))

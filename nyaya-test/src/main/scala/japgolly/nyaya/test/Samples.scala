@@ -2,61 +2,6 @@ package japgolly.nyaya.test
 
 import scala.annotation.tailrec
 import scala.collection.AbstractIterator
-import scala.collection.generic.CanBuildFrom
-
-/**
- * Iterator over generated data.
- */
-abstract class Samples[+A] {
-  def hasNext: Boolean
-  def next(): A
-
-  override def toString =
-    s"Samples{hasNext = $hasNext}"
-
-  final def nextOption(): Option[A] =
-    if (hasNext)
-      Some(next())
-    else
-      None
-
-  final def foreach[U](f: A => U): Unit =
-    while (hasNext)
-      f(next())
-
-  final def to[B](implicit cbf: CanBuildFrom[Nothing, A, B]): B = {
-    val b = cbf()
-    while (hasNext) b += next()
-    b.result()
-  }
-
-  final def toList       : List  [A] = to[List  [A]]
-  final def toVector     : Vector[A] = to[Vector[A]]
-  final def toSet[B >: A]: Set   [B] = to[Set   [B]]
-
-  final def toIterator: Iterator[A] = {
-    val underlying = this
-    new AbstractIterator[A] {
-      override def hasNext = underlying.hasNext
-      override def next() = underlying.next()
-    }
-  }
-
-  final def toStream: Stream[A] =
-    if (hasNext)
-      Stream.cons(next(), toStream)
-    else
-      Stream.empty
-
-  def take(n: Int): Samples[A] = {
-    val underlying = this
-    new Samples[A] {
-      var i = n
-      override def hasNext = i > 0 && underlying.hasNext
-      override def next(): A = { i -= 1; underlying.next() }
-    }
-  }
-}
 
 object Samples {
   case class BatchSize(samples: SampleSize, genSize: GenSize)
@@ -101,7 +46,7 @@ object Samples {
         }
       }
 
-    new Samples[A] {
+    new AbstractIterator[A] {
       override def hasNext =
         (remainingInThisBatch > 0) || prepareNextBatch()
 
@@ -113,7 +58,7 @@ object Samples {
   }
 
   def continually[A](f: () => A): Samples[A] =
-    new Samples[A] {
+    new AbstractIterator[A] {
       override def hasNext = true
       override def next(): A = f()
     }
