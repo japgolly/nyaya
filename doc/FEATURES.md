@@ -63,10 +63,24 @@ case class Foo(a: Int, b: String) {
 
 ### Generating Random Data
 
-* When building random data generators, under the covers, this uses [NICTA/rng](https://github.com/NICTA/rng).
-* I find NICTA/rng combinators ***immensely*** powerful and easy and powerful to work with, much better than typeclasses. As such, many useful combinators have been added as this project was used for real.
-* I've never been a fan of `Gen` and `Arbitrary` in ScalaCheck. This has `Gen` but no `Arbitrary`. If you want to use this library and want implicits, using implicit `Gen`s by yourself will suffice.
-* No `suchThat` or filtering available. Don't generate data just to throw it away. Instead, write an accurate generator. If a number is too large then keep halving it until its not. There are better ways than throw-away-retry.
+Simply `import nyaya.gen.Gen` and follow the API.
+
+Combinators are all in `Gen` instances and the companion object.
+
+Examples:
+
+|Type to generate|Constraints|Expression|
+| ---- | ---- | ---- |
+| `String` | None. | `Gen.string` |
+| `String` | Length between 4 and 12. | `Gen.string(4 to 12)` |
+| `String` | Exactly 6 chars, A-Za-z0-9. | `Gen.alphaNumeric.string(6)` |
+| `List[Int]` | None. | `Gen.int.list` |
+| `Map[Int, Option[Boolean]]` | None.        | `Gen.int.mapTo(Gen.boolean.option)` |
+| `Map[Int, Option[Boolean]]` | ≤ 4 entries. | `Gen.int.mapTo(Gen.boolean.option)(0 to 4)` |
+
+Note: `Gen` does not contain a `.suchThat` or `.filter`.
+Don't generate data just to throw it away. Instead, write an accurate generator.
+There are better ways than throw-away-retry.
 
 ##### Example
 Say we have these data types
@@ -77,13 +91,19 @@ Say we have these data types
 ```
 Generators for each are:
 ```scala
-  lazy val id: Gen[Id] =
-    Gen.positiveInt map Id.apply
-  
-  lazy val blah: Gen[Blah] =
-    Gen.apply2(Blah.apply)(
-      id.set,
-      Gen.double.triple.option)
+  val id: Gen[Id] =
+    Gen.positiveInt map Id
+
+   // Using for-comprehension
+   val blah: Gen[Blah] =
+     for {
+       ids       <- id.set
+       prevCoord <- Gen.double.triple.option
+     } yield Blah(ids, prevCoord)
+
+   // Quicker
+   val blah: Gen[Blah] =
+    Gen.apply2(Blah)(id.set, Gen.double.triple.option)
 ```
 
 ### Testing with Random Data (pt.1)
@@ -99,7 +119,7 @@ Generators for each are:
 val gen : Gen[A] = ...
 val prop: Prop[A] = ...
 
-import japgolly.nyaya.test.PropTest._
+import nyaya.test.PropTest._
 
 gen mustSatisfy prop        // Method 1
 prop mustBeSatisfiedBy gen  // Method 2
@@ -128,7 +148,7 @@ A nice benefit of this approach is that your data generators do less work. If yo
 then you gain nothing by ensuring that the reverse test gets a string different than `a` or `b`. It's more efficient to generate two strings and pick one to use for the reverse test.
 
 ##### Example
-See [MultimapTest.scala](https://github.com/japgolly/nyaya/blob/master/nyaya-test/src/test/scala/japgolly/nyaya/util/MultimapTest.scala) for a real example.
+See [MultimapTest.scala](../nyaya-test/src/test/scala/nyaya/util/MultimapTest.scala) for a real example.
 
 ### Proving
 
@@ -145,7 +165,7 @@ val prop: Prop[Option[Boolean]] = ...
 val domain: Prop[Option[Boolean]] =
   Domain.boolean.option
 
-import japgolly.nyaya.test.PropTest._
+import nyaya.test.PropTest._
 
 domain mustProve prop       // Method 1
 prop mustBeProvedBy domain  // Method 2
@@ -171,7 +191,7 @@ val g = Gen.int.list.map(d.run)
 
 // How about people with unique names
 case class Person(id: Long, name: String)
-val g = Gen.apply2(Person.apply)(Gen.long, Gen.string1)
+val g = Gen.apply2(Person)(Gen.long, Gen.string1)
 val d = Distinct.str.contramap[Person](_.name, (person, newName) => person.copy(name = newName))
 g map d.run
 
@@ -184,7 +204,7 @@ object Person {
 }
 
 // Now let's generate a List[Person] with unique ids and names
-val personGen = Gen.apply2(Person.apply)(Gen.long, Gen.string1)
+val personGen = Gen.apply2(Person)(Gen.long, Gen.string1)
 
 val distinctId   = Distinct.long.at(Person.id)
 val distinctName = Distinct.str.at(Person.name)
@@ -228,7 +248,7 @@ object Farm {
 
 // No duplicate IDs in Farm is acheived thus:
 
-val distinctId     = Distinct.flong.xmap(Id.apply)(_.value).distinct
+val distinctId     = Distinct.flong.xmap(Id)(_.value).distinct
 val distinctDonkey = distinctId.at(Donkey.id)
 val distinctHorse  = distinctId.at(Horse.id)
 val distinctFarm   = distinctDonkey.lift[List].at(Farm.ds) +
@@ -246,4 +266,3 @@ val farmGen2: Gen[Farm] = farmGen map distinctFarm.run
 * `CycleDetector` - Easily detect cycles in recursive data.
   * Directed graphs.
   * Undirected graphs.
-
