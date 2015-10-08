@@ -5,7 +5,6 @@ import scalaz.NonEmptyList
 import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
-import nyaya.test._
 import nyaya.test.PropTest._
 
 object GenTest extends TestSuite {
@@ -57,11 +56,23 @@ object GenTest extends TestSuite {
 
   override def tests = TestSuite {
 
+    'chooseChar {
+      // Ensure scalac actually allows these overloads (in some cases it compiles but fails at callsite)
+      val s1 = Gen.chooseChar('a', 'b' to 'z')
+      val s2 = Gen.chooseChar('@', "=!")
+      val s3 = Gen.chooseChar('@', "=!", 'a' to 'z', 'A' to 'Z')
+      val u1 = Gen.chooseChar_!('a' to 'z')
+      val u2 = Gen.chooseChar_!("@=!")
+      val u3 = Gen.chooseChar_!("@=!", 'a' to 'z', 'A' to 'Z')
+      def test(gs: Gen[Char]*) = ()
+      test(s1, s2, s3)
+      test(u1, u2, u3)
+    }
+
     'charToString {
       assertType[Gen[String]](Gen.char.string)
       assertType[Gen[String]](Gen.char.string1)
-//      assertType[Gen[String]]((null: Gen[List[Char]]).string)
-//      assertType[Gen[String]]((null: Gen[NonEmptyList[Char]]).string1)
+      assertType[Gen[String]](Gen.ascii.string)
     }
 
     'unicodeString - Gen.string.mustSatisfy(validUnicode)// (DefaultSettings.propSettings.setSampleSize(500000))

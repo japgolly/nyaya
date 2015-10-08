@@ -317,7 +317,7 @@ object Gen {
   > 0-55295,57344-65535
   val mimic = (1 to 65535-2048).map(i => if (i>55295) i+2048 else i)
    */
-  val char: Gen[Char] = Gen { c =>
+  val unicode: Gen[Char] = Gen { c =>
     var i = c.rnd.nextInt(63487) + 1 // 1 to 65535-2048
     if (i > 55295) i += 2048
     i.toChar
@@ -353,28 +353,31 @@ object Gen {
   def stringOf (cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = mkString(cs, ss.gen)
   def stringOf1(cs: Gen[Char])(implicit ss: SizeSpec): Gen[String] = mkString(cs, ss.gen1)
 
-  def string             (implicit ss: SizeSpec): Gen[String] = stringOf (char)        (ss)
-  def string1            (implicit ss: SizeSpec): Gen[String] = stringOf1(char)        (ss)
-  def upperString        (implicit ss: SizeSpec): Gen[String] = stringOf (upper)       (ss)
-  def upperString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(upper)       (ss)
-  def lowerString        (implicit ss: SizeSpec): Gen[String] = stringOf (lower)       (ss)
-  def lowerString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(lower)       (ss)
-  def alphaString        (implicit ss: SizeSpec): Gen[String] = stringOf (alpha)       (ss)
-  def alphaString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(alpha)       (ss)
-  def numericString      (implicit ss: SizeSpec): Gen[String] = stringOf (numeric)     (ss)
-  def numericString1     (implicit ss: SizeSpec): Gen[String] = stringOf1(numeric)     (ss)
-  def alphaNumericString (implicit ss: SizeSpec): Gen[String] = stringOf (alphaNumeric)(ss)
-  def alphaNumericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alphaNumeric)(ss)
-  def asciiString        (implicit ss: SizeSpec): Gen[String] = stringOf (ascii)       (ss)
-  def asciiString1       (implicit ss: SizeSpec): Gen[String] = stringOf1(ascii)       (ss)
+  /** An alias for [[unicode]], as unicode is the default. */
+  @inline def char: Gen[Char] = unicode
+  def string (implicit ss: SizeSpec): Gen[String] = stringOf (char)(ss)
+  def string1(implicit ss: SizeSpec): Gen[String] = stringOf1(char)(ss)
 
-  @inline def unicodeString (implicit ss: SizeSpec): Gen[String] = string(ss)
-  @inline def unicodeString1(implicit ss: SizeSpec): Gen[String] = string1(ss)
+  def chooseChar(nonEmptinessProof: Char, rs: NumericRange[Char]*): Gen[Char] =
+    chooseChar(nonEmptinessProof, "", rs: _*)
 
-  def chooseChar(c: Char, s: String, rs: NumericRange[Char]*): Gen[Char] = {
-    val cs = rs.foldLeft(s.to[Vector] :+ c)(_ ++ _)
-    chooseIndexed_!(cs)
+  def chooseChar(nonEmptinessProof: Char, s: String, rs: NumericRange[Char]*): Gen[Char] = {
+    val b = Array.newBuilder[Char]
+    b += nonEmptinessProof
+    b ++= s
+    rs foreach (b ++= _)
+    chooseArray_!(b.result())
   }
+
+  def chooseChar_!(s: String, rs: NumericRange[Char]*): Gen[Char] = {
+    val b = Array.newBuilder[Char]
+    b ++= s
+    rs foreach (b ++= _)
+    chooseArray_!(b.result())
+  }
+
+  def chooseChar_!(rs: NumericRange[Char]*): Gen[Char] =
+    chooseChar_!("", rs: _*)
 
   /**
    * Generate an int ∈ [0,bound).
@@ -586,6 +589,48 @@ object Gen {
   // Deprecated
 
   import scalaz.OneAnd
+
+  @deprecated("Replace Gen.upperString with Gen.upper.string", "0.6.0")
+  def upperString(implicit ss: SizeSpec): Gen[String] = stringOf(upper)(ss)
+
+  @deprecated("Replace Gen.upperString1 with Gen.upper.string1", "0.6.0")
+  def upperString1(implicit ss: SizeSpec): Gen[String] = stringOf1(upper)(ss)
+
+  @deprecated("Replace Gen.lowerString with Gen.lower.string", "0.6.0")
+  def lowerString(implicit ss: SizeSpec): Gen[String] = stringOf(lower)(ss)
+
+  @deprecated("Replace Gen.lowerString1 with Gen.lower.string1", "0.6.0")
+  def lowerString1(implicit ss: SizeSpec): Gen[String] = stringOf1(lower)(ss)
+
+  @deprecated("Replace Gen.alphaString with Gen.alpha.string", "0.6.0")
+  def alphaString(implicit ss: SizeSpec): Gen[String] = stringOf(alpha)(ss)
+
+  @deprecated("Replace Gen.alphaString1 with Gen.alpha.string1", "0.6.0")
+  def alphaString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alpha)(ss)
+
+  @deprecated("Replace Gen.numericString with Gen.numeric.string", "0.6.0")
+  def numericString(implicit ss: SizeSpec): Gen[String] = stringOf(numeric)(ss)
+
+  @deprecated("Replace Gen.numericString1 with Gen.numeric.string1", "0.6.0")
+  def numericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(numeric)(ss)
+
+  @deprecated("Replace Gen.alphaNumericString with Gen.alphaNumeric.string", "0.6.0")
+  def alphaNumericString(implicit ss: SizeSpec): Gen[String] = stringOf(alphaNumeric)(ss)
+
+  @deprecated("Replace Gen.alphaNumericString1 with Gen.alphaNumeric.string1", "0.6.0")
+  def alphaNumericString1(implicit ss: SizeSpec): Gen[String] = stringOf1(alphaNumeric)(ss)
+
+  @deprecated("Replace Gen.asciiString with Gen.ascii.string", "0.6.0")
+  def asciiString(implicit ss: SizeSpec): Gen[String] = stringOf(ascii)(ss)
+
+  @deprecated("Replace Gen.asciiString1 with Gen.ascii.string1", "0.6.0")
+  def asciiString1(implicit ss: SizeSpec): Gen[String] = stringOf1(ascii)(ss)
+
+  @deprecated("Replace Gen.unicodeString with Gen.unicode.string", "0.6.0")
+  def unicodeString(implicit ss: SizeSpec): Gen[String] = stringOf(unicode)(ss)
+
+  @deprecated("Replace Gen.unicodeString1 with Gen.unicode.string1", "0.6.0")
+  def unicodeString1(implicit ss: SizeSpec): Gen[String] = stringOf1(unicode)(ss)
 
   // lazy val digit: Gen[Digit] = chooseArray_!(Digit.digits.toArray)
   // @deprecated("Replace Gen.digits with Gen.digit.list.", "0.6.0")
