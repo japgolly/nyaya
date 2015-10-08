@@ -74,7 +74,8 @@ Examples:
 | `String` | None. | `Gen.string` |
 | `String` | Length between 4 and 12. | `Gen.string(4 to 12)` |
 | `String` | Exactly 6 chars, A-Za-z0-9. | `Gen.alphaNumeric.string(6)` |
-| `List[Int]` | None. | `Gen.int.list` |
+| `List[Int]` | None.      | `Gen.int.list` |
+| `List[Int]` | Non-empty. | `Gen.int.list1` |
 | `Map[Int, Option[Boolean]]` | None.        | `Gen.int.mapTo(Gen.boolean.option)` |
 | `Map[Int, Option[Boolean]]` | ≤ 4 entries. | `Gen.int.mapTo(Gen.boolean.option)(0 to 4)` |
 
