@@ -40,7 +40,7 @@ package object util {
     override def isEmpty[A]  (a: Vector[A])                       = a.isEmpty
   }
 
-  @inline implicit final class NyayaUtilAnyExt[A](val _a: A) extends AnyVal {
-    @inline def `JVM|JS`(js: => A): A = Platform.choose(_a, js)
+  @inline implicit final class NyayaUtilAnyExt[A](private val a: A) extends AnyVal {
+    @inline def `JVM|JS`(js: => A): A = Platform.choose(a, js)
   }
 }

@@ -19,27 +19,27 @@ package object prop {
 
   type Prop[A] = Logic[PropA, A]
 
-  implicit class Prop_AnyExt[A](val _a: A) extends AnyVal {
+  implicit class Prop_AnyExt[A](private val a: A) extends AnyVal {
 
     @elidable(elidable.ASSERTION)
-    def assertSatisfies(p: Prop[A]): Unit = p.assert(_a)
+    def assertSatisfies(p: Prop[A]): Unit = p.assert(a)
   }
 
-  implicit class LogicPropExt[A](val _l: Prop[A]) extends AnyVal {
+  implicit class LogicPropExt[A](private val prop: Prop[A]) extends AnyVal {
     @inline def apply(a: A): Eval =
-      Prop.run(_l)(a)
+      Prop.run(prop)(a)
 
     @inline def forall[B, F[_] : Foldable](f: B => F[A]): Prop[B] =
-      Prop.forall(f)(_ => _l)
+      Prop.forall(f)(_ => prop)
 
     @inline def forallS[B, F[_] : Foldable, C](f: B => F[C])(implicit ev: C <:< A): Prop[B] =
-      Prop.forallS(f)(_ => _l)
+      Prop.forallS(f)(_ => prop)
 
     @inline def forallF[F[_] : Foldable]: Prop[F[A]] =
       forall(j => j)
 
     @elidable(elidable.ASSERTION)
     @inline def assert(a: A): Unit =
-      Prop.assert(_l)(a)
+      Prop.assert(prop)(a)
   }
 }

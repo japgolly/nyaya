@@ -87,7 +87,7 @@ object Multimap {
     Equal.equalBy((_: Multimap[K, L, V]).m)
 
   private[util] object Internal {
-    implicit final class MultiMapExt[K, L[_], V](val m: Map[K, L[V]]) extends AnyVal {
+    implicit final class MultiMapExt[K, L[_], V](private val m: Map[K, L[V]]) extends AnyVal {
       @inline def delv(v: V)                (implicit L: MultiValues[L]): Map[K, L[V]] = m.mapValues(_ del1 v)
       @inline def getOrEmpty(k: K)          (implicit L: MultiValues[L]): L[V]         = m.getOrElse(k, L.empty)
       @inline def add(kv: (K, V))           (implicit L: MultiValues[L]): Map[K, L[V]] = mod(kv._1, _ add1 kv._2)
@@ -99,7 +99,7 @@ object Multimap {
         if (v.isEmpty) m - k else m.updated(k, v)
     }
 
-    implicit final class MultiValueOps[L[_], A](val as: L[A]) extends AnyVal {
+    implicit final class MultiValueOps[L[_], A](private val as: L[A]) extends AnyVal {
       def add1(b: A)                    (implicit L: MultiValues[L]) = L.add1(as, b)
       def del1(b: A)                    (implicit L: MultiValues[L]) = L.del1(as, b)
       def addn(b: L[A])                 (implicit L: MultiValues[L]) = L.addn(as, b)

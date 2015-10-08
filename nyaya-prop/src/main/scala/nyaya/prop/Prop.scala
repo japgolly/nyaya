@@ -44,7 +44,7 @@ object Prop {
     atom[A](name, a => reasonEq(actual(a), expect(a)))
 
   def equal[A](name: => String) = new EqualB[A](name)
-  final class EqualB[A](val name: String) extends AnyVal {
+  final class EqualB[A](private val name: String) extends AnyVal {
     def apply[B: Equal](actual: A => B, expect: A => B): Prop[A] = equal(name, actual, expect)
   }
 
@@ -86,7 +86,7 @@ object Prop {
    * Test that all of A's Cs are on a whitelist.
    */
   @inline def whitelist[A](name: String) = new WhitelistB[A](name)
-  final class WhitelistB[A](val name: String) extends AnyVal {
+  final class WhitelistB[A](private val name: String) extends AnyVal {
     def apply[B, C](whitelist: A => Set[B], testData: A => Traversable[C])(implicit ev: C <:< B): Prop[A] =
       evaln(s"$name whitelist", a => Eval.whitelist(name, a, whitelist(a), testData(a)))
   }
@@ -95,7 +95,7 @@ object Prop {
    * Test that none of A's Cs are on a blacklist.
    */
   @inline def blacklist[A](name: String) = new BlacklistB[A](name)
-  final class BlacklistB[A](val name: String) extends AnyVal {
+  final class BlacklistB[A](private val name: String) extends AnyVal {
     def apply[B, C](blacklist: A => Set[B], testData: A => Traversable[C])(implicit ev: C <:< B): Prop[A] =
       evaln(s"$name blacklist", a => Eval.blacklist(name, a, blacklist(a), testData(a)))
   }
@@ -104,7 +104,7 @@ object Prop {
    * Test that all (A's) Bs are present in A's Cs.
    */
   @inline def allPresent[A](name: String) = new AllPresentB[A](name)
-  final class AllPresentB[A](val name: String) extends AnyVal {
+  final class AllPresentB[A](private val name: String) extends AnyVal {
     def apply[B, C](requiredSubset: A => Set[B], testData: A => Traversable[C])(implicit ev: B <:< C): Prop[A] =
       evaln(s"$name allPresent", a => Eval.allPresent(name, a, requiredSubset(a), testData(a)))
   }

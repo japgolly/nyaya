@@ -57,7 +57,7 @@ object Baggy {
   }
 
   object Implicits {
-    implicit final class BaggyExt[H[_], A](val h: H[A]) extends AnyVal {
+    implicit final class BaggyExt[H[_], A](private val h: H[A]) extends AnyVal {
       def contains(a: A)   (implicit H: Baggy[H]) = H.contains(h, a)
       def +       (a: A)   (implicit H: Baggy[H]) = H.add(h, a)
       def ++      (i: H[A])(implicit H: Baggy[H]) = H.append(h, i)
