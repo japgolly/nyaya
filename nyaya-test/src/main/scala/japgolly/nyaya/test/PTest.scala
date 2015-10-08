@@ -2,7 +2,7 @@ package japgolly.nyaya.test
 
 import japgolly.nyaya._
 import Executor.Data
-import GenData.BatchSize
+import Samples.BatchSize
 
 case class RunState[A](runs: Int, result: Result[A])
 object RunState {
@@ -22,9 +22,9 @@ object PTest {
         else
           dontLogNewBatch
 
-      val plan = GenData.planBatchSizes(dataCtx.sampleSize, sizeDist, genSize)
+      val plan = Samples.planBatchSizes(dataCtx.sampleSize, sizeDist, genSize)
       val ctx = GenCtx(genSize, dataCtx.seed)
-      GenData.batches(gen, ctx, plan, logNewBatch)
+      Samples.batches(gen, ctx, plan, logNewBatch)
     }
 
   def test[A](p: Prop[A], gen: Gen[A], S: Settings): RunState[A] = {
@@ -32,7 +32,7 @@ object PTest {
     S.executor.run(p, prepareData(gen, S.sizeDist, S.genSize, S.debug), S)
   }
 
-  private[test] def testN[A](p: Prop[A], it: GenData[A], runInc: () => Int, S: Settings): RunState[A] = {
+  private[test] def testN[A](p: Prop[A], it: Samples[A], runInc: () => Int, S: Settings): RunState[A] = {
     var rs = RunState.empty[A]
     while (rs.success && it.hasNext) {
       val run = runInc()

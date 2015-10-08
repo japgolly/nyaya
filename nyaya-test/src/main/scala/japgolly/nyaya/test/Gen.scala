@@ -12,8 +12,8 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   /**
    * Run this generator.
    */
-  def samples(ctx: GenCtx): GenData[A] =
-    GenData.continually(() => run(ctx))
+  def samples(ctx: GenCtx): Samples[A] =
+    Samples.continually(() => run(ctx))
 
   def map[B](f: A => B): Gen[B] =
     Gen(f compose run)

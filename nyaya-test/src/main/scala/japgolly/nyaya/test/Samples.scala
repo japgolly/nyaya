@@ -4,11 +4,14 @@ import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
 
 /**
- * Generated Data iterator.
+ * Iterator over generated data.
  */
-abstract class GenData[+A] {
+abstract class Samples[+A] {
   def hasNext: Boolean
   def next(): A
+
+  override def toString =
+    s"Samples{hasNext = $hasNext}"
 
   final def nextOption(): Option[A] =
     if (hasNext)
@@ -36,9 +39,9 @@ abstract class GenData[+A] {
     else
       Stream.empty
 
-  def take(n: Int): GenData[A] = {
+  def take(n: Int): Samples[A] = {
     val underlying = this
-    new GenData[A] {
+    new Samples[A] {
       var i = n
       override def hasNext = i > 0 && underlying.hasNext
       override def next(): A = { i -= 1; underlying.next() }
@@ -46,7 +49,7 @@ abstract class GenData[+A] {
   }
 }
 
-object GenData {
+object Samples {
   case class BatchSize(samples: SampleSize, genSize: GenSize)
 
   def planBatchSizes(sampleSize: SampleSize, sizeDist: Settings.SizeDist, genSize: GenSize): Vector[BatchSize] = {
@@ -68,7 +71,7 @@ object GenData {
     }
   }
 
-  def batches[A](gen: Gen[A], ctx: GenCtx, plan: Vector[BatchSize], logNewBatch: BatchSize => Unit): GenData[A] = {
+  def batches[A](gen: Gen[A], ctx: GenCtx, plan: Vector[BatchSize], logNewBatch: BatchSize => Unit): Samples[A] = {
     var remainingPlan = plan
     var remainingInThisBatch = 0
 
@@ -89,7 +92,7 @@ object GenData {
         }
       }
 
-    new GenData[A] {
+    new Samples[A] {
       override def hasNext =
         (remainingInThisBatch > 0) || prepareNextBatch()
 
@@ -100,8 +103,8 @@ object GenData {
     }
   }
 
-  def continually[A](f: () => A): GenData[A] =
-    new GenData[A] {
+  def continually[A](f: () => A): Samples[A] =
+    new Samples[A] {
       override def hasNext = true
       override def next(): A = f()
     }
