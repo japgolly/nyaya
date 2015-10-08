@@ -1,4 +1,4 @@
-package nyaya.gen
+package nyaya.test
 
 import utest._
 import scalaz._, Scalaz._

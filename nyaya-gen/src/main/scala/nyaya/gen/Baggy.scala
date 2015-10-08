@@ -2,6 +2,9 @@ package nyaya.gen
 
 import scalaz.EphemeralStream
 
+/*
+ * TODO "Baggy" was a joke a first. Replace with real, appropriate typeclass.
+ */
 trait Baggy[H[_]] {
   def empty   [A]                  : H[A]
   def contains[A](h: H[A], a: A)   : Boolean

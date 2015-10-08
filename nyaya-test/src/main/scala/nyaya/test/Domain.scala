@@ -1,4 +1,4 @@
-package nyaya.gen
+package nyaya.test
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.NumericRange

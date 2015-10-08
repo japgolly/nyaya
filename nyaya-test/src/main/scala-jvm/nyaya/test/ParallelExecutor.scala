@@ -1,7 +1,6 @@
 package nyaya.test
 
 import java.util.concurrent._, atomic.AtomicInteger
-import nyaya.gen.Domain
 import nyaya.prop.Prop
 import ParallelExecutor._
 import PTest._

@@ -1,6 +1,5 @@
 package nyaya.test
 
-import nyaya.gen.Domain
 import nyaya.prop.Prop
 import PTest._
 
