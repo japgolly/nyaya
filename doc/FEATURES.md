@@ -56,7 +56,7 @@ object MyProps {
 }
 
 case class Foo(a: Int, b: String) {
-  import shipreq.prop._
+  import nyaya.prop._
   this assertSatisfies MyProps.foo
 }
 ```
@@ -201,11 +201,8 @@ g map d.run
 
 // The whole (a,b)=>a.copy(b=b) thing gets old after a while
 // Let's use Monocle to create lenses!
-object Person {
-  private def l = Lenser[Person]
-  val id   = l(_.id)
-  val name = l(_.name)
-}
+@monocle.macros.Lenses
+case class Person(id: Long, name: String)
 
 // Now let's generate a List[Person] with unique ids and names
 val personGen = Gen.apply2(Person)(Gen.long, Gen.string1)
@@ -223,33 +220,20 @@ Uniqueness doesn't have to be restricted to a single field; it can extend across
 This is an example:
 ```scala
 // Say we have these types...
+import monocle.macros.Lenses
 
 case class Id(value: Long)
 
+@Lenses
 case class Donkey(id: Id, name: String)
+
+@Lenses
 case class Horse (id: Id, happy: Boolean)
 
+@Lenses
 case class Farm(ds: List[Donkey], hs: Vector[Horse])
 
 // Now say we want to prevent duplicate IDs between the donkeys and horses in Farm
-
-// First lets create some boring, boring lenses...
-object Donkey {
-  private def l = Lenser[Donkey]
-  val id   = l(_.id)
-  val name = l(_.name)
-}
-object Horse {
-  private def l = Lenser[Horse]
-  val id    = l(_.id)
-  val happy = l(_.happy)
-}
-object Farm {
-  private def l = Lenser[Farm]
-  val ds = l(_.ds)
-  val hs = l(_.hs)
-}
-
 // No duplicate IDs in Farm is acheived thus:
 
 val distinctId     = Distinct.flong.xmap(Id)(_.value).distinct
