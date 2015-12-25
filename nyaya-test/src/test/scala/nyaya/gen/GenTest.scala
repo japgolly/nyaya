@@ -86,7 +86,7 @@ object GenTest extends TestSuite {
     'mapByKeySubset - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)
     'mapByEachKey   - mapByEachKeyGen                               .mustSatisfy(mapByEachKeyProp)
     'newOrOld       - Gen.int.list.flatMap(Gen.newOrOld(Gen.int, _)).mustSatisfy(didntCrash)
-    'frequency      - freqArgs.flatMap(Gen.frequencyL)              .mustSatisfy(didntCrash)
+    'frequency      - freqArgs.flatMap(Gen frequencyNE _)           .mustSatisfy(didntCrash)
 
     'sequence - {
       val inp = "heheyay"

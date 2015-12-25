@@ -518,8 +518,8 @@ object Gen {
   def frequency[A](x: Freq[A], xs: Freq[A]*): Gen[A] =
     frequencyL_!(x :: xs.toList)
 
-  def frequencyL[A](xs: NonEmptyList[Freq[A]]): Gen[A] =
-    frequencyL_!(xs.list)
+  def frequencyNE[S, F, A](s: S)(implicit ne: ToNonEmptySeq[S, F], f: Seq[F] <:< Seq[Freq[A]]): Gen[A] =
+    frequencyL_!(f(ne toSeq s).toList)
 
   def frequencyL_![A](xs: List[Freq[A]]): Gen[A] =
     if (xs.lengthCompare(1) == 0)
@@ -739,4 +739,7 @@ object Gen {
 
   @deprecated("Replace with `g strengthL l`.", "0.6.0")
   def sequencePair[X, A](x: X, r: Gen[A]): Gen[(X, A)] = r strengthL x
+
+  @deprecated("Replace with Gen.frequencyNE.", "0.6.1")
+  def frequencyL[A](xs: NonEmptyList[Freq[A]]): Gen[A] = frequencyNE(xs)
 }
