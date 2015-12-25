@@ -240,6 +240,24 @@ object Gen {
 
   @inline implicit def _GenCharExt(g: Gen[Char]) = new GenCharExt(g.run)
 
+  case class ToNonEmptySeq[S, A](toSeq: S => Seq[A])
+
+  object ToNonEmptySeq {
+    def merge[A](a: A, s: Traversable[A]): Seq[A] =
+      a +: s.toIndexedSeq // toIndexedSeq because this is really for choose_!
+
+    implicit def headAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[(A, S[A]), A] =
+      apply(o => merge(o._1, o._2))
+
+    import scalaz.{NonEmptyList, OneAnd}
+
+    implicit def scalazNEL[A]: ToNonEmptySeq[NonEmptyList[A], A] =
+      apply(_.list)
+
+    implicit def scalazOneAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
+      apply(o => merge(o.head, o.tail))
+  }
+
   // ===================================================================================================================
 
   import scalaz.{Distributive, Kleisli, Monad, Name, Need, NonEmptyList, Traverse}
@@ -456,6 +474,12 @@ object Gen {
 
   def chooseGen[A](a: Gen[A], as: Gen[A]*): Gen[A] =
     choose(a, as: _*).flatten
+
+  def chooseNE[S, A](s: S)(implicit ne: ToNonEmptySeq[S, A]): Gen[A] =
+    choose_!(ne toSeq s)
+
+  def chooseGenNE[S, G, A](s: S)(implicit ne: ToNonEmptySeq[S, G], g: G <:< Gen[A]): Gen[A] =
+    chooseNE(s).flatten
 
   def tryChoose[A](as: Seq[A]): Gen[Option[A]] =
     if (as.isEmpty)
@@ -689,8 +713,8 @@ object Gen {
   @deprecated("Replace with Gen.chooseGen.", "0.6.0")
   def oneOfG[A](a: Gen[A], as: Gen[A]*): Gen[A] = chooseGen(a, as: _*)
 
-  @deprecated("Replace with Gen.chooseGen.", "0.6.0")
-  def oneOfGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] = chooseGen(gs.head, gs.tail: _*)
+  @deprecated("Replace with Gen.chooseGenNE.", "0.6.0")
+  def oneOfGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] = chooseGenNE(gs)
 
   @deprecated("Replace with Gen.tryChoose.", "0.6.0")
   def oneOfSeq[A](as: Seq[A]): Gen[Option[A]] = tryChoose(as)
@@ -701,11 +725,11 @@ object Gen {
   @deprecated("Replace with Gen.choose.", "0.6.0")
   def oneOf[A](a: A, as: A*): Gen[A] = choose(a, as: _*)
 
-  @deprecated("Replace with Gen.choose_!(nel.list).", "0.6.0")
-  def oneOfL[A](x: NonEmptyList[A]): Gen[A] = choose_!(x.list)
+  @deprecated("Replace with Gen.chooseNE(nel).", "0.6.0")
+  def oneOfL[A](x: NonEmptyList[A]): Gen[A] = chooseNE(x)
 
-  @deprecated("Replace with Gen.choose.", "0.6.0")
-  def oneOfV[A](x: OneAnd[Vector, A]): Gen[A] = chooseIndexed_!(x.tail :+ x.head)
+  @deprecated("Replace with Gen.chooseNE.", "0.6.0")
+  def oneOfV[A](x: OneAnd[Vector, A]): Gen[A] = chooseNE(x)
 
   @deprecated("Replace with `a pair b` or `Gen.tuple2`.", "0.6.0")
   def pair[A, B](A: Gen[A], B: Gen[B]): Gen[(A, B)] = tuple2(A, B)
