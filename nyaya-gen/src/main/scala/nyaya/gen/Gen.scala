@@ -240,7 +240,7 @@ object Gen {
 
   @inline implicit def _GenCharExt(g: Gen[Char]) = new GenCharExt(g.run)
 
-  case class ToNonEmptySeq[S, A](toSeq: S => Seq[A])
+  final case class ToNonEmptySeq[S, A](toSeq: S => Seq[A]) extends AnyVal
 
   object ToNonEmptySeq {
     def merge[A](a: A, s: Traversable[A]): Seq[A] =
