@@ -39,7 +39,7 @@ object Nyaya extends Build {
           "cct"  -> ";clear;clean;test"))
     ) :+ Typical.settings("nyaya")
 
-  val scalaz = Library("org.scalaz", "scalaz-core", "7.1.1").myJsFork("scalaz").jsVersion(_+"-2")
+  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.0").myJsFork("scalaz")
 
   def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.1.0").myJsFork("monocle")//.jsVersion(_+"-2")
   val monocleCore  = monocle("core")

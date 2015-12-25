@@ -210,8 +210,8 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   // ------------------------------------------------------
   import scalaz._
 
-  def nel(implicit ss: SizeSpec): Gen[NonEmptyList[A]] =
-    for {h <- this; t <- list(ss)} yield NonEmptyList.nel(h, t)
+  def nel[B >: A](implicit ss: SizeSpec): Gen[NonEmptyList[B]] =
+    for {h <- this; t <- list(ss)} yield NonEmptyList.nels[B](h, t: _*)
 
   def \/[B](g: Gen[B]): Gen[A \/ B] =
     Gen(c => if (c.nextBit()) -\/(run(c)) else \/-(g run c))
@@ -252,7 +252,7 @@ object Gen {
     import scalaz.{NonEmptyList, OneAnd}
 
     implicit def scalazNEL[A]: ToNonEmptySeq[NonEmptyList[A], A] =
-      apply(_.list)
+      apply(_.list.toList)
 
     implicit def scalazOneAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
       apply(o => merge(o.head, o.tail))
