@@ -477,7 +477,7 @@ object Gen {
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
-  def choose_![A](as: Seq[A]): Gen[A] =
+  def choose_![A](as: TraversableOnce[A]): Gen[A] =
     as match {
       case is: IndexedSeq[A] => chooseIndexed_!(is)
       case _                 => chooseIndexed_!((Vector.newBuilder[A] ++= as).result())
@@ -503,13 +503,13 @@ object Gen {
   def chooseGenNE[S, G, A](s: S)(implicit ne: ToNonEmptySeq[S, G], g: G <:< Gen[A]): Gen[A] =
     chooseNE(s).flatten
 
-  def tryChoose[A](as: Seq[A]): Gen[Option[A]] =
+  def tryChoose[A](as: TraversableOnce[A]): Gen[Option[A]] =
     if (as.isEmpty)
       pure(None)
     else
       choose_!(as).option
 
-  def tryGenChoose[A](as: Seq[A]): Option[Gen[A]] =
+  def tryGenChoose[A](as: TraversableOnce[A]): Option[Gen[A]] =
     if (as.isEmpty)
       None
     else
@@ -528,7 +528,7 @@ object Gen {
     pure(as).subset1
 
   /** Randomly either generates a new value, or chooses one from a known set. */
-  def newOrOld[A](newGen: => Gen[A], old: => Seq[A]): Gen[A] = {
+  def newOrOld[A](newGen: => Gen[A], old: => TraversableOnce[A]): Gen[A] = {
     lazy val n: Gen[A] = newGen
     lazy val o: Gen[A] = tryGenChoose(old) getOrElse n
     Gen(c => (if (c.nextBit()) n else o) run c)
