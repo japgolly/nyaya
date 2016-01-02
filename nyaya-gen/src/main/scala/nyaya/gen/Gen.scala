@@ -515,6 +515,12 @@ object Gen {
     else
       Some(choose_!(as))
 
+  def tryGenChooseLazily[A](as: TraversableOnce[A]): Option[Gen[A]] =
+    if (as.isEmpty)
+      None
+    else
+      Some(lazily(choose_!(as)))
+
   @inline def shuffle[A, C[X] <: TraversableOnce[X]](as: C[A])(implicit bf: CanBuildFrom[C[A], A, C[A]]): Gen[C[A]] =
     pure(as).shuffle
 
