@@ -260,15 +260,37 @@ object Gen {
 
   // ===================================================================================================================
 
-  import scalaz.{Distributive, Kleisli, Monad, Name, Need, NonEmptyList, Traverse}
+  import scalaz.{BindRec, Distributive, Kleisli, Monad, Name, Need, NonEmptyList, Traverse}
 
-  // Do the laws hold?
-  implicit val monadInstance: Monad[Gen] =
-    new Monad[Gen] {
+  implicit val scalazInstance: Monad[Gen] with BindRec[Gen] =
+    new Monad[Gen] with BindRec[Gen] {
       override def point[A](a: => A)                         : Gen[A] = Gen pure a
       override def ap[A, B](fa: => Gen[A])(g: => Gen[A => B]): Gen[B] = g flatMap fa.map
       override def bind[A, B](fa: Gen[A])(f: A => Gen[B])    : Gen[B] = fa flatMap f
       override def map[A,B](fa: Gen[A])(f: A => B)           : Gen[B] = fa map f
+
+      import scalaz.{\/, -\/, \/-}
+      override def tailrecM[A, B](f: A => Gen[A \/ B])(a: A): Gen[B] =
+        Gen { c =>
+          @tailrec
+          def go(a1: A): B =
+            f(a1).run(c) match {
+              case -\/(a2) => go(a2)
+              case \/-(b)  => b
+            }
+          go(a)
+        }
+    }
+
+  def tailrec[A, B](f: A => Gen[Either[A, B]])(a: A): Gen[B] =
+    Gen { c =>
+      @tailrec
+      def go(a1: A): B =
+        f(a1).run(c) match {
+          case Left(a2) => go(a2)
+          case Right(b) => b
+        }
+      go(a)
     }
 
   private[Gen] def runSubset[C[X] <: TraversableOnce[X], A](as: C[A], c: GenCtx)(implicit cbf: CanBuildFrom[Nothing, A, C[A]]): C[A] = {

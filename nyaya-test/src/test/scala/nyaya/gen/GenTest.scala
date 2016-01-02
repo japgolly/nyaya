@@ -1,7 +1,7 @@
 package nyaya.gen
 
 import java.nio.charset.Charset
-import scalaz.NonEmptyList
+import scalaz.{BindRec, NonEmptyList, -\/, \/-}
 import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
@@ -94,6 +94,13 @@ object GenTest extends TestSuite {
       val gvc = Gen sequence vgc
       val res = gvc.map(_ mkString "") run GenCtx(GenSize(0))
       assert(res == inp)
+    }
+
+    'tailrec {
+      val lim = 100000
+      def test(g: Int => Gen[Int]): Unit = assert(g(0).samples().next() == lim)
+      'plain - test(Gen.tailrec[Int, Int](i => Gen.pure(if (i < lim) Left(i + 1) else Right(i))))
+      'scalaz - test(BindRec[Gen].tailrecM[Int, Int](i => Gen.pure(if (i < lim) -\/(i + 1) else \/-(i))))
     }
   }
 }
