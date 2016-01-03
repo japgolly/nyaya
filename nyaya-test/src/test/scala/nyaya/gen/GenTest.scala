@@ -102,5 +102,19 @@ object GenTest extends TestSuite {
       'plain - test(Gen.tailrec[Int, Int](i => Gen.pure(if (i < lim) Left(i + 1) else Right(i))))
       'scalaz - test(BindRec[Gen].tailrecM[Int, Int](i => Gen.pure(if (i < lim) -\/(i + 1) else \/-(i))))
     }
+
+    'optionGet {
+      'pass - Gen.pure(666).option.optionGet.mustSatisfy(Prop.test("be 666", _ == 666))
+      'fail - {
+        val s = Gen.pure(None: Option[Int]).optionGet.samples()
+        try {
+          s.next()
+          sys error "Crash expected."
+        } catch {
+          case e: Throwable => assert(e.getMessage contains "Failed to generate")
+        }
+
+      }
+    }
   }
 }

@@ -205,6 +205,33 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       m
     }
 
+  /**
+   * Will keep generating options until one is defined, in which case it is returned.
+   *
+   * If a non-empty option still isn't generated after 1000 attempts, an exception will be thrown.
+   *
+   * It is recommended that you use this very sparingly. In nearly all cases, the better alternative is to write your
+   * generators such that a return value is guaranteed, rather than generating then discarding.
+   */
+  def optionGet[B](implicit ev: A <:< Option[B]): Gen[B] =
+    optionGetLimit(1000)
+
+  def optionGetLimit[B](maxAttempts: Int)(implicit ev: A <:< Option[B]): Gen[B] =
+    Gen { c =>
+      var attempts = 0
+      @tailrec
+      def go(): B =
+        ev(run(c)) match {
+          case None =>
+            attempts += 1
+            if (attempts == maxAttempts)
+              sys error s"Failed to generate a non-empty Option after $maxAttempts attempts."
+            go()
+          case Some(b) => b
+        }
+      go()
+    }
+
   // ------------------------------------------------------
   // Scalaz stuff
   // ------------------------------------------------------
