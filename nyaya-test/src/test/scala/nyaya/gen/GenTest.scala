@@ -148,9 +148,9 @@ object GenTest extends TestSuite {
         'dups2 - assertAll(Gen.orderedSeq(abc, 2, dropElems = false))(combos(1 to 3))
       }
 
-      'drop {
+      'dropEmpty {
         def test(dups: Int) =
-          assertAll(Gen.orderedSeq(abc, dups, dropElems = true))(
+          assertAll(Gen.orderedSeq(abc, dups, dropElems = true, emptyResult = true))(
             combos(0 to (dups + 1)))
         'dups0 - test(0)
         'dups1 - test(1)
@@ -158,7 +158,7 @@ object GenTest extends TestSuite {
 
       'dropNonEmpty {
         def test(dups: Int) =
-          assertAll(Gen.orderedSeq(abc, dups, dropElems = true, nonEmptyResult = true))(
+          assertAll(Gen.orderedSeq(abc, dups, dropElems = true, emptyResult = false))(
             combos(0 to (dups + 1)).filter(_.nonEmpty))
         'dups0 - test(0)
         'dups1 - test(1)

@@ -621,15 +621,15 @@ object Gen {
    *
    * Example: [a,b,c] can generate [a,b,c], [a,b,b,b,c,c], etc. but never [b,a,c].
    *
-   * @param orderedElems   Legal elements in a relevant order.
-   * @param maxDups        The maximum number of consecutive, duplicate elements (can be 0).
-   * @param dropElems      Whether or not the generator can drop elements. (eg. drop b and return [a,c])
-   * @param nonEmptyResult Whether or not the generator can return an empty vector as a result.
+   * @param orderedElems Legal elements in a relevant order.
+   * @param maxDups      The maximum number of consecutive, duplicate elements (can be 0).
+   * @param dropElems    Whether or not the generator can drop elements. (eg. drop b and return [a,c])
+   * @param emptyResult  Whether or not the generator can return an empty vector as a result.
    */
-  def orderedSeq[A](orderedElems  : Traversable[A],
-                    maxDups       : Int,
-                    dropElems     : Boolean = false,
-                    nonEmptyResult: Boolean = false): Gen[Vector[A]] =
+  def orderedSeq[A](orderedElems: Traversable[A],
+                    maxDups     : Int,
+                    dropElems   : Boolean = true,
+                    emptyResult : Boolean = true): Gen[Vector[A]] =
     if (orderedElems.isEmpty)
       Gen pure Vector.empty
     else {
@@ -645,7 +645,7 @@ object Gen {
           }
         }
         var r = v.result()
-        if (nonEmptyResult && r.isEmpty)
+        if (!emptyResult && r.isEmpty)
           r = genOne run ctx
         r
       }
