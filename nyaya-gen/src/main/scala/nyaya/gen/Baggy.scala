@@ -30,7 +30,7 @@ object Baggy {
 
   implicit object OptionBaggy extends Baggy[Option] {
     override def empty   [A]                             = None
-    override def contains[A](h: Option[A], a: A)         = h.exists(_ == a)
+    override def contains[A](h: Option[A], a: A)         = h contains a
     override def add     [A](h: Option[A], a: A)         = Some(a)
     override def append  [A](h: Option[A], i: Option[A]) = i orElse h
   }
