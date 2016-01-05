@@ -24,6 +24,15 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize) {
     lastBit = 32
   }
 
+  /** @return [0,1] */
+  def nextInt1(): Int =
+    if (nextBit()) 1 else 0
+
+  /** @return [0,3] */
+  def nextInt3(): Int =
+    if (nextBit()) nextInt1() else
+    if (nextBit()) 2 else 3
+
   private var genSize = _genSize
   var nextSize     = _nextSize
   var nextSizeMin1 = _nextSizeMin1
