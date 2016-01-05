@@ -614,6 +614,41 @@ object Gen {
       chooseInt(total - 1) flatMap (pick(_, h, t))
     }
 
+  /**
+   * Generates a sequence of elements in a fixed order.
+   *
+   * Example: [a,b,c] can generate [a,b,c], [a,b,b,b,c,c], etc. but never [b,a,c].
+   *
+   * @param orderedElems   Legal elements in a relevant order.
+   * @param maxDups        The maximum number of consecutive, duplicate elements (can be 0).
+   * @param dropElems      Whether or not the generator can drop elements. (eg. drop b and return [a,c])
+   * @param nonEmptyResult Whether or not the generator can return an empty vector as a result.
+   */
+  def orderedSeq[A](orderedElems  : Traversable[A],
+                    maxDups       : Int,
+                    dropElems     : Boolean = false,
+                    nonEmptyResult: Boolean = false): Gen[Vector[A]] =
+    if (orderedElems.isEmpty)
+      Gen pure Vector.empty
+    else {
+      val ss: SizeSpec = (if (dropElems) 0 else 1) to (maxDups + 1)
+      lazy val genOne = Gen.choose_!(orderedElems).map(Vector.empty[A] :+ _)
+      Gen { ctx =>
+        val v = Vector.newBuilder[A]
+        for (a <- orderedElems) {
+          var count = ss.gen.run(ctx)
+          while (count > 0) {
+            v += a
+            count -= 1
+          }
+        }
+        var r = v.result()
+        if (nonEmptyResult && r.isEmpty)
+          r = genOne run ctx
+        r
+      }
+    }
+
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)
   // --------------------------------------------------------------

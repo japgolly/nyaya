@@ -54,6 +54,8 @@ object GenTest extends TestSuite {
 
   def assertType[T](f: => T): Unit = ()
 
+  val abc = "abc".toCharArray.toList
+
   override def tests = TestSuite {
 
     'chooseChar {
@@ -125,5 +127,43 @@ object GenTest extends TestSuite {
       } yield (a, b)
       g.mustSatisfy(Prop.test("be equal", {case (a,b) => a == b }))
     }
+
+    'orderedSeq {
+      def assertAll(g: Gen[Vector[Char]])(expect: TraversableOnce[String]): Unit = {
+        val e = expect.toSet
+        val a = g.samples().take(e.size * 50).map(_ mkString "").toSet
+        assert(a == e)
+      }
+
+      def combos(r: Range): Seq[String] =
+        for {
+          a <- r
+          b <- r
+          c <- r
+        } yield ("a" * a) + ("b" * b) + ("c" * c)
+
+      'noDrop {
+        'dups0 - assertAll(Gen.orderedSeq(abc, 0, dropElems = false))(List("abc"))
+        'dups1 - assertAll(Gen.orderedSeq(abc, 1, dropElems = false))(combos(1 to 2))
+        'dups2 - assertAll(Gen.orderedSeq(abc, 2, dropElems = false))(combos(1 to 3))
+      }
+
+      'drop {
+        def test(dups: Int) =
+          assertAll(Gen.orderedSeq(abc, dups, dropElems = true))(
+            combos(0 to (dups + 1)))
+        'dups0 - test(0)
+        'dups1 - test(1)
+      }
+
+      'dropNonEmpty {
+        def test(dups: Int) =
+          assertAll(Gen.orderedSeq(abc, dups, dropElems = true, nonEmptyResult = true))(
+            combos(0 to (dups + 1)).filter(_.nonEmpty))
+        'dups0 - test(0)
+        'dups1 - test(1)
+      }
+    }
+
   }
 }
