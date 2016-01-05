@@ -113,8 +113,17 @@ object GenTest extends TestSuite {
         } catch {
           case e: Throwable => assert(e.getMessage contains "Failed to generate")
         }
-
       }
+    }
+
+    'reseed {
+      val g = for {
+        s <- Gen.reseed
+        a <- Gen.int
+        _ <- Gen.setSeed(s)
+        b <- Gen.int
+      } yield (a, b)
+      g.mustSatisfy(Prop.test("be equal", {case (a,b) => a == b }))
     }
   }
 }

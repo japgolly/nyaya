@@ -340,6 +340,17 @@ object Gen {
   def setSeed(seed: Long): Gen[Unit] =
     Gen(_ setSeed seed)
 
+  /**
+   * Apply a new, random seed to the RNG.
+   *
+   * @return The seed used.
+   */
+  def reseed: Gen[Long] =
+    for {
+      seed <- long
+      _    <- setSeed(seed)
+    } yield seed
+
   /** Returns a number in [0,GenSize) */
   val chooseSize: Gen[Int] =
     Gen(_.nextSize())
