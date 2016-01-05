@@ -3,7 +3,7 @@ package nyaya.test
 import nyaya.gen._
 import nyaya.prop._
 import nyaya.util.Util
-import Console.{RED, RED_B, WHITE_B, RESET, YELLOW}
+import scala.Console._
 
 object PropTest extends PropTestOps {
   implicit def defaultPropSettings = DefaultSettings.propSettings
@@ -76,6 +76,30 @@ class GenExt[A](private val g: Gen.Run[A]) extends AnyVal {
   def mustSatisfy         (p: Prop[A])   (implicit S: Settings) = testProp(p, Gen(g))
   def mustSatisfyE        (f: A => EvalL)(implicit S: Settings) = testProp(Prop eval f, Gen(g))
   def _mustSatisfy[B >: A](p: Prop[B])   (implicit S: Settings) = testProp(p, Gen(g))
+
+  /**
+   * Find a seed that deterministically produces failure-inducing random data.
+   */
+  def bugHunt(seedStart     : Long = 0L,
+              seeds         : Int  = 10000,
+              samplesPerSeed: Int  = 1)
+             (p: Prop[A])(implicit S: Settings): Unit = {
+    val s2 = S.setSampleSize(samplesPerSeed)
+    for (n <- 0 until seeds) {
+      val seed = seedStart + n
+      val g2 = Gen { c =>
+        c.setSeed(seed)
+        g(c)
+      }
+      try testProp(p, g2)(s2)
+      catch {
+        case t: Throwable =>
+          println(s"$YELLOW_B${BLACK}Found issue with seed:$RESET $BOLD$YELLOW$BLACK_B$seed$RESET\n")
+          throw t
+      }
+    }
+    println(s"$YELLOW_B${BLACK}Bug hunt failed.$RESET\n")
+  }
 }
 
 class DomainExt[A](private val d: Domain[A]) extends AnyVal {
