@@ -24,6 +24,7 @@ object Nyaya extends Build {
         scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature",
                                 "-language:postfixOps", "-language:implicitConversions",
                                 "-language:higherKinds", "-language:existentials"),
+        triggeredMessage   := Watched.clearWhenTriggered,
         updateOptions      := updateOptions.value.withCachedResolution(true))
       .configure(
         addCommandAliases(
