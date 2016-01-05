@@ -1,6 +1,6 @@
 package nyaya.gen
 
-import scala.annotation.tailrec
+import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.{NumericRange, IndexedSeq}
@@ -505,10 +505,12 @@ object Gen {
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
-  def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] = {
-    val l = as.length
-    Gen(c => as(c.rnd nextInt l))
-  }
+  def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] =
+    (as.length: @switch) match {
+      case 1 => pure(as.head)
+      case 2 => Gen(c => as(if (c.rnd nextBoolean()) 0 else 1))
+      case n => Gen(c => as(c.rnd nextInt n))
+    }
 
   /**
    * Randomly selects one of the given elements.
