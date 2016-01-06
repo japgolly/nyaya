@@ -94,9 +94,12 @@ class GenExt[A](private val g: Gen.Run[A]) extends AnyVal {
   def bugHunt(seedStart     : Long    = 0L,
               seeds         : Int     = 10000,
               samplesPerSeed: Int     = 1,
+              startMsg      : Boolean = true,
               printFailure  : Boolean = true,
               filterFailure : Result.Failure[A] => Boolean = _ => true)
              (p: Prop[A])(implicit S: Settings): Unit = {
+    if (startMsg)
+      println(s"Starting ${p.} bugHunt: $seeds x $samplesPerSeed")
     val s2 = S.setSampleSize(samplesPerSeed)
     for (n <- 0 until seeds) {
       val seed = seedStart + n
