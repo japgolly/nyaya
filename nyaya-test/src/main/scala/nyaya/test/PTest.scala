@@ -10,7 +10,7 @@ case class RunState[A](runs: Int, result: Result[A])
 object RunState {
   implicit def RunStateToResult[A](r: RunState[A]): Result[A] = r.result
 
-  def empty[A] = RunState[A](0, Satisfied)
+  def empty[A] = RunState[A](0, Result.Satisfied)
 }
 
 object PTest {
@@ -99,12 +99,12 @@ object PTest {
           if (S.debug) debug1(a, rs, S)
         } catch {
           case e: Throwable =>
-            rs = RunState(run, Error(Some(a), e))
+            rs = RunState(run, Result.Error(Some(a), e))
         }
 
       } catch {
         case e: Throwable =>
-          rs = RunState(run, Error(None, e))
+          rs = RunState(run, Result.Error(None, e))
       }
     }
     rs
@@ -129,8 +129,8 @@ object PTest {
     val S = S1.copy(sampleSize = SampleSize(d.size))
     if (S.debug) println(s"\n$p\nAttempting to prove with ${d.size} values...")
     S.executor.prove(p, d, S) match {
-      case RunState(n, Satisfied) if n == d.size =>
-        RunState(n, Proved)
+      case RunState(n, Result.Satisfied) if n == d.size =>
+        RunState(n, Result.Proved)
       case r =>
         if (S.debug && r.success) println(s"Test was successful but didn't prove proposition: $r")
         r
@@ -149,7 +149,7 @@ object PTest {
         if (S.debug) debug1(a, rs, S)
       } catch {
         case e: Throwable =>
-          rs = RunState(run, Error(Some(a), e))
+          rs = RunState(run, Result.Error(Some(a), e))
       }
 
       i += step

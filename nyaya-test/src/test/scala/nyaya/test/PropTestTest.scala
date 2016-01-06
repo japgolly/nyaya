@@ -28,7 +28,7 @@ object PropTestTest extends TestSuite {
           def p = Prop.test[Int]("", _ => {i.incrementAndGet(); true})
           val S = defaultPropSettings.copy(sampleSize = SampleSize(s), sizeDist = sd)
           val r = PTest.test(p, Gen.int, S)
-          assert(r.runs == s, r.result == Satisfied, i.get() == s)
+          assert(r.runs == s, r.result == Result.Satisfied, i.get() == s)
         }
         t(Seq.empty)
         t(Seq(1 → \/-(GenSize(4)), 1 → -\/(0.2), 8 → -\/(0.8)))
