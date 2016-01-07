@@ -139,7 +139,7 @@ object Eval {
       Some(s"$input\n$asName: (${as.size}) $as\n$bsName: (${bs.size}) $bs\n$failureName: ${fmtSet(problems)}")
 
   private[this] def fmtSet(s: Set[_]): String =
-    s.toStream.map(_.toString).sorted.distinct.mkString("{", ", ", "}")
+    s.iterator.map(_.toString).toList.sorted.distinct.mkString("{", ", ", "}")
 }
 
 // =====================================================================================================================

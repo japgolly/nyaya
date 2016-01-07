@@ -1,7 +1,8 @@
 package nyaya.prop
 
-import scalaz.{Need, NonEmptyList, Contravariant}
+import scalaz.{Contravariant, Need}
 import scalaz.syntax.foldable1._
+import nyaya.util.NonEmptyList
 
 final case class Named        [P[_], A   ](n: Name, l: Logic[P, A])        extends Logic[P, A]
 final case class Mapped       [P[_], A, B](m: A => B, l: Logic[P, B])      extends Logic[P, A]
@@ -17,18 +18,18 @@ final case class Atom         [P[_], A   ](n: Option[Name], f: P[A])       exten
 
 object Logic {
   private[nyaya] def evalChildren[P[_], A](x: P[A] => Eval, ls: NonEmptyList[Logic[P, A]])
-                                          (op: String, fr: FailureReason, t: Stream[Eval] => List[Eval])
+                                          (op: String, fr: FailureReason,
+                                           findFailures: NonEmptyList[Eval] => List[Eval])
                                           (implicit F: Contravariant[P]): Eval = {
     def wrap(s: String): String = if (s.indexOf(' ') >= 0) s"[$s]" else s
-    val es  = ls.map(_ run x)
-    val i   = es.head.input
-    val ess = es.toStream
-    val n   = Need(ess.reverse.map(x => wrap(x.name.value)).mkString("(", op, ")"))
-    val fs = t(ess)
-    if (fs.isEmpty)
-      Eval.success(n, i)
+    val es    = ls.map(_ run x)
+    val input = es.head.input
+    val name  = Need(es.toList.reverse.map(x => wrap(x.name.value)).mkString("(", op, ")"))
+    val fails = findFailures(es)
+    if (fails.isEmpty)
+      Eval.success(name, input)
     else
-      Eval(n, i, Eval.root.add(fr, fs))
+      Eval(name, input, Eval.root.add(fr, fails))
   }
 
   private[nyaya] def bibool[P[_], A](x: P[A] => Eval, lp: Logic[P, A], lq: Logic[P, A])
@@ -70,7 +71,7 @@ sealed abstract class Logic[P[_], A] {
     (this ==> ifPass) ∧ (~this ==> ifFail)
 
   final def ∨(q: Logic[P, A]): Logic[P, A] = this match {
-    case Disjunction(ls)        => Disjunction(q <:: ls)
+    case Disjunction(ls)        => Disjunction(q :: ls)
     case Atom(_, _)
          | Named(_, _)
          | Mapped(_, _)
@@ -78,11 +79,11 @@ sealed abstract class Logic[P[_], A] {
          | Conjunction(_)
          | Implication(_, _)
          | Reduction(_, _)
-         | Biconditional(_, _) => Disjunction(NonEmptyList(q, this))
+         | Biconditional(_, _) => Disjunction(NonEmptyList(q, this :: Nil))
   }
 
   final def ∧(q: Logic[P, A]): Logic[P, A] = this match {
-    case Conjunction(ls)        => Conjunction(q <:: ls)
+    case Conjunction(ls)        => Conjunction(q :: ls)
     case Atom(_, _)
          | Named(_, _)
          | Mapped(_, _)
@@ -90,7 +91,7 @@ sealed abstract class Logic[P[_], A] {
          | Disjunction(_)
          | Implication(_, _)
          | Reduction(_, _)
-         | Biconditional(_, _) => Conjunction(NonEmptyList(q, this))
+         | Biconditional(_, _) => Conjunction(NonEmptyList(q, this :: Nil))
   }
 
   final def contramap[B](f: B => A): Logic[P, B] = this match {
@@ -146,7 +147,7 @@ sealed abstract class Logic[P[_], A] {
       Eval(n, e.input, f)
 
     case Conjunction(ls) =>
-      Logic.evalChildren(x, ls)(" ∧ ", "Conjuncts failed.", _.filter(_.failure).toList)
+      Logic.evalChildren(x, ls)(" ∧ ", "Conjuncts failed.", _.iterator.filter(_.failure).toList)
 
     case Disjunction(ls) =>
       Logic.evalChildren(x, ls)(" ∨ ", "Disjuncts all failed.", e => if (e.exists(_.success)) Nil else e.toList)
