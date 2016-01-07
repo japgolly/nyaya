@@ -73,6 +73,9 @@ object Prop {
       Eval.forall(a, f(a))(p(_).liftL)
     }
 
+  def distinctI[A, B](name: => String, f: A => Iterator[B]): Prop[A] =
+    distinct[B](name).contramap(f(_).toList)
+
   def distinctC[C[_], A](name: => String)(implicit ev: C[A] <:< GenTraversable[A]): Prop[C[A]] =
     distinct(name, ev)
 

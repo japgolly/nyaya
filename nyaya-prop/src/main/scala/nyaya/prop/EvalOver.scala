@@ -29,6 +29,9 @@ final case class EvalOver(input: Any) {
   def distinct[A](name: => String, as: GenTraversable[A]): EvalL =
     Eval.distinct(name, input, as)
 
+  def distinctI[A](name: => String, as: Iterator[A]): EvalL =
+    distinct(name, as.toList)
+
   /** Test that all Cs are on a whitelist. */
   def whitelist[B, C](name: => String, whitelist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
     Eval.whitelist(name, input, whitelist, testData)

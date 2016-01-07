@@ -75,6 +75,9 @@ object Eval {
 
   def distinctName(name: => String) = s"each $name is unique"
 
+  def distinctI[A](name: => String, input: Any, as: Iterator[A]): EvalL =
+    distinct(name, input, as.toList)
+
   def distinct[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
     atom(distinctName(name), input, {
 
