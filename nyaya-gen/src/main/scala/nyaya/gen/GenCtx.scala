@@ -24,14 +24,26 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize) {
     lastBit = 32
   }
 
-  /** @return [0,1] */
-  def nextInt1(): Int =
-    if (nextBit()) 1 else 0
+  def shiftLeft(i: Int): Int = {
+    val j = i << 1
+    if (nextBit()) j else (j | 1)
+  }
 
-  /** @return [0,3] */
-  def nextInt3(): Int =
-    if (nextBit()) nextInt1() else
-    if (nextBit()) 2 else 3
+  /** @return [0,2) */
+  def nextInt2(): Int =
+    if (nextBit()) 0 else 1
+
+  /** @return [0,4) */
+  def nextInt4(): Int =
+    shiftLeft(nextInt2())
+
+  /** @return [0,8) */
+  def nextInt8(): Int =
+    shiftLeft(nextInt4())
+
+  /** @return [0,16) */
+  def nextInt16(): Int =
+    shiftLeft(nextInt8())
 
   private var genSize = _genSize
   var nextSize     = _nextSize

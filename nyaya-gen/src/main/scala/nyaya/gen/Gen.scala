@@ -512,9 +512,12 @@ object Gen {
    */
   def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] =
     (as.length: @switch) match {
-      case 1 => pure(as.head)
-      case 2 => Gen(c => as(if (c.rnd nextBoolean()) 0 else 1))
-      case n => Gen(c => as(c.rnd nextInt n))
+      case  1 => pure(as.head)
+      case  2 => Gen(c => as(c.nextInt2()))
+      case  4 => Gen(c => as(c.nextInt4()))
+      case  8 => Gen(c => as(c.nextInt8()))
+      case 16 => Gen(c => as(c.nextInt16()))
+      case  n => Gen(c => as(c.rnd nextInt n))
     }
 
   /**
