@@ -2,13 +2,12 @@ package nyaya.gen
 
 import nyaya.util.{NonEmptyList, MultiValues, Multimap}
 import monocle._
-import scalaz.{Foldable, State, Traverse}
+import scalaz.{Monoid, Foldable, State, Traverse}
 import scalaz.Leibniz.===
-import scalaz.std.stream._
 import scalaz.syntax.foldable._
 import Baggy._
 import Baggy.Implicits._
-import Distinct.Fixer
+import Distinct.{Fixer, foldableList}
 
 sealed trait DistinctFn[A, B] {
   def run: A => B
@@ -98,7 +97,7 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
     dimap[(L, A), (L, B)](_._2, (a, b) => (a._1, b))
 
   def liftMapValues[K]: Distinct[Map[K, A], X, H, Y, Z, Map[K, B]] =
-    liftR[K].lift[Stream].dimap[Map[K, A], Map[K, B]](_.toStream, (_, l) => l.toMap)
+    liftR[K].lift[List].dimap[Map[K, A], Map[K, B]](_.toList, (_, l) => l.toMap)
 
   def liftMultimapValues[K, L[_], VA, VB]
         (implicit l: MultiValues[L], va: Map[K, L[VA]] =:= Map[K, A], vb: Map[K, B] =:= Map[K, L[VB]])
@@ -141,6 +140,17 @@ case class DistinctEndo[A](ds: NonEmptyList[DistinctFn[A, A]]) extends DistinctF
 // =====================================================================================================================
 
 object Distinct {
+
+  // scalaz.std.list.listInstance pulls in too much other unneeded crap
+  private[gen] implicit val foldableList: Foldable[List] =
+    new Foldable[List] {
+      override def foldLeft[A, B](fa: List[A], z: B)(f: (B, A) => B): B =
+        fa.foldLeft(z)(f)
+      override def foldRight[A, B](fa: List[A], z: => B)(f: (A, => B) => B): B =
+        fa.foldRight(z)(f(_, _))
+      override def foldMap[A, B](fa: List[A])(f: A => B)(implicit F: Monoid[B]): B =
+        fa.foldLeft(F.zero)((b, a) => F.append(b, f(a)))
+    }
 
   case class Fixer[X, H[_] : Baggy, Y, Z](f: X => Y, g: Y => Z, fix: H[Y] => Y, inith: H[Y]) {
     def apply(x: X): State[H[Y], Z] =
