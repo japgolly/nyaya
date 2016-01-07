@@ -104,28 +104,29 @@ object Eval {
   /**
    * Test that all Cs are on a whitelist.
    */
-  def whitelist[B, C](name: => String, input: Any, whitelist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
+  def whitelist[B, C](name: => String, input: Any, whitelist: Set[B], testData: => TraversableOnce[C])(implicit ev: C <:< B): EvalL =
       setTest(name, input, true, "Whitelist", whitelist, "Found    ", testData, "Illegal  ")
 
   /**
    * Test that no Cs are on a blacklist.
    */
-  def blacklist[B, C](name: => String, input: Any, blacklist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
+  def blacklist[B, C](name: => String, input: Any, blacklist: Set[B], testData: => TraversableOnce[C])(implicit ev: C <:< B): EvalL =
       setTest(name, input, false, "Blacklist", blacklist, "Found    ", testData, "Illegal  ")
 
   /**
    * Test that all Bs are present in Cs.
    */
-  def allPresent[B, C](name: => String, input: Any, required: Set[B], testData: Traversable[C])(implicit ev: B <:< C): EvalL =
+  def allPresent[B, C](name: => String, input: Any, required: Set[B], testData: => TraversableOnce[C])(implicit ev: B <:< C): EvalL = {
+    val cs = testData.toSet
     atom(name, input, {
-      val cs = testData.toSet
       val rs = required.filterNot(cs contains _)
       setMembershipResult(input, "Required", required, "Found   ", testData, "Missing ", rs)
     })
+  }
 
   private[this] def setTest[A, B, C](name: => String, input: Any, expect: Boolean,
                                      bsName: String, bs: Set[B],
-                                     csName: String, cs: Traversable[C],
+                                     csName: String, cs: => TraversableOnce[C],
                                      failureName: String)(implicit ev: C <:< B): EvalL =
     atom(name, input, {
       val rs = cs.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
@@ -133,8 +134,8 @@ object Eval {
     })
 
   private[this] def setMembershipResult(input: Any,
-                                        asName: String, as: Traversable[_],
-                                        bsName: String, bs: Traversable[_],
+                                        asName: String, as: => TraversableOnce[_],
+                                        bsName: String, bs: => TraversableOnce[_],
                                         failureName: String, problems: Set[_]): FailureReasonO =
     if (problems.isEmpty)
       None

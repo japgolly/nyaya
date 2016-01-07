@@ -33,14 +33,14 @@ final case class EvalOver(input: Any) {
     distinct(name, as.toList)
 
   /** Test that all Cs are on a whitelist. */
-  def whitelist[B, C](name: => String, whitelist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
+  def whitelist[B, C](name: => String, whitelist: Set[B], testData: => TraversableOnce[C])(implicit ev: C <:< B): EvalL =
     Eval.whitelist(name, input, whitelist, testData)
 
   /** Test that no Cs are on a blacklist. */
-  def blacklist[B, C](name: => String, blacklist: Set[B], testData: Traversable[C])(implicit ev: C <:< B): EvalL =
+  def blacklist[B, C](name: => String, blacklist: Set[B], testData: => TraversableOnce[C])(implicit ev: C <:< B): EvalL =
     Eval.blacklist(name, input, blacklist, testData)
 
   /** Test that all Bs are present in Cs. */
-  def allPresent[B, C](name: => String, required: Set[B], testData: Traversable[C])(implicit ev: B <:< C): EvalL =
+  def allPresent[B, C](name: => String, required: Set[B], testData: => TraversableOnce[C])(implicit ev: B <:< C): EvalL =
     Eval.allPresent(name, input, required, testData)
 }
