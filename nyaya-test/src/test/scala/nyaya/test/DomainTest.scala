@@ -11,7 +11,7 @@ object DomainTest extends TestSuite {
 
   def test[A, B](d: Domain[A])(as: A*): Unit = {
     val (sa,se) = (d.size, as.length)
-    val (ca,ce) = (d.toStream.toSet, as.toSet)
+    val (ca,ce) = (d.iterator.toSet, as.toSet)
     assert(sa == se, ca == ce)
   }
 

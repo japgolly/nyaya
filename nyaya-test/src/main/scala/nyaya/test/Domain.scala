@@ -45,8 +45,8 @@ trait Domain[A] {
   def vector(s: Int)  : Domain[Vector[A]] = seq[Vector](s to s)
   def vector(r: Range): Domain[Vector[A]] = seq[Vector](r)
 
-  def toStream: Stream[A] =
-    (0 until size).toStream.map(apply)
+  def iterator: Iterator[A] =
+    (0 until size).iterator.map(apply)
 }
 
 object Domain {
