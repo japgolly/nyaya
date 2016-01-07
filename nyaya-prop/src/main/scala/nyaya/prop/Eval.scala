@@ -87,7 +87,7 @@ object Eval {
         m.update(a, v)
       }
 
-      if (m.valuesIterator.exists(_ > 1))
+      if (m.valuesIterator.forall(_ == 1))
         None
       else
         Some {
@@ -95,7 +95,7 @@ object Eval {
             .filter(_._2 > 1)
             .toList
             .sortBy(_._1.toString)
-            .map { case (a, i) => s"$a → $i"}
+            .map { case (a, i) => s"$a → $i" }
             .mkString("{", ", ", "}")
           s"Inputs: $as\nDups: $d"
         }
@@ -140,7 +140,13 @@ object Eval {
     if (problems.isEmpty)
       None
     else
-      Some(s"$input\n$asName: (${as.size}) $as\n$bsName: (${bs.size}) $bs\n$failureName: ${fmtSet(problems)}")
+      Some {
+        def fmt(name: String, vs: TraversableOnce[_]) = {
+          val x = vs.toIterable
+          s"$name: (${x.size}) $x"
+        }
+        s"$input\n${fmt(asName, as)}\n${fmt(bsName, bs)}\n$failureName: ${fmtSet(problems)}"
+      }
 
   private[this] def fmtSet(s: Set[_]): String =
     s.iterator.map(_.toString).toList.sorted.distinct.mkString("{", ", ", "}")

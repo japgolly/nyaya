@@ -253,5 +253,34 @@ object PropTest extends TestSuite {
       test(p, List(1,3,2,0), ok)
       test(p, List(1,3,2,0,6,7,8), ok)
     }
+    'whitelistI {
+      type T = (Set[Int], List[String])
+      val p = Prop.whitelist[T]("whitelist I")(_._1, _._2.iterator.map(_.length))
+      test(p, (Set(1, 3), List("a", "b", "abc", "c")), ok)
+      test(p, (Set(1, 3), List("a", "bx", "abc", "c")), ko >> reportHas(
+        """
+          |Root causes:
+          |  1 failed axioms, 1 causes of failure.
+          |  └─ whitelist I
+          |     └─ (Set(1, 3),List(a, bx, abc, c))
+          |        Whitelist: (2) Set(1, 3)
+          |        Found    : (4) Stream(1, 2, 3, 1)
+          |        Illegal  : {2}
+        """.stripMargin.trim))
+    }
+    'distinct {
+      val p = Prop.distinctC[List, Char]("hello")
+      test(p, List.empty, ok)
+      test(p, List('a'), ok)
+      test(p, List('a', 'c', 'e'), ok)
+      test(p, List('a', 'c', 'a'), ko >> reportHas(
+        """
+          |Root causes:
+          |  1 failed axioms, 1 causes of failure.
+          |  └─ each hello is unique
+          |     └─ Inputs: List(a, c, a)
+          |        Dups: {a → 2}
+        """.stripMargin.trim))
+    }
   }
 }
