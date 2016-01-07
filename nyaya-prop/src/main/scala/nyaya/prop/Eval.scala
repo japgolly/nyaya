@@ -162,7 +162,7 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
   def failure                : Boolean = !success
   def liftL                  : EvalL   = Atom[Eval_, Nothing](Some(name), this)
 
-  lazy val reasonsAndCauses =
+  lazy val reasonsAndCauses: Map[FailureReason, List[Eval]] =
     failures.m.mapValues(_.flatten)
 
   def rootCauses: Set[Name] =
@@ -184,7 +184,7 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
   def failureTreeI(indent: String): String = Util.quickSB(failureTreeSB(_, indent))
   def failureTreeSB(sb: StringBuilder, indent: String): Unit =
     Util.asciiTreeSB[Eval](List(this))(sb,
-      _.reasonsAndCauses.values.flatMap(_.toList).toList.map(v => (v.name.value, v)).toMap.toList.sortBy(_._1).map(_._2),
+      _.reasonsAndCauses.valuesIterator.flatMap(_.toList).map(v => (v.name.value, v)).toMap.toList.sortBy(_._1).map(_._2),
       _.name.value, indent)
 
   def rootCauseTree = rootCauseTreeI("")
