@@ -18,16 +18,16 @@ object CycleDetectorTest extends TestSuite {
   val `1(35)24` = N(1, `24`, `35x`(`24`))
   val `1(35)245` = N(1, `245`, `35x`(`245`))
 
-  def testn(cd: CycleDetector[Stream[N], N], e: Option[(Int, Int)], sort: Boolean, ns: N*): Unit = {
+  def testn(cd: CycleDetector[Iterator[N], N], e: Option[(Int, Int)], sort: Boolean, ns: N*): Unit = {
     def s: ((Int, Int)) => ((Int, Int)) = p => if (sort && p._1 > p._2) (p._2, p._1) else p
-    val actual = cd.findCycle(ns.toStream).map(p => (p._1.id, p._2.id)) map s
+    val actual = cd.findCycle(ns.iterator).map(p => (p._1.id, p._2.id)) map s
     val expect = e map s
     assert(actual == expect)
   }
 
   override def tests = TestSuite {
     'directed {
-      val cd = CycleDetector.Directed.tree[N, Int](_.vs.toStream, _.id)
+      val cd = CycleDetector.Directed.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, false, ns: _*)
 
       'lines     - test(None,      `1234`,`5678`)
@@ -39,7 +39,7 @@ object CycleDetectorTest extends TestSuite {
     }
 
     'undirected {
-      val cd = CycleDetector.Undirected.tree[N, Int](_.vs.toStream, _.id)
+      val cd = CycleDetector.Undirected.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, true, ns: _*)
 
       'lines     - test(None,    `1234`,`5678`)

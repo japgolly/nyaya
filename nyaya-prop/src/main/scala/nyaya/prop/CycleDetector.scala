@@ -6,7 +6,7 @@ import scalaz.{\/-, -\/, \/}
 
 final case class CycleFree[A](value: A)
 
-case class CycleDetector[A, B](extract: A => Stream[B], check: (A, Stream[B]) => Option[(B, B)]) {
+case class CycleDetector[A, B](extract: A => Iterator[B], check: (A, Iterator[B]) => Option[(B, B)]) {
 
   @inline final def hasCycle(a: A): Boolean =
     findCycle(a).isDefined
@@ -32,56 +32,69 @@ case class CycleDetector[A, B](extract: A => Stream[B], check: (A, Stream[B]) =>
 object CycleDetector {
 
   object Undirected extends GraphType {
-    override def check[A, B, I](vertices: (A, B) => Stream[B], id: B => I): (A, Stream[B]) => Option[(B, B)] =
+    override def check[A, B, I](vertices: (A, B) => Iterator[B], id: B => I): (A, Iterator[B]) => Option[(B, B)] =
       (a, input) => {
-        def loopo = loop _
-        @tailrec
-        def loop(prev: B, bs: Stream[B], is: Set[I]): Set[I] \/ (B, B) = {
-          bs match {
-            case Stream.Empty => -\/(is)
-            case b #:: t =>
+
+        def outer(prev: B, is0: Set[I]): Set[I] \/ (B, B) = {
+          val it = vertices(a, prev)
+
+          @tailrec
+          def inner(is: Set[I]): Set[I] \/ (B, B) =
+            if (it.hasNext) {
+              val b = it.next()
               val i = id(b)
               if (is contains i)
                 \/-((prev, b))
               else
-                loopo(b, vertices(a, b), is + i) match {
-                  case -\/(is2)  => loop(prev, t, is2)
+                outer(b, is + i) match {
+                  case -\/(is2)  => inner(is2)
                   case r@ \/-(_) => r
                 }
-          }
+            } else
+              -\/(is)
+
+          inner(is0)
         }
-        input.map(b => loop(b, vertices(a, b), Set(id(b)))).map(_.toOption).find(_.isDefined).flatten
+
+        input
+          .map(b => outer(b, Set(id(b))))
+          .collectFirst { case \/-(v) => v }
       }
   }
 
   object Directed extends GraphType {
-    override def check[A, B, I](vertices: (A, B) => Stream[B], id: B => I): (A, Stream[B]) => Option[(B, B)] =
+    override def check[A, B, I](vertices: (A, B) => Iterator[B], id: B => I): (A, Iterator[B]) => Option[(B, B)] =
       (a, input) => {
-        def loop(prev: B, bs: Stream[B], is: Set[I]): Option[(B, B)] = {
-          bs.map(b => {
-            val i = id(b)
-            if (is contains i)
-              Some((prev, b))
-            else
-              loop(b, vertices(a, b), is + i)
-          }).find(_.isDefined).flatten
-        }
-        input.map(b => loop(b, vertices(a, b), Set(id(b)))).find(_.isDefined).flatten
+
+        def loop(prev: B, is: Set[I]): Option[(B, B)] =
+          vertices(a, prev)
+            .map { b =>
+              val i = id(b)
+              if (is contains i)
+                Some((prev, b))
+              else
+                loop(b, is + i)
+            }
+            .collectFirst { case Some(v) => v }
+
+        input
+          .map(b => loop(b, Set(id(b))))
+          .collectFirst { case Some(v) => v }
       }
   }
 
   sealed abstract class GraphType {
-    def check[A, B, I](vertices: (A, B) => Stream[B], id: B => I): (A, Stream[B]) => Option[(B, B)]
+    def check[A, B, I](vertices: (A, B) => Iterator[B], id: B => I): (A, Iterator[B]) => Option[(B, B)]
 
-    def tree[A, I](vertices: A => Stream[A], id: A => I) = CycleDetector[Stream[A], A](
+    def tree[A, I](vertices: A => Iterator[A], id: A => I) = CycleDetector[Iterator[A], A](
       identity, check((_, a) => vertices(a), id))
 
     def map[A, I](id: A => I) = CycleDetector[Map[A, A], A](
-      _.keys.toStream, check(_.get(_).toStream, id))
+      _.keys.toIterator, check(_.get(_).iterator, id))
 
     def multimap[V[_], A, I](id: A => I, empty: V[A])(implicit ev: V[A] <:< GenTraversable[A]) =
       CycleDetector[Map[A, V[A]], A](
-        _.keys.toStream,
-        check(_.getOrElse(_, empty).toStream, id))
+        _.keys.toIterator,
+        check(_.getOrElse(_, empty).toIterator, id))
   }
 }
