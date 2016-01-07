@@ -17,7 +17,7 @@ trait MultiValues[L[_]] {
   def deln[A](a: L[A], b: L[A]): L[A]
   def foldl[A, B](a: A, b: L[B])(f: (A, B) => A): A
   def foldr[A, B](a: A, b: L[B])(f: (A, B) => A): A
-  def stream[A](a: L[A]): Stream[A]
+  def iterator[A](a: L[A]): Iterator[A]
   def isEmpty[A](a: L[A]): Boolean
 }
 
@@ -32,10 +32,6 @@ final class Multimap[K, L[_], V](val m: Map[K, L[V]])(implicit L: MultiValues[L]
     case t: Map[_, _]         => m equals t
     case _                    => false
   }
-
-  @inline def keys   = m.keys
-  @inline def keySet = m.keySet
-  @inline def values = m.values
 
   @inline private[this] def copy(m: Map[K, L[V]]) = new Multimap[K, L, V](m)
 
@@ -69,16 +65,21 @@ final class Multimap[K, L[_], V](val m: Map[K, L[V]])(implicit L: MultiValues[L]
   def unlink(a: K, b: V)(implicit e: K =:= V, f: V =:= K) =
     copy(m.mod(a, _ del1 b).mod(b, _ del1 a))
 
-  def allValues                        : Stream[V]     = vstreamf(L.stream)
-  def streamKV                         : Stream[(K,V)] = m.toStream.flatMap(kv => kv._2.stream.map(v => (kv._1, v)))
-  def vstream [A](f: L[V] => A)        : Stream[A]     = values.toStream.map(f)
-  def vstreamf[A](f: L[V] => Stream[A]): Stream[A]     = values.toStream.flatMap(f)
+  @inline def iterator      : Iterator[(K, L[V])] = m.iterator
+  @inline def keys          : Iterable[K]         = m.keys
+  @inline def keyIterator   : Iterator[K]         = m.keysIterator
+  @inline def keySet        : Set[K]              = m.keySet
+  @inline def values        : Iterable[L[V]]      = m.values
+  @inline def valuesIterator: Iterator[L[V]]      = m.valuesIterator
+          def kvIterator    : Iterator[(K, V)]    = iterator.flatMap(kv => kv._2.iterator.map(v => (kv._1, v)))
+          def valueIterator : Iterator[V]         = valuesIterator flatMap L.iterator
 
+  @inline def isEmpty : Boolean = m.isEmpty
+  @inline def nonEmpty: Boolean = m.nonEmpty
 
-  def isEmpty     = m.isEmpty
-  def nonEmpty    = m.nonEmpty
-  def keyCount    = m.size
-  def valueCount  = m.valuesIterator.foldLeft(0)(_ + _.count)
+  @inline def keyCount  : Int = m.size
+          def valueCount: Int = valuesIterator.foldLeft(0)(_ + _.count)
+
   def sizeSummary = SizeSummary(m.valuesIterator.foldLeft(Vector.empty[Int])(_ :+ _.count))
 }
 
@@ -106,8 +107,8 @@ object Multimap {
       def deln(b: L[A])                 (implicit L: MultiValues[L]) = L.deln(as, b)
       def foldl[Z](z: Z)(f: (Z, A) => Z)(implicit L: MultiValues[L]) = L.foldl(z, as)(f)
       def foldr[Z](z: Z)(f: (Z, A) => Z)(implicit L: MultiValues[L]) = L.foldr(z, as)(f)
-      def stream                        (implicit L: MultiValues[L]) = L.stream(as)
-      def set                           (implicit L: MultiValues[L]) = stream.toSet
+      def iterator                      (implicit L: MultiValues[L]) = L.iterator(as)
+      def set                           (implicit L: MultiValues[L]) = iterator.toSet
       def count                         (implicit L: MultiValues[L]) = foldl(0)((q, _) => q + 1)
       def isEmpty                       (implicit L: MultiValues[L]) = L.isEmpty(as)
     }
