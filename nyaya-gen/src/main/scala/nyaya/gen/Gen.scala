@@ -505,20 +505,23 @@ object Gen {
       float map (x => ll * (1 - x) + hh * x)
   }
 
+  private def __choose_![A](length: Int, a: Int => A): Gen[A] =
+    (length: @switch) match {
+      case  1 => pure(a(0))
+      case  2 => Gen(c => a(c.nextInt2()))
+      case  4 => Gen(c => a(c.nextInt4()))
+      case  8 => Gen(c => a(c.nextInt8()))
+      case 16 => Gen(c => a(c.nextInt16()))
+      case  n => Gen(c => a(c.rnd nextInt n))
+    }
+
   /**
    * Randomly selects one of the given elements.
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
   def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] =
-    (as.length: @switch) match {
-      case  1 => pure(as.head)
-      case  2 => Gen(c => as(c.nextInt2()))
-      case  4 => Gen(c => as(c.nextInt4()))
-      case  8 => Gen(c => as(c.nextInt8()))
-      case 16 => Gen(c => as(c.nextInt16()))
-      case  n => Gen(c => as(c.rnd nextInt n))
-    }
+    __choose_!(as.length, as.apply)
 
   /**
    * Randomly selects one of the given elements.
@@ -540,7 +543,7 @@ object Gen {
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
   def chooseArray_![A](as: Array[A]): Gen[A] =
-    Gen(c => as(c.rnd nextInt as.length))
+    __choose_!(as.length, as.apply)
 
   def chooseGen[A](a: Gen[A], as: Gen[A]*): Gen[A] =
     choose(a, as: _*).flatten
