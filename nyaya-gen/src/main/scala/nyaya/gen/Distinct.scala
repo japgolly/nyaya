@@ -1,8 +1,8 @@
 package nyaya.gen
 
-import nyaya.util.{MultiValues, Multimap}
+import nyaya.util.{NonEmptyList, MultiValues, Multimap}
 import monocle._
-import scalaz.{NonEmptyList, Foldable, State, Traverse}
+import scalaz.{Foldable, State, Traverse}
 import scalaz.Leibniz.===
 import scalaz.std.stream._
 import scalaz.syntax.foldable._
@@ -112,7 +112,7 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
     Distinct[A, X, H, Y, Z, C](fixer + f.fixer, a => _ => runs(a) flatMap f.runs)
 
   def *(f: DistinctFn[A, A])(implicit ev: B === A): DistinctEndo[A] =
-    DistinctEndo(NonEmptyList(ev.subst[({type λ[α] = Distinct[A, X, H, Y, Z, α]})#λ](this), f))
+    DistinctEndo(NonEmptyList(ev.subst[({type λ[α] = Distinct[A, X, H, Y, Z, α]})#λ](this), f :: Nil))
 
   // def ***[C, D](f: Distinct1[C, D]): Distinct1[(A, C), (B, D)] =
 }
@@ -122,7 +122,7 @@ case class DistinctEndo[A](ds: NonEmptyList[DistinctFn[A, A]]) extends DistinctF
     ds.tail.foldLeft(ds.head.run)(_ compose _.run)
 
   def *(d: DistinctFn[A, A]): DistinctEndo[A] =
-    DistinctEndo(d <:: ds)
+    DistinctEndo(d :: ds)
 
   def map[B](f: DistinctFn[A, A] => DistinctFn[B, B]): DistinctEndo[B] =
     DistinctEndo(ds map f)
