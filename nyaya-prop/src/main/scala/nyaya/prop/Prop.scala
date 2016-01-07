@@ -74,12 +74,12 @@ object Prop {
     }
 
   def distinctC[C[_], A](name: => String)(implicit ev: C[A] <:< GenTraversable[A]): Prop[C[A]] =
-    distinct(name, _.toStream)
+    distinct(name, ev)
 
   def distinct[A, B](name: => String, f: A => GenTraversable[B]): Prop[A] =
-    distinct[B](name).contramap(f(_).toStream)
+    distinct[B](name).contramap(f)
 
-  def distinct[A](name: => String): Prop[Stream[A]] =
+  def distinct[A](name: => String): Prop[GenTraversable[A]] =
     evaln(Eval distinctName name, as => Eval.distinct(name, as, as))
 
   /**

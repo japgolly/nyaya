@@ -26,10 +26,7 @@ final case class EvalOver(input: Any) {
   def forall[F[_]: Foldable, B](fb: F[B])(each: B => EvalL): EvalL =
     Eval.forall(input, fb)(each)
 
-  def distinctC[A](name: => String, as: GenTraversable[A]): EvalL =
-    Eval.distinctC(name, input, as)
-
-  def distinct[A](name: => String, as: Stream[A]): EvalL =
+  def distinct[A](name: => String, as: GenTraversable[A]): EvalL =
     Eval.distinct(name, input, as)
 
   /** Test that all Cs are on a whitelist. */

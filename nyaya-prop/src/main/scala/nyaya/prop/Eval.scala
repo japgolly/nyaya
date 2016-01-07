@@ -2,6 +2,7 @@ package nyaya.prop
 
 import scala.annotation.elidable
 import scala.collection.GenTraversable
+import scala.collection.mutable
 import scalaz._
 import scalaz.syntax.foldable._
 import nyaya.util.Multimap
@@ -72,19 +73,24 @@ object Eval {
     r.liftL
   }
 
-  def distinctC[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
-    distinct(name, input, as.toStream)
-
   def distinctName(name: => String) = s"each $name is unique"
 
-  def distinct[A](name: => String, input: Any, as: Stream[A]): EvalL =
+  def distinct[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
     atom(distinctName(name), input, {
-      val dups = (Map.empty[A, Int] /: as)((q, a) => q + (a -> (q.getOrElse(a, 0) + 1))).filter(_._2 > 1)
-      if (dups.isEmpty)
+
+      val m = mutable.HashMap.empty[A, Int]
+      for (a <- as) {
+        val v = m.getOrElse(a, 0) + 1
+        m.update(a, v)
+      }
+
+      if (m.valuesIterator.exists(_ > 1))
         None
       else
-        Some{
-          val d = dups.toStream
+        Some {
+          val d = m.iterator
+            .filter(_._2 > 1)
+            .toList
             .sortBy(_._1.toString)
             .map { case (a, i) => s"$a → $i"}
             .mkString("{", ", ", "}")
