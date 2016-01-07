@@ -5,6 +5,7 @@ import scala.collection.AbstractIterator
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.{NumericRange, IndexedSeq}
 import scala.collection.mutable.ArrayBuffer
+import scalaz.{NonEmptyList => NonEmptyListZ}
 import scalaz.std.function._
 import SizeSpec.DisableDefault._
 
@@ -237,8 +238,12 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   // ------------------------------------------------------
   import scalaz._
 
-  def nel[B >: A](implicit ss: SizeSpec): Gen[NonEmptyList[B]] =
-    for {h <- this; t <- list(ss)} yield NonEmptyList.nels[B](h, t: _*)
+  @deprecated("Replace with scalazNEL.", "0.7.0")
+  def nel[B >: A](implicit ss: SizeSpec): Gen[NonEmptyListZ[B]] =
+    scalazNEL(ss)
+
+  def scalazNEL[B >: A](implicit ss: SizeSpec): Gen[NonEmptyListZ[B]] =
+    for {h <- this; t <- list(ss)} yield NonEmptyListZ.nels[B](h, t: _*)
 
   def \/[B](g: Gen[B]): Gen[A \/ B] =
     Gen(c => if (c.nextBit()) -\/(run(c)) else \/-(g run c))
@@ -276,9 +281,9 @@ object Gen {
     implicit def headAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[(A, S[A]), A] =
       apply(o => merge(o._1, o._2))
 
-    import scalaz.{NonEmptyList, OneAnd}
+    import scalaz.OneAnd
 
-    implicit def scalazNEL[A]: ToNonEmptySeq[NonEmptyList[A], A] =
+    implicit def scalazNEL[A]: ToNonEmptySeq[NonEmptyListZ[A], A] =
       apply(_.list.toList)
 
     implicit def scalazOneAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
@@ -287,7 +292,7 @@ object Gen {
 
   // ===================================================================================================================
 
-  import scalaz.{BindRec, Distributive, Kleisli, Monad, Name, Need, NonEmptyList, Traverse}
+  import scalaz.{BindRec, Distributive, Kleisli, Monad, Name, Need, Traverse}
 
   implicit val scalazInstance: Monad[Gen] with BindRec[Gen] =
     new Monad[Gen] with BindRec[Gen] {
@@ -763,11 +768,11 @@ object Gen {
   // @deprecated("Replace with Gen.digit.list.", "0.6.0")
   // def digits(implicit ss: SizeSpec): Gen[List[Digit]] = digit.list(ss)
   // @deprecated("Replace with Gen.digit.nel or Gen.digit.list1.", "0.6.0")
-  // def digits1(implicit ss: SizeSpec): Gen[NonEmptyList[Digit]] = digit.nel(ss)
+  // def digits1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Digit]] = digit.nel(ss)
 
-  //  def identifier          : Gen[NonEmptyList[Char]]  = identifier)
+  //  def identifier          : Gen[NonEmptyListZ[Char]]  = identifier)
   //  def identifierString    : Gen[String]              = identifierstring)
-  //  def properNoun          : Gen[NonEmptyList[Char]]  = propernoun)
+  //  def properNoun          : Gen[NonEmptyListZ[Char]]  = propernoun)
   //  def properNounString    : Gen[String]              = propernounstring)
   //  def mkUnicodeString(bs: List[Byte]): String = new String(bs.toArray, "UTF-16")
 
@@ -790,22 +795,22 @@ object Gen {
   def alphaNumerics(implicit ss: SizeSpec): Gen[List[Char]] = alphaNumeric.list(ss)
 
   @deprecated("Replace with Gen.numeric.nel or Gen.numeric.list1.", "0.6.0")
-  def numerics1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = numeric.nel(ss)
+  def numerics1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Char]] = numeric.nel(ss)
 
   @deprecated("Replace with Gen.char.nel or Gen.char.list1.", "0.6.0")
-  def chars1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = char.nel(ss)
+  def chars1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Char]] = char.nel(ss)
 
   @deprecated("Replace with Gen.upper.nel or Gen.upper.list1.", "0.6.0")
-  def uppers1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = upper.nel(ss)
+  def uppers1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Char]] = upper.nel(ss)
 
   @deprecated("Replace with Gen.lower.nel or Gen.lower.list1.", "0.6.0")
-  def lowers1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = lower.nel(ss)
+  def lowers1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Char]] = lower.nel(ss)
 
   @deprecated("Replace with Gen.alpha.nel or Gen.alpha.list1.", "0.6.0")
-  def alphas1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = alpha.nel(ss)
+  def alphas1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Char]] = alpha.nel(ss)
 
   @deprecated("Replace with Gen.alphaNumeric.nel or Gen.alphaNumeric.list1.", "0.6.0")
-  def alphaNumerics1(implicit ss: SizeSpec): Gen[NonEmptyList[Char]] = alphaNumeric.nel(ss)
+  def alphaNumerics1(implicit ss: SizeSpec): Gen[NonEmptyListZ[Char]] = alphaNumeric.nel(ss)
 
   @deprecated("Replace with Gen.chooseChar.", "0.6.0")
   def charOf(ev: Char, s: String, rs: NumericRange[Char]*): Gen[Char] = chooseChar(ev, s, rs: _*)
@@ -817,7 +822,7 @@ object Gen {
   def oneOfG[A](a: Gen[A], as: Gen[A]*): Gen[A] = chooseGen(a, as: _*)
 
   @deprecated("Replace with Gen.chooseGenNE.", "0.6.0")
-  def oneOfGL[A](gs: NonEmptyList[Gen[A]]): Gen[A] = chooseGenNE(gs)
+  def oneOfGL[A](gs: NonEmptyListZ[Gen[A]]): Gen[A] = chooseGenNE(gs)
 
   @deprecated("Replace with Gen.tryChoose.", "0.6.0")
   def oneOfSeq[A](as: Seq[A]): Gen[Option[A]] = tryChoose(as)
@@ -829,7 +834,7 @@ object Gen {
   def oneOf[A](a: A, as: A*): Gen[A] = choose(a, as: _*)
 
   @deprecated("Replace with Gen.chooseNE(nel).", "0.6.0")
-  def oneOfL[A](x: NonEmptyList[A]): Gen[A] = chooseNE(x)
+  def oneOfL[A](x: NonEmptyListZ[A]): Gen[A] = chooseNE(x)
 
   @deprecated("Replace with Gen.chooseNE.", "0.6.0")
   def oneOfV[A](x: OneAnd[Vector, A]): Gen[A] = chooseNE(x)
@@ -844,5 +849,5 @@ object Gen {
   def sequencePair[X, A](x: X, r: Gen[A]): Gen[(X, A)] = r strengthL x
 
   @deprecated("Replace with Gen.frequencyNE.", "0.6.1")
-  def frequencyL[A](xs: NonEmptyList[Freq[A]]): Gen[A] = frequencyNE(xs)
+  def frequencyL[A](xs: NonEmptyListZ[Freq[A]]): Gen[A] = frequencyNE(xs)
 }

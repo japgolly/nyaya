@@ -8,6 +8,11 @@ case class NonEmptyList[+A](head: A, tail: List[A]) {
   def map[B](f: A => B): NonEmptyList[B] =
     NonEmptyList(f(head), tail map f)
 
+  def foreach[U](f: A => U): Unit = {
+    f(head)
+    tail foreach f
+  }
+
   def exists(p: A => Boolean): Boolean =
     p(head) || tail.exists(p)
 

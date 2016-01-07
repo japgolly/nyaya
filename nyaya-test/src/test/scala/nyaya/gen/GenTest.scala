@@ -46,7 +46,7 @@ object GenTest extends TestSuite {
   val freqArgs: Gen[NonEmptyList[Gen.Freq[Char]]] = {
     val freq = Gen.chooseInt(1, 16)
     val gen = Gen.char.map(Gen.pure)
-    (freq *** gen).nel
+    (freq *** gen).scalazNEL
   }
 
   // For cases when parametricity means there's nothing useful to test without the ability to write a ∃-test
