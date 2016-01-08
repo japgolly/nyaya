@@ -165,5 +165,18 @@ object GenTest extends TestSuite {
       }
     }
 
+    'choose {
+      for (n <- 1 to 17) {
+        val src = (0 until n).iterator.map(i => (i + 'a').toChar).toSet
+        def test(g: Gen[Char]): Unit = {
+          val a = g.samples().take(n * n * n * 2).toSet
+          assert(a == src)
+        }
+        test(Gen.choose_!(src.toVector))
+        test(Gen.choose_!(src.toList))
+        test(Gen.chooseArray_!(src.toArray))
+      }
+    }
+
   }
 }
