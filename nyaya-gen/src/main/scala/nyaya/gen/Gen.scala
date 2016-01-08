@@ -1,5 +1,6 @@
 package nyaya.gen
 
+import nyaya.util.{NonEmptyList => NonEmptyListN}
 import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
 import scala.collection.generic.CanBuildFrom
@@ -232,6 +233,13 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
         }
       go()
     }
+
+  // ------------------------------------------------------
+  // Nyaya stuff
+  // ------------------------------------------------------
+
+  def nyayaNEL(implicit ss: SizeSpec): Gen[NonEmptyListN[A]] =
+    for (l <- list1(ss)) yield NonEmptyListN(l.head, l.tail)
 
   // ------------------------------------------------------
   // Scalaz stuff
