@@ -16,7 +16,7 @@ scala> import nyaya.gen._
 import nyaya.gen._
 
 scala> val g = Gen.int mapTo Gen.boolean.option
-gen: nyaya.gen.Gen[Map[Int,Option[Boolean]]] = Gen(<function1>)
+g: nyaya.gen.Gen[Map[Int,Option[Boolean]]] = Gen(<function1>)
 
 scala> g.samples().take(1).foreach(println)
 Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> None)
