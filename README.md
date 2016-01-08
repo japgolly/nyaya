@@ -9,16 +9,16 @@ Nyaya is a Scala/Scala.JS library to:
 * Ensure uniqueness in random data.
 
 It is:
-* **Fast**. Maybe it's the fastest Scala random data gen / prop tester?
+* **Fast**. Probably the fastest Scala random data gen / prop tester. (Benchmarks coming soon…)
 * Has a nice, fluent API for generating random data. [(examples)](doc/FEATURES.md#generating-random-data)
 ```
 scala> import nyaya.gen._
 import nyaya.gen._
 
-scala> val gen = Gen.int mapTo Gen.boolean.option
+scala> val g = Gen.int mapTo Gen.boolean.option
 gen: nyaya.gen.Gen[Map[Int,Option[Boolean]]] = Gen(<function1>)
 
-scala> gen.samples().take(1).foreach(println)
+scala> g.samples().take(1).foreach(println)
 Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> None)
 ```
 
@@ -26,20 +26,20 @@ Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> N
 #### SBT setup
 ```scala
 // Property expression, evaluation, assertion.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "0.6.1"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "0.7.0"
 
 // Random data generation.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "0.6.1"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "0.7.0"
 
 // Property testing with random data.
 // Property proving.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.6.1" % "test"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.7.0" % "test"
 ```
 
 <br>
 #### Doc
 * [Features in more detail](doc/FEATURES.md).
-* [Changelog](doc/changelog/0.6.1.md).
+* [Changelog](doc/changelog/0.7.0.md).
 
 <br>
 #### Requires:
@@ -55,7 +55,7 @@ See:
 <br>
 #### Licence
 ```
-Copyright (C) 2014-2015 David Barri
+Copyright (C) 2014-2016 David Barri
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
