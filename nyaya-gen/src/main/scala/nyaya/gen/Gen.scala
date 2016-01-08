@@ -243,7 +243,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     scalazNEL(ss)
 
   def scalazNEL[B >: A](implicit ss: SizeSpec): Gen[NonEmptyListZ[B]] =
-    for {h <- this; t <- list(ss)} yield NonEmptyListZ.nels[B](h, t: _*)
+    for (l <- list1(ss)) yield NonEmptyListZ.nels[B](l.head, l.tail: _*)
 
   def \/[B](g: Gen[B]): Gen[A \/ B] =
     Gen(c => if (c.nextBit()) -\/(run(c)) else \/-(g run c))
