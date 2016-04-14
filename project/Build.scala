@@ -10,7 +10,7 @@ import Typical.{settings => _, _}
 
 object Nyaya extends Build {
 
-  val Scala211 = "2.11.7"
+  val Scala211 = "2.11.8"
 
   val commonSettings: CDS =
     CDS.all(
@@ -40,9 +40,9 @@ object Nyaya extends Build {
           "cct"  -> ";clear;clean;test"))
     ) :+ Typical.settings("nyaya")
 
-  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.0").myJsFork("scalaz")
+  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.2")
 
-  def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.2.0").myJsFork("monocle")//.jsVersion(_+"-2")
+  def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.2.1")
   val monocleCore  = monocle("core")
   val monocleMacro = monocle("macro")
 
