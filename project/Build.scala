@@ -79,7 +79,7 @@ object Nyaya extends Build {
     crossDialectProject("nyaya-test", commonSettings
       .dependsOn(propJvm, propJs)
       .dependsOn(genJvm, genJs)
-      .configure(utestSettings("compile"))
+      .configure(utestSettings())
       .addLibs(monocleCore, monocleMacro % "test"))
 
   lazy val benchmark =
