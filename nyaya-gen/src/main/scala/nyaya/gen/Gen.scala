@@ -125,6 +125,37 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def stream1     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS1(ss)
   def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
 
+  /**
+    * Unlike [#set] this will ensure that only unique random data is used and that the resulting set has the desired
+    * size.
+    *
+    * This is dangerous in that it will block until it generates enough unique elements.
+    * For example, `Gen.bool.setUnique(3)` will never return.
+    */
+  def setUnique[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
+    _setUnique(ss.gen)
+
+  /**
+    * Unlike [#set1] this will ensure that only unique random data is used and that the resulting set has the desired
+    * size.
+    *
+    * This is dangerous in that it will block until it generates enough unique elements.
+    * For example, `Gen.bool.setUnique(3)` will never return.
+    */
+  def setUnique1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
+    _setUnique(ss.gen1)
+
+  private def _setUnique[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
+    Gen { ctx ⇒
+      val size = genSize.run(ctx)
+      var set = Set.empty[B]
+      samples(ctx)
+        .filter(a ⇒ if (set.contains(a)) false else { set += a; true })
+        .take(size)
+        .foreach(_ ⇒ ())
+      set
+    }
+
   def shuffle[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[C[B], B, C[B]]): Gen[C[B]] =
     Gen { c =>
       val orig = run(c)

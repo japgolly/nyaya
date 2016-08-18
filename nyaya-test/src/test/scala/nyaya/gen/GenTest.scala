@@ -178,5 +178,10 @@ object GenTest extends TestSuite {
       }
     }
 
+    'setUnique {
+      for (set <- Gen.chooseInt(0, 50).setUnique(40).samples().take(50))
+        assert(set.size == 40)
+    }
+
   }
 }
