@@ -81,9 +81,9 @@ object GenTest extends TestSuite {
 
     'fill           - fillGen                                       .mustSatisfy(fillProp)
     'shuffle        - shuffleGen                                    .mustSatisfy(shuffleProp)
-    'subset         - Gen.int.set.subset                            .mustSatisfy(didntCrash)
+    'subset         - Gen.int.list.subset                           .mustSatisfy(didntCrash)
     'subset1        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)
-    'take           - Gen.int.set.take(0 to 210)                    .mustSatisfy(didntCrash)
+    'take           - Gen.int.list.take(0 to 210)                   .mustSatisfy(didntCrash)
     'mapBy          - Gen.int.mapBy(Gen.char)                       .mustSatisfy(didntCrash)
     'mapByKeySubset - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)
     'mapByEachKey   - mapByEachKeyGen                               .mustSatisfy(mapByEachKeyProp)
@@ -178,8 +178,8 @@ object GenTest extends TestSuite {
       }
     }
 
-    'setUnique {
-      for (set <- Gen.chooseInt(0, 50).setUnique(40).samples().take(50))
+    'set {
+      for (set <- Gen.chooseInt(0, 50).set(40).samples().take(50))
         assert(set.size == 40)
     }
 

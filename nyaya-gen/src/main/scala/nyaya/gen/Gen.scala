@@ -116,36 +116,32 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     ss.gen1 flatMap fill[B]
 
   def list       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS(ss)
-  def set[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS(ss)
   def stream     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS(ss)
   def vector     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS(ss)
 
   def list1       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS1(ss)
-  def set1[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS1(ss)
   def stream1     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS1(ss)
   def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
 
   /**
-    * Unlike [#set] this will ensure that only unique random data is used and that the resulting set has the desired
-    * size.
+    * This will ensure that only unique random data is used and that the resulting set has the desired size.
     *
     * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.setUnique(3)` will never return.
+    * For example, `Gen.bool.set(3)` will never return.
     */
-  def setUnique[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
-    _setUnique(ss.gen)
+  def set[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
+    _set(ss.gen)
 
   /**
-    * Unlike [#set1] this will ensure that only unique random data is used and that the resulting set has the desired
-    * size.
+    * This will ensure that only unique random data is used and that the resulting set has the desired size.
     *
     * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.setUnique(3)` will never return.
+    * For example, `Gen.bool.set1(3)` will never return.
     */
-  def setUnique1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
-    _setUnique(ss.gen1)
+  def set1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
+    _set(ss.gen1)
 
-  private def _setUnique[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
+  private def _set[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
     Gen { ctx ⇒
       val size = genSize.run(ctx)
       var set = Set.empty[B]
