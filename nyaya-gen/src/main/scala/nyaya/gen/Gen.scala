@@ -408,6 +408,9 @@ object Gen {
   def pure[A](a: A): Gen[A] =
     Gen(_ => a)
 
+  def point[A](a: => A): Gen[A] =
+    Gen(_ => a)
+
   def byName[A](ga: => Gen[A]): Gen[A] =
     pure(Name(ga)) flatMap (_.value)
 
@@ -713,10 +716,22 @@ object Gen {
     if (as.isEmpty)
       Gen pure Vector.empty
     else
-      Gen { ctx =>
-        val size = ss.gen.run(ctx)
-        shuffle(as).samples(ctx).flatten.take(size).toVector
-      }
+      for {
+        sz ← ss.gen
+        it ← fairlyDistributed(as)
+      } yield it.take(sz).toVector
+
+  /**
+    * Ensures that an element is never chosen more than once per n elements.
+    *
+    * fairlyDistributedSeq(1, 2, 3)(6)
+    * may return [1,3,2,2,1,3] or [3,2,1,3,2,1] but never [1,1,1,1,2,3].
+    */
+  def fairlyDistributed[A](as: Traversable[A]): Gen[Iterator[A]] =
+    if (as.isEmpty)
+      Gen pure Iterator.empty
+    else
+      Gen(Gen.shuffle(as).samples(_).flatten)
 
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)
