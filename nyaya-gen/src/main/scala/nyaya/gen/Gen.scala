@@ -707,6 +707,21 @@ object Gen {
       }
     }
 
+  /**
+    * Ensures that an element is never chosen more than once per n elements.
+    *
+    * fairlyDistributedSeq(1, 2, 3)(6)
+    * may return [1,3,2,2,1,3] or [3,2,1,3,2,1] but never [1,1,1,1,2,3].
+    */
+  def fairlyDistributedSeq[A](as: Traversable[A])(implicit ss: SizeSpec): Gen[Vector[A]] =
+    if (as.isEmpty)
+      Gen pure Vector.empty
+    else
+      Gen { ctx =>
+        val size = ss.gen.run(ctx)
+        shuffle(as).samples(ctx).flatten.take(size).toVector
+      }
+
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)
   // --------------------------------------------------------------

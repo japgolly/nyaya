@@ -183,5 +183,17 @@ object GenTest extends TestSuite {
         assert(set.size == 40)
     }
 
+    'fairlyDistributedSeq {
+      for {
+        n <- 0 to 30
+        s <- Gen.fairlyDistributedSeq(List(true, false))(n).samples().take(10)
+      } {
+        assert(s.length == n)
+        val t = s.count(identity)
+        val f = s.length - t
+        assert(Math.abs(t - f) <= 1)
+      }
+    }
+
   }
 }
