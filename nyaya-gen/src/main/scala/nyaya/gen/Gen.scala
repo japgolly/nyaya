@@ -13,6 +13,12 @@ import SizeSpec.DisableDefault._
 final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
   /**
+   * Produce a sample datum.
+   */
+  def sample(): A =
+    samples().next()
+
+  /**
    * Produce an infinite stream of generated data.
    *
    * Use `.take(n)` for a finite number of samples.
