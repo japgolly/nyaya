@@ -116,10 +116,12 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     ss.gen1 flatMap fill[B]
 
   def list       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS(ss)
+  def set[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS(ss)
   def stream     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS(ss)
   def vector     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS(ss)
 
   def list1       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS1(ss)
+  def set1[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS1(ss)
   def stream1     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS1(ss)
   def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
 
@@ -129,8 +131,8 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     * This is dangerous in that it will block until it generates enough unique elements.
     * For example, `Gen.bool.set(3)` will never return.
     */
-  def set[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
-    _set(ss.gen)
+  def sizedSet[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
+    _sizedSet(ss.gen)
 
   /**
     * This will ensure that only unique random data is used and that the resulting set has the desired size.
@@ -138,10 +140,10 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     * This is dangerous in that it will block until it generates enough unique elements.
     * For example, `Gen.bool.set1(3)` will never return.
     */
-  def set1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
-    _set(ss.gen1)
+  def sizedSet1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
+  _sizedSet(ss.gen1)
 
-  private def _set[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
+  private def _sizedSet[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
     Gen { ctx ⇒
       val size = genSize.run(ctx)
       var set = Set.empty[B]

@@ -178,8 +178,8 @@ object GenTest extends TestSuite {
       }
     }
 
-    'set {
-      for (set <- Gen.chooseInt(0, 50).set(40).samples().take(50))
+    'sizedSet {
+      for (set <- Gen.chooseInt(0, 50).sizedSet(40).samples().take(50))
         assert(set.size == 40)
     }
 
