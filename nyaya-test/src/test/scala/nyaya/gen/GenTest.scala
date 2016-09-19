@@ -195,5 +195,10 @@ object GenTest extends TestSuite {
       }
     }
 
+    'uuid {
+      val a, b = Gen.uuid.sample()
+      assert(a != b)
+    }
+
   }
 }

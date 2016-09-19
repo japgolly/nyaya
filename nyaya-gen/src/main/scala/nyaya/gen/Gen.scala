@@ -1,10 +1,11 @@
 package nyaya.gen
 
+import java.util.UUID
 import nyaya.util.{NonEmptyList => NonEmptyListN}
 import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
 import scala.collection.generic.CanBuildFrom
-import scala.collection.immutable.{NumericRange, IndexedSeq}
+import scala.collection.immutable.{IndexedSeq, NumericRange}
 import scala.collection.mutable.ArrayBuffer
 import scalaz.{NonEmptyList => NonEmptyListZ}
 import scalaz.std.function._
@@ -429,6 +430,7 @@ object Gen {
   def byte   : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
   val boolean: Gen[Boolean] = Gen(_.nextBit())
   def unit   : Gen[Unit]    = pure(())
+  def uuid   : Gen[UUID]    = point(UUID.randomUUID())
 
   val positiveInt   : Gen[Int]     = int    map (Math abs _)
   val positiveLong  : Gen[Long]    = long   map (Math abs _)
