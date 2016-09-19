@@ -63,6 +63,15 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     // This is what scala.Future does
       throw new NoSuchElementException("Gen.withFilter predicate is not satisfied"))
 
+  def withSeed(seed: Long): Gen[A] =
+    Gen.setSeed(seed) >> this
+
+  def withOptionalSeed(s: Option[Long]): Gen[A] =
+    Gen.setOptionalSeed(s) >> this
+
+  def withRandomSeed: Gen[A] =
+    Gen.randomSeed >> this
+
   def option: Gen[Option[A]] =
     Gen(c => if (c.nextBit()) None else Some(run(c)))
 
@@ -391,6 +400,9 @@ object Gen {
 
   def setSeed(seed: Long): Gen[Unit] =
     Gen(_ setSeed seed)
+
+  def setOptionalSeed(s: Option[Long]): Gen[Unit] =
+    s.fold(unit)(setSeed)
 
   /**
    * Apply a new deterministic seed to the RNG.

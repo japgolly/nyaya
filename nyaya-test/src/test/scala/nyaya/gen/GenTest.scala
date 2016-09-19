@@ -200,5 +200,19 @@ object GenTest extends TestSuite {
       assert(a != b)
     }
 
+    'withSeed {
+      val (a,b,c,d,e) = Gen.tuple5(
+        Gen.long,
+        Gen.long,
+        Gen.long withSeed 0,
+        Gen.long withSeed 1,
+        Gen.long).sample()
+      val s0 = -4962768465676381896L
+      val s1 = -4964420948893066024L
+      val n1 = 7564655870752979346L
+      assert(c == s0, d == s1, e == n1)
+      assert(Set(a,b,c,d,e).size == 5)
+    }
+
   }
 }
