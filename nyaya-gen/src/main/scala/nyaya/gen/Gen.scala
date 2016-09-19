@@ -390,13 +390,24 @@ object Gen {
     Gen(_ setSeed seed)
 
   /**
-   * Apply a new, random seed to the RNG.
+   * Apply a new deterministic seed to the RNG.
    *
    * @return The seed used.
    */
   def reseed: Gen[Long] =
     for {
       seed <- long
+      _    <- setSeed(seed)
+    } yield seed
+
+  /**
+   * Apply a new, non-deterministic seed to the RNG.
+   *
+   * @return The seed used.
+   */
+  def randomSeed: Gen[Long] =
+    for {
+      seed <- uuid.map(i => java.lang.Long.valueOf(i.toString.replace("-","") take 15, 16))
       _    <- setSeed(seed)
     } yield seed
 
