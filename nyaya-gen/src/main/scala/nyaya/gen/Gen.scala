@@ -55,6 +55,9 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def flatten[B](implicit ev: A <:< Gen[B]): Gen[B] =
     flatMap(ev)
 
+  def >>[B](f: Gen[B]): Gen[B] =
+    flatMap(_ => f)
+
   def withFilter(p: A => Boolean): Gen[A] =
     map(a => if (p(a)) a else
     // This is what scala.Future does
