@@ -39,7 +39,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.7.0" % 
 <br>
 #### Doc
 * [Features in more detail](doc/FEATURES.md).
-* [Changelog](doc/changelog/0.7.0.md).
+* [Changelogs](doc/changelog/).
 
 <br>
 #### Requires:
