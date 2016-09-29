@@ -16,7 +16,7 @@ object Nyaya extends Build {
     CDS.all(
       _.settings(
         organization       := "com.github.japgolly.nyaya",
-        version            := "0.7.2",
+        version            := "0.7.3-SNAPSHOT",
         homepage           := Some(url("https://github.com/japgolly/nyaya")),
         licenses           += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
         scalaVersion       := Scala211,
@@ -40,7 +40,7 @@ object Nyaya extends Build {
           "cct"  -> ";clear;clean;test"))
     ) :+ Typical.settings("nyaya")
 
-  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.5")
+  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.6")
 
   def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.2.2")
   val monocleCore  = monocle("core")
