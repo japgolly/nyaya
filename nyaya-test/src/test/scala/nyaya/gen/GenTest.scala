@@ -58,6 +58,28 @@ object GenTest extends TestSuite {
 
   override def tests = TestSuite {
 
+    'chooseInt {
+      'bound {
+        val values = Gen.chooseInt(3).samples().take(200).toSet
+        assert(values == Set(0, 1, 2))
+      }
+      'range {
+        val values = Gen.chooseInt(3, 6).samples().take(500).toSet
+        assert(values == Set(3, 4, 5, 6))
+      }
+    }
+
+    'chooseLong {
+      'bound {
+        val values = Gen.chooseLong(3).samples().take(200).toSet
+        assert(values == Set[Long](0, 1, 2))
+      }
+      'range {
+        val values = Gen.chooseLong(3, 6).samples().take(500).toSet
+        assert(values == Set[Long](3, 4, 5, 6))
+      }
+    }
+
     'chooseChar {
       // Ensure scalac actually allows these overloads (in some cases it compiles but fails at callsite)
       val s1 = Gen.chooseChar('a', 'b' to 'z')

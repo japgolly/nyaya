@@ -548,9 +548,35 @@ object Gen {
   def chooseInt(l: Int, h: Int): Gen[Int] =
     chooseIndexed_!(l to h)
 
+  /**
+    * Generate a long ∈ [0,bound).
+    *
+    * @param bound Upper-bound (exclusive).
+    */
+  def chooseLong(bound: Long): Gen[Long] = {
+    if (bound < 0)
+      throw new IllegalArgumentException(s"Bound ($bound) must be ≥ 0.")
+    if (bound == 0)
+      Gen pure 0L
+    else {
+      // Copied from https://github.com/apache/commons-rng/blob/master/src/main/java/org/apache/commons/rng/internal/BaseProvider.java
+      val bound_1 = bound - 1
+      Gen { ctx ⇒
+        @tailrec def go(): Long = {
+          val bits = ctx.rnd.nextLong()
+          val v = bits % bound
+          if (bits - v + bound_1 < 0) go() else v
+        }
+        go()
+      }
+    }
+  }
+
   /** Args are inclusive. [l,h] */
-  def chooseLong(l: Long, h: Long): Gen[Long] =
-    chooseIndexed_!(l to h)
+  def chooseLong(l: Long, h: Long): Gen[Long] = {
+    val range = h - l + 1
+    chooseLong(range).map(_ + l)
+  }
 
   /** Args are inclusive. [l,h] */
   def chooseDouble(l: Double, h: Double): Gen[Double] = {
