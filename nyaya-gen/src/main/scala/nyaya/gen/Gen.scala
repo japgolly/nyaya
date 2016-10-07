@@ -456,7 +456,7 @@ object Gen {
   def byte   : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
   val boolean: Gen[Boolean] = Gen(_.nextBit())
   def unit   : Gen[Unit]    = pure(())
-  def uuid   : Gen[UUID]    = point(UUID.randomUUID())
+  def uuid   : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
 
   val positiveInt   : Gen[Int]     = int    map (Math abs _)
   val positiveLong  : Gen[Long]    = long   map (Math abs _)
