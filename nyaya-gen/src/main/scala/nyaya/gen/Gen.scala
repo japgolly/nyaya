@@ -539,35 +539,47 @@ object Gen {
   /**
    * Generate an int ∈ [0,bound).
    *
-   * @param bound Upper-bound (exclusive).
+   * @param bound Upper-bound (exclusive). > 0
    */
   def chooseInt(bound: Int): Gen[Int] =
-    Gen(_.rnd nextInt bound)
+    // if (bound <= 0) throw new IllegalArgumentException(s"Bound ($bound) must be ≥ 0.")
+    (bound: @switch) match {
+      case  1 => pure(0)
+      case  2 => Gen(_.nextInt2())
+      case  4 => Gen(_.nextInt4())
+      case  8 => Gen(_.nextInt8())
+      case 16 => Gen(_.nextInt16())
+      case  _ => Gen(_.rnd nextInt bound)
+    }
 
   /** Args are inclusive. [l,h] */
   def chooseInt(l: Int, h: Int): Gen[Int] =
     chooseIndexed_!(l to h)
 
+  private val intToLong: Int => Long = i => i
+
   /**
     * Generate a long ∈ [0,bound).
     *
-    * @param bound Upper-bound (exclusive).
+    * @param bound Upper-bound (exclusive). > 0
     */
   def chooseLong(bound: Long): Gen[Long] = {
-    if (bound < 0)
-      throw new IllegalArgumentException(s"Bound ($bound) must be ≥ 0.")
-    if (bound == 0)
-      Gen pure 0L
+    // if (bound <= 0) throw new IllegalArgumentException(s"Bound ($bound) must be ≥ 0.")
+    if (bound <= Int.MaxValue)
+      chooseInt(bound.toInt).map(intToLong)
     else {
-      // Copied from https://github.com/apache/commons-rng/blob/master/src/main/java/org/apache/commons/rng/internal/BaseProvider.java
-      val bound_1 = bound - 1
+      // Copied from ThreadLocalRandom#nextLong(long)
+      val m = bound - 1
       Gen { ctx ⇒
-        @tailrec def go(): Long = {
-          val bits = ctx.rnd.nextLong()
-          val v = bits % bound
-          if (bits - v + bound_1 < 0) go() else v
+        var r = ctx.rnd.nextLong()
+        if ((bound & m) == 0L) // power of two
+          r & m
+        else { // reject over-represented candidates
+          var u: Long = r >>> 1
+          while (u + m - {r = u % bound; r} < 0L)
+            u = ctx.rnd.nextLong() >>> 1
+          r
         }
-        go()
       }
     }
   }
@@ -605,23 +617,13 @@ object Gen {
       float map (x => ll * (1 - x) + hh * x)
   }
 
-  private def __choose_![A](length: Int, a: Int => A): Gen[A] =
-    (length: @switch) match {
-      case  1 => pure(a(0))
-      case  2 => Gen(c => a(c.nextInt2()))
-      case  4 => Gen(c => a(c.nextInt4()))
-      case  8 => Gen(c => a(c.nextInt8()))
-      case 16 => Gen(c => a(c.nextInt16()))
-      case  n => Gen(c => a(c.rnd nextInt n))
-    }
-
   /**
    * Randomly selects one of the given elements.
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
   def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] =
-    __choose_!(as.length, as.apply)
+    chooseInt(as.length).map(as.apply)
 
   /**
    * Randomly selects one of the given elements.
@@ -643,7 +645,7 @@ object Gen {
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
   def chooseArray_![A](as: Array[A]): Gen[A] =
-    __choose_!(as.length, as.apply)
+    chooseInt(as.length).map(as.apply)
 
   def chooseGen[A](a: Gen[A], as: Gen[A]*): Gen[A] =
     choose(a, as: _*).flatten

@@ -60,8 +60,10 @@ object GenTest extends TestSuite {
 
     'chooseInt {
       'bound {
-        val values = Gen.chooseInt(3).samples().take(200).toSet
-        assert(values == Set(0, 1, 2))
+        for (b <- 1 to 34) {
+          val values = Gen.chooseInt(b).samples().take(b * 1000).toSet
+          assert(values == 0.until(b).toSet)
+        }
       }
       'range {
         val values = Gen.chooseInt(3, 6).samples().take(500).toSet
@@ -71,8 +73,16 @@ object GenTest extends TestSuite {
 
     'chooseLong {
       'bound {
-        val values = Gen.chooseLong(3).samples().take(200).toSet
-        assert(values == Set[Long](0, 1, 2))
+        for (b <- 1 to 34) {
+          val values = Gen.chooseLong(b).samples().take(b * 1000).toSet
+          assert(values == 0.until(b).toSet)
+        }
+      }
+      'bigBound {
+        val big = 922337203685477580L
+        val values = Gen.chooseLong(big).samples().take(100000).toSet
+        val bad = values.filter(l => l < 0 || l >= big)
+        assert(bad.isEmpty)
       }
       'range {
         val values = Gen.chooseLong(3, 6).samples().take(500).toSet
