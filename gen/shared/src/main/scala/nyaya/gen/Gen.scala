@@ -279,6 +279,9 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       go()
     }
 
+  def variant(n: Long): Gen[A] =
+    Gen.setSeedVariant(n) >> this
+
   // ------------------------------------------------------
   // Nyaya stuff
   // ------------------------------------------------------
@@ -409,6 +412,9 @@ object Gen {
 
   def setOptionalConstSeed(o: Option[Long]): Gen[Unit] =
     o.fold(unit)(setConstSeed)
+
+  def setSeedVariant(n: Long): Gen[Unit] =
+    long.flatMap(l => setSeed(l ^ n))
 
   /** Apply a new, non-deterministic seed. */
   lazy val reseed: Gen[Unit] =
