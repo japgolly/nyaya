@@ -422,9 +422,11 @@ object Gen {
    */
   def randomSeed: Gen[Long] =
     for {
-      seed <- uuid.map(i => java.lang.Long.valueOf(i.toString.replace("-","") take 15, 16))
+      seed <- Gen.point(java.lang.Long.valueOf(UUID.randomUUID().toString.replace("-", "") take 15, 16))
       _    <- setSeed(seed)
     } yield seed
+
+  // TODO Redo all this seed stuff
 
   /** Returns a number in [0,GenSize) */
   val chooseSize: Gen[Int] =
