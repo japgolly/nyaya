@@ -1,9 +1,11 @@
 package nyaya.gen
 
+import java.time.ZoneId
 import java.util.UUID
 import nyaya.util.{NonEmptyList => NonEmptyListN}
 import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
+import scala.collection.JavaConverters._
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.{IndexedSeq, NumericRange}
 import scala.collection.mutable.ArrayBuffer
@@ -588,6 +590,7 @@ object Gen {
 
   /** Args are inclusive. [l,h] */
   def chooseLong(l: Long, h: Long): Gen[Long] = {
+    // TODO check args
     val range = h - l + 1
     chooseLong(range).map(_ + l)
   }
@@ -792,6 +795,16 @@ object Gen {
       Gen pure Iterator.empty
     else
       Gen(Gen.shuffle(as).samples(_).flatten)
+
+  /** Caution: non-deterministic */
+  lazy val zoneId: Gen[ZoneId] =
+    Gen.choose_!(
+      (ZoneId.getAvailableZoneIds().asScala - "GMT0") // GMT0 causes Java to throw exceptions when reparsing
+        .toVector
+        .sorted // Hope for a little more determinism
+        .map(ZoneId.of))
+
+  def dateTime = DateTimeBuilder.Default
 
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)
