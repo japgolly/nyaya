@@ -19,7 +19,7 @@ object GenTestJvm extends TestSuite {
       val now = LocalDateTime.now()
 
       def testDeltaDayRange(g: Gen[LocalDateTime], is: TraversableOnce[Int]): Unit = {
-        val results = g.samples().take(is.size * 20).map(_.toLocalDate).toSet
+        val results = g.samples().take(is.size * 50).map(_.toLocalDate).toSet
         val expect = is.map(now.plusDays(_).toLocalDate).toSet
         assert(results == expect)
       }
