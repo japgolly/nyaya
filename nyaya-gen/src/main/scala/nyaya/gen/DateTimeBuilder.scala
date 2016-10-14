@@ -22,7 +22,7 @@ object DateTimeBuilder {
   }
   case object Unlimited extends TimeSpec {
     override val past = fixed(0)
-    override val future = fixed(Long.MaxValue)
+    override val future = fixed(Long.MaxValue - 1)
   }
 
   def Now(): Long = System.currentTimeMillis()

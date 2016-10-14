@@ -31,12 +31,19 @@ trait DateTimeBuilderJava8 {
   def asZonedDateTime: Gen[ZonedDateTime] =
     asZonedDateTime(Gen.zoneId)
 
+  def asZonedDateTime(zoneId: ZoneId): Gen[ZonedDateTime] =
+    asInstant.map(_ atZone zoneId)
+
   def asZonedDateTime(genZoneId: Gen[ZoneId]): Gen[ZonedDateTime] =
     Gen.lift2(asInstant, genZoneId)(_ atZone _)
 
   /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
   def asZonedDateTimeAvoidingJDK8066982: Gen[ZonedDateTime] =
     asZonedDateTime map avoidJDK8066982
+
+  /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
+  def asZonedDateTimeAvoidingJDK8066982(zoneId: ZoneId): Gen[ZonedDateTime] =
+    asZonedDateTime(zoneId) map avoidJDK8066982
 
   /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
   def asZonedDateTimeAvoidingJDK8066982(genZoneId: Gen[ZoneId]): Gen[ZonedDateTime] =
