@@ -2,16 +2,18 @@ package nyaya.gen
 
 import java.time._
 import DateTimeBuilder._
-import DatetimeBuilderJava8._
+import DateTimeBuilderJava8._
 
-object DatetimeBuilderJava8 {
+object DateTimeBuilderJava8 {
+
+  val UTC = ZoneId.of("UTC")
 
   /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
   val avoidJDK8066982: ZonedDateTime => ZonedDateTime =
   d => ZonedDateTime.parse(d.toString)
 }
 
-trait DatetimeBuilderJava8 {
+trait DateTimeBuilderJava8 {
   this: DateTimeBuilder =>
 
   def  fromInstant(i: Instant) =  fromEpochMs(i.toEpochMilli)
@@ -23,10 +25,8 @@ trait DatetimeBuilderJava8 {
   def asInstant: Gen[Instant] =
     asEpochMs.map(Instant.ofEpochMilli)
 
-  def asLocalDateTime: Gen[LocalDateTime] = {
-    val systemZoneId = ZoneId.systemDefault()
-    asInstant.map(LocalDateTime.ofInstant(_, systemZoneId))
-  }
+  def asLocalDateTime: Gen[LocalDateTime] =
+    asInstant.map(LocalDateTime.ofInstant(_, UTC))
 
   def asZonedDateTime: Gen[ZonedDateTime] =
     asZonedDateTime(Gen.zoneId)

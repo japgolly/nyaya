@@ -9,6 +9,7 @@ import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
 import nyaya.test.PropTest._
+import DateTimeBuilderJava8.UTC
 
 object GenTestJvm extends TestSuite {
 
@@ -16,31 +17,23 @@ object GenTestJvm extends TestSuite {
 
     'dateTime {
 
-      val now = LocalDateTime.now()
+      val now = ZonedDateTime.now(UTC).toLocalDateTime
 
-      def testDeltaDayRange(g: Gen[LocalDateTime], is: TraversableOnce[Int]): Unit = {
+      def testDeltaDayRange(b: DateTimeBuilder, is: TraversableOnce[Int]): Unit = {
+        val g = b.asLocalDateTime
         val results = g.samples().take(is.size * 50).map(_.toLocalDate).toSet
         val expect = is.map(now.plusDays(_).toLocalDate).toSet
         assert(results == expect)
       }
 
-      'deltaPast {
-        testDeltaDayRange(
-          Gen.dateTime.fromNowMinus(3.days).untilNow.asLocalDateTime,
-          -3 to 0)
-      }
+      'deltaPast -
+        testDeltaDayRange(Gen.dateTime.fromNowMinus(3.days).untilNow, -3 to 0)
 
-      'deltaFuture {
-        testDeltaDayRange(
-          Gen.dateTime.fromNow.untilNowPlus(3.days).asLocalDateTime,
-          0 to 3)
-      }
+      'deltaFuture -
+        testDeltaDayRange(Gen.dateTime.fromNow.untilNowPlus(3.days), 0 to 3)
 
-      'deltaAround {
-        testDeltaDayRange(
-          Gen.dateTime.fromNowMinus(7.days).untilNowPlus(5.days).asLocalDateTime,
-          -7 to 5)
-      }
+      'deltaAround -
+        testDeltaDayRange(Gen.dateTime.fromNowMinus(7.days).untilNowPlus(5.days), -7 to 5)
 
       'zonedDateTimeAvoidingJDK8066982 {
         /*

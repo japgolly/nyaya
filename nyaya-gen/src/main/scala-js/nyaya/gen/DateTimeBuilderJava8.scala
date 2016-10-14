@@ -2,12 +2,12 @@ package nyaya.gen
 
 import java.time._
 import DateTimeBuilder._
-import DatetimeBuilderJava8._
+import DateTimeBuilderJava8._
 
-object DatetimeBuilderJava8 {
+object DateTimeBuilderJava8 {
 }
 
-trait DatetimeBuilderJava8 {
+trait DateTimeBuilderJava8 {
   this: DateTimeBuilder =>
 
 }

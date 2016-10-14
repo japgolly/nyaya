@@ -35,7 +35,7 @@ object DateTimeBuilder {
   val WeekMs = YearMs / 52
 }
 
-final class DateTimeBuilder(genNow: Gen[Long], past: TimeSpec, future: TimeSpec) extends DatetimeBuilderJava8 {
+final class DateTimeBuilder(genNow: Gen[Long], past: TimeSpec, future: TimeSpec) extends DateTimeBuilderJava8 {
 
   protected def copy(genNow: Gen[Long] = genNow, past: TimeSpec = past, future: TimeSpec = future): DateTimeBuilder =
     new DateTimeBuilder(genNow, past = past, future = future)
