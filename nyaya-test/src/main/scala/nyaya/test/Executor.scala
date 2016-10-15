@@ -1,11 +1,12 @@
 package nyaya.test
 
+import nyaya.gen.ThreadNumber
 import nyaya.prop.Prop
 import PTest._
 
 object Executor {
   type DebugPrefix = String
-  case class DataCtx(sampleSize: SampleSize, seed: Option[Long], debugPrefix: DebugPrefix)
+  case class DataCtx(sampleSize: SampleSize, threadNumber: ThreadNumber, seed: Option[Long], debugPrefix: DebugPrefix)
   type Data[A] = DataCtx => Iterator[A]
 }
 
@@ -18,7 +19,7 @@ trait Executor {
 
 object SingleThreadedExecutor extends Executor {
   override def run[A](p: Prop[A], g: Data[A], S: Settings): RunState[A] = {
-    val data = g(DataCtx(S.sampleSize, S.seed, ""))
+    val data = g(DataCtx(S.sampleSize, ThreadNumber(0), S.seed, ""))
     var i = 0
     testN(p, data, () => {i+=1; i}, S)
   }

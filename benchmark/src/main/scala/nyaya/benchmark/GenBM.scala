@@ -9,7 +9,7 @@ object GenBM {
 
   def bm[A](g: Gen[A], genSize: Int = 50, sampleSize: Int = 100): () => List[A] = {
     val gs = GenSize(genSize)
-    () => g.samples(GenCtx(gs, 0)).take(sampleSize).toList
+    () => g.samplesUsing(GenCtx(gs, ThreadNumber(0), 0)).take(sampleSize).toList
   }
 
   val intSet = (1 to 200 by 3).toSet

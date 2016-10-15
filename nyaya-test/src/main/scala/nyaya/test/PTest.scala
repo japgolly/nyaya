@@ -78,7 +78,7 @@ object PTest {
           dontLogNewBatch
 
       val plan = planBatchSizes(dataCtx.sampleSize, sizeDist, genSize)
-      val ctx = GenCtx(genSize, dataCtx.seed)
+      val ctx = GenCtx(genSize, dataCtx.threadNumber, dataCtx.seed)
       iterateInBatches(gen, ctx, plan, logNewBatch)
     }
 
