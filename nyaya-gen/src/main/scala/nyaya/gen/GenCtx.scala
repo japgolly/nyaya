@@ -97,19 +97,6 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: Thr
 // =====================================================================================================================
 
 object GenCtx {
-
   def apply(gs: GenSize, thread: ThreadNumber): GenCtx =
     new GenCtx(new java.util.Random, gs, thread)
-
-  def apply(gs: GenSize, thread: ThreadNumber, seed: Long): GenCtx = {
-    val g = GenCtx(gs, thread)
-    g setSeed seed
-    g
-  }
-
-  def apply(gs: GenSize, thread: ThreadNumber, seed: Option[Long]): GenCtx = {
-    val g = GenCtx(gs, thread)
-    seed foreach g.setSeed
-    g
-  }
 }

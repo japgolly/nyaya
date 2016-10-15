@@ -62,7 +62,7 @@ object PTest {
 
       override def next(): A = {
         remainingInThisBatch -= 1
-        gen run ctx
+        ctx.sample(gen)
       }
     }
   }
@@ -78,7 +78,8 @@ object PTest {
           dontLogNewBatch
 
       val plan = planBatchSizes(dataCtx.sampleSize, sizeDist, genSize)
-      val ctx = GenCtx(genSize, dataCtx.threadNumber, dataCtx.seed)
+      val ctx = GenCtx(genSize, dataCtx.threadNumber)
+      dataCtx.seed.foreach(Gen.setSeed(_) run ctx)
       iterateInBatches(gen, ctx, plan, logNewBatch)
     }
 
