@@ -16,7 +16,7 @@ object Nyaya extends Build {
     CDS.all(
       _.settings(
         organization       := "com.github.japgolly.nyaya",
-        version            := "0.8.0-SNAPSHOT",
+        version            := "0.8.0",
         homepage           := Some(url("https://github.com/japgolly/nyaya")),
         licenses           += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
         scalaVersion       := Scala211,

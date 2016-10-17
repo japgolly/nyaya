@@ -1,3 +1,0 @@
-#!/bin/bash
-cd "$(dirname "$(readlink -e "$0")")" || exit 1
-sbt -Dscalac.patmat.analysisBudget=off '++2.10.4' "$@" shell
