@@ -555,8 +555,9 @@ object Gen {
     * @param bound Upper-bound (exclusive). > 0
     */
   def chooseLong(bound: Long): Gen[Long] = {
-    // if (bound <= 0) throw new IllegalArgumentException(s"Bound ($bound) must be ≥ 0.")
-    if (bound <= Int.MaxValue)
+    if (bound <= 0)
+      throw new IllegalArgumentException(s"Gen.chooseLong($bound) is invalid. Must be > 0.")
+    else if (bound <= Int.MaxValue)
       chooseInt(bound.toInt).map(intToLong)
     else {
       // Copied from ThreadLocalRandom#nextLong(long)
@@ -577,9 +578,43 @@ object Gen {
 
   /** Args are inclusive. [l,h] */
   def chooseLong(l: Long, h: Long): Gen[Long] = {
-    // TODO check args
+    if (l > h)
+      throw new IllegalArgumentException(s"Gen.chooseLong($l, $h) is invalid: $l > $h.")
     val range = h - l + 1
-    chooseLong(range).map(_ + l)
+    if (range <= 0) {
+      if (l == Long.MinValue && h == Long.MaxValue)
+        long
+      else
+        chooseLongBy2(l, h)
+    } else
+      chooseLong(range).map(_ + l)
+  }
+
+  private[gen] def chooseLongBy2(l: Long, h: Long): Gen[Long] = {
+    import scala.math.BigInt
+    val li = BigInt(l)
+    val hi = BigInt(h)
+    val r: BigInt = hi - li + 1
+    val r1 = r / 2
+    val r2 = r - r1
+    // println(s"[2] $li,$hi -- $r --> $r1,$r2 --> ${r1.toLong},${r2.toLong}")
+    if (r2.toLong == Long.MinValue) {
+      val g1 = chooseLong((r1 - 1).toLong)
+      val g2 = chooseLong((r2 - 1).toLong)
+      val x = r1 + li + 1
+      val y1 = for (a <- g1) yield (li + a).toLong
+      val y2 = for (a <- g2) yield (x + a).toLong
+      val z1 = y1.map(_ + 1)
+      val z2 = y2.map(_ + 1)
+      chooseGen(y1, y2, z1, z2)
+    } else {
+      val g1 = chooseLong(r1.toLong)
+      val g2 = chooseLong(r2.toLong)
+      val x = r1 + li
+      val y1 = for (a <- g1) yield (li + a).toLong
+      val y2 = for (a <- g2) yield (x + a).toLong
+      chooseGen(y1, y2)
+    }
   }
 
   /** Args are inclusive. [l,h] */

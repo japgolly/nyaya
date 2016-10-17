@@ -88,6 +88,37 @@ object GenTest extends TestSuite {
         val values = Gen.chooseLong(3, 6).samples().take(500).toSet
         assert(values == Set[Long](3, 4, 5, 6))
       }
+      'singleValue {
+        Gen.chooseLong(5, 5).samples().take(20).toSet[Long].foreach(l => assert(l == 5))
+      }
+      'wholeRange {
+        Gen.chooseLong(Long.MinValue, Long.MaxValue).sample() // Just test it doesn't crash
+        ()
+      }
+      'positiveRange {
+        Gen.chooseLong(0, Long.MaxValue).samples().take(1000).foreach(l => assert(l > 0L))
+      }
+      'hugeRange {
+        // Bit hard to test this better
+        def test(l: Long, h: Long): Unit =
+          Gen.chooseLong(l, h).samples().take(1000).foreach(x => assert(x >= l && x <= h))
+        test(Long.MinValue, Long.MaxValue)
+        test(Long.MinValue, Long.MaxValue - 1)
+        test(Long.MinValue + 1, Long.MaxValue)
+        test(Long.MinValue + 1, Long.MaxValue - 1)
+      }
+
+      'by2 {
+        def test(l: Long, h: Long, s: Int = 200): Unit = {
+          val actual = Gen.chooseLongBy2(l, h).samples().take(s).toList.sorted.distinct
+          val expect = (l to h).toList
+          assert(actual == expect)
+        }
+        'ee - test(2, 10)
+        'eo - test(2, 11)
+        'oe - test(3, 10)
+        'oo - test(3, 11)
+      }
     }
 
     'chooseChar {
