@@ -18,12 +18,16 @@ object GenTestJvm extends TestSuite {
 
     'dateTime {
 
-      val now = ZonedDateTime.now(UTC).toLocalDateTime
+      // scala> Instant.ofEpochMilli(1476661717639L).atZone(ZoneId of "UTC")
+      // res1: java.time.ZonedDateTime = 2016-10-16T23:48:37.639Z[UTC]
+      val now = Now(1476661717639L)
+      val nowUTC = Instant.ofEpochMilli(now.millisSinceEpoch).atZone(UTC).toLocalDate
+      implicit val genNow = Gen pure now
 
       def testDeltaDayRange(b: DateTimeBuilder, is: TraversableOnce[Int]): Unit = {
-        val g = b.asLocalDateTime
-        val results = g.samples().take(is.size * 50).map(_.toLocalDate).toSet
-        val expect = is.map(now.plusDays(_).toLocalDate).toSet
+        val g = b.asZonedDateTime(UTC)
+        val results = g.samples().take(is.size * 500).map(_.toLocalDate.toString).toList.sorted.distinct
+        val expect = is.map(nowUTC.plusDays(_).toString).toList.sorted.distinct
         assert(results == expect)
       }
 
@@ -71,7 +75,6 @@ object GenTestJvm extends TestSuite {
       }
 
       'deterministic {
-        implicit val genNow = Gen pure Gen.Now(1476661717639L)
         val g: ZonedDateTime = Gen.dateTime.aroundNowDays(8).asZonedDateTime(UTC).withSeed(0).sample()
         assert(g.toString == "2016-10-14T23:17:45.668Z[UTC]")
       }
