@@ -533,19 +533,31 @@ object Gen {
    * @param bound Upper-bound (exclusive). > 0
    */
   def chooseInt(bound: Int): Gen[Int] =
-    // if (bound <= 0) throw new IllegalArgumentException(s"Bound ($bound) must be ≥ 0.")
     (bound: @switch) match {
       case  1 => pure(0)
       case  2 => Gen(_.nextInt2())
       case  4 => Gen(_.nextInt4())
       case  8 => Gen(_.nextInt8())
       case 16 => Gen(_.nextInt16())
-      case  _ => Gen(_.rnd nextInt bound)
+      case  _ =>
+        if (bound <= 0)
+          throw new IllegalArgumentException(s"Gen.chooseInt($bound) is invalid. Must be > 0.")
+        Gen(_.rnd nextInt bound)
     }
 
   /** Args are inclusive. [l,h] */
-  def chooseInt(l: Int, h: Int): Gen[Int] =
-    chooseIndexed_!(l to h)
+  def chooseInt(l: Int, h: Int): Gen[Int] = {
+    if (l > h)
+      throw new IllegalArgumentException(s"Gen.chooseLong($l, $h) is invalid: $l > $h.")
+    val range = h - l + 1
+    if (range <= 0) {
+      if (l == Int.MinValue && h == Int.MaxValue)
+        int
+      else
+        chooseLong(l, h).map(_.toInt)
+    } else
+      chooseIndexed_!(l to h)
+  }
 
   private val intToLong: Int => Long = i => i
 

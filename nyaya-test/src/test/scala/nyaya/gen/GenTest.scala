@@ -69,6 +69,25 @@ object GenTest extends TestSuite {
         val values = Gen.chooseInt(3, 6).samples().take(500).toSet
         assert(values == Set(3, 4, 5, 6))
       }
+      'singleValue {
+        Gen.chooseInt(5, 5).samples().take(20).toSet[Int].foreach(l => assert(l == 5))
+      }
+      'wholeRange {
+        Gen.chooseInt(Int.MinValue, Int.MaxValue).sample() // Just test it doesn't crash
+        ()
+      }
+      'positiveRange {
+        Gen.chooseInt(0, Int.MaxValue).samples().take(1000).foreach(l => assert(l > 0L))
+      }
+      'hugeRange {
+        // Bit hard to test this better
+        def test(l: Int, h: Int): Unit =
+          Gen.chooseInt(l, h).samples().take(1000).foreach(x => assert(x >= l && x <= h))
+        test(Int.MinValue, Int.MaxValue)
+        test(Int.MinValue, Int.MaxValue - 1)
+        test(Int.MinValue + 1, Int.MaxValue)
+        test(Int.MinValue + 1, Int.MaxValue - 1)
+      }
     }
 
     'chooseLong {
