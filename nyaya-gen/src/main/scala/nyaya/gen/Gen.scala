@@ -796,6 +796,10 @@ object Gen {
     else
       Gen(Gen.shuffle(as).samples(_).flatten)
 
+  // -------------------
+  // Date & Time related
+  // -------------------
+
   /** Caution: non-deterministic */
   lazy val zoneId: Gen[ZoneId] =
     Gen.choose_!(
@@ -804,7 +808,21 @@ object Gen {
         .sorted // Hope for a little more determinism
         .map(ZoneId.of))
 
-  def dateTime = DateTimeBuilder.Default
+  final case class Now(millisSinceEpoch: Long) extends AnyVal
+
+  object Now {
+    def current(): Now =
+      Now(System.currentTimeMillis())
+
+    implicit val genNowOnce: Gen[Now] =
+      Gen.pure(current())
+
+    def genNowByName: Gen[Now] =
+      Gen.point(current())
+  }
+
+  def dateTime(implicit genNow: Gen[Now]): DateTimeBuilder =
+    DateTimeBuilder.default(genNow)
 
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)

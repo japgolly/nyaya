@@ -246,5 +246,13 @@ object GenTest extends TestSuite {
       assert(Set(a,b,c,d,e).size == 5)
     }
 
+    'dateTime {
+      'deterministic {
+        implicit val genNow = Gen pure Gen.Now(1476661717639L)
+        val g = Gen.dateTime.aroundNowDays(10).asEpochMs.withSeed(0).sample()
+        assert(g == 1477367458999L)
+      }
+    }
+
   }
 }

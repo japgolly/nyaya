@@ -3,6 +3,7 @@ package nyaya.gen
 import java.util.Date
 import scala.concurrent.duration.FiniteDuration
 import DateTimeBuilder._
+import Gen.Now
 
 object DateTimeBuilder {
 
@@ -27,7 +28,8 @@ object DateTimeBuilder {
 
   def Now(): Long = System.currentTimeMillis()
 
-  val Default = new DateTimeBuilder(Gen pure Now(), Unlimited, Unlimited)
+  def default(implicit genNow: Gen[Now]): DateTimeBuilder =
+    new DateTimeBuilder(genNow, Unlimited, Unlimited)
 
   val DayMs = 86400000L.toDouble
   val YearMs = DayMs * 365.25
@@ -35,9 +37,9 @@ object DateTimeBuilder {
   val WeekMs = YearMs / 52
 }
 
-final class DateTimeBuilder(genNow: Gen[Long], past: TimeSpec, future: TimeSpec) extends DateTimeBuilderJava8 {
+final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) extends DateTimeBuilderJava8 {
 
-  protected def copy(genNow: Gen[Long] = genNow, past: TimeSpec = past, future: TimeSpec = future): DateTimeBuilder =
+  protected def copy(genNow: Gen[Now] = genNow, past: TimeSpec = past, future: TimeSpec = future): DateTimeBuilder =
     new DateTimeBuilder(genNow, past = past, future = future)
 
   def fromEpochMs(e: Long)            = copy(past = Fixed(e))
@@ -67,19 +69,22 @@ final class DateTimeBuilder(genNow: Gen[Long], past: TimeSpec, future: TimeSpec)
   def aroundNowWeeks(d: Double)    = fromNowMinusWeeks(d).untilNowPlusWeeks(d)
   def aroundNowYears(d: Double)    = fromNowMinusYears(d).untilNowPlusYears(d)
 
-  /** The current time is sampled once  */
-  def withNowFixed: DateTimeBuilder =
-    withNowFixed(Now())
+  def withNowGen(g: Gen[Now]): DateTimeBuilder =
+    copy(genNow = g)
 
-  def withNowFixed(nowMs: Long): DateTimeBuilder =
-    withNowMs(Gen pure nowMs)
+  def withNow(now: => Now): DateTimeBuilder =
+    withNowGen(Gen point now)
+
+  def withNowMs(nowMs: => Long): DateTimeBuilder =
+    withNowGen(Gen point Now(nowMs))
+
+  /** The current time is sampled once and reused */
+  def withNowSampledOnce: DateTimeBuilder =
+    withNowGen(Now.genNowOnce)
 
   /** The current time is resampled every time it is needed */
   def withNowLive: DateTimeBuilder =
-    withNowMs(Gen point Now())
-
-  def withNowMs(genNow: Gen[Long]): DateTimeBuilder =
-    copy(genNow = genNow)
+    withNowGen(Now.genNowByName)
 
   // ===================================================================================================================
 
@@ -91,7 +96,7 @@ final class DateTimeBuilder(genNow: Gen[Long], past: TimeSpec, future: TimeSpec)
       case (x, y) =>
         val a = specToFn(x)
         val b = specToFn(y)
-        genNow.flatMap(now => Gen.chooseLong(a(now), b(now)))
+        genNow.flatMap(now => Gen.chooseLong(a(now.millisSinceEpoch), b(now.millisSinceEpoch)))
     }
   }
 

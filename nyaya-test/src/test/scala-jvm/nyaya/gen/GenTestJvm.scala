@@ -10,6 +10,7 @@ import utest._
 import nyaya.prop._
 import nyaya.test.PropTest._
 import DateTimeBuilderJava8.UTC
+import Gen.Now
 
 object GenTestJvm extends TestSuite {
 
@@ -68,6 +69,13 @@ object GenTestJvm extends TestSuite {
             _.toString, d => ZonedDateTime.parse(d.toString).toString)
         gen.mustSatisfy(prop)//(defaultPropSettings.setDebug.setSampleSize(1000000))
       }
+
+      'deterministic {
+        implicit val genNow = Gen pure Gen.Now(1476661717639L)
+        val g: ZonedDateTime = Gen.dateTime.aroundNowDays(8).asZonedDateTime(UTC).withSeed(0).sample()
+        assert(g.toString == "2016-10-14T23:17:45.668Z[UTC]")
+      }
+
     }
 
   }
