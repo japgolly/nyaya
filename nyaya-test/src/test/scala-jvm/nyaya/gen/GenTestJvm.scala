@@ -8,6 +8,7 @@ import scalaz.{-\/, BindRec, NonEmptyList, \/-}
 import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
+import nyaya.test.ParallelExecutor
 import nyaya.test.PropTest._
 import DateTimeBuilderJava8.UTC
 import Gen.Now
@@ -79,6 +80,34 @@ object GenTestJvm extends TestSuite {
         assert(g.toString == "2016-10-14T23:17:45.668Z[UTC]")
       }
 
+    }
+
+    'parallel {
+      def settings = defaultPropSettings.copy(executor = ParallelExecutor(2)).setSampleSize(4)
+      val lock = new AnyRef
+      var seen = Vector.empty[Int]
+      val prop = Prop.atom[Int]("", i => {
+        lock.synchronized(seen :+= i)
+        None
+      })
+      def results() = lock.synchronized(seen)
+
+      'noSeed {
+        Gen.int.mustSatisfy(prop)(settings)
+        val r = results()
+        assert(r.toSet.size == r.size) // no duplicates
+      }
+
+      'withSeed {
+        Gen.int.withSeed(0).mustSatisfy(prop)(settings)
+        val r = results()
+        assert(r.toSet.size == r.size) // no duplicates
+      }
+
+      'withConstSeed {
+        Gen.int.withConstSeed(0).mustSatisfy(prop)(settings)
+        assert(results().toSet.size == 1)
+      }
     }
 
   }

@@ -1,6 +1,7 @@
 package nyaya.test
 
 import java.util.concurrent._, atomic.AtomicInteger
+import nyaya.gen.ThreadNumber
 import nyaya.prop.Prop
 import ParallelExecutor._
 import PTest._
@@ -46,7 +47,7 @@ case class ParallelExecutor(workers: Int = defaultThreadCount) extends Executor 
     val ai = new AtomicInteger(0)
     def task(worker: Int) = mkTask {
       val dp = debugPrefixes(worker)
-      val data = g(DataCtx(sss(worker), S.seed.map(_ + worker.toLong), dp))
+      val data = g(DataCtx(sss(worker), ThreadNumber(worker), S.seed, dp))
       testN(p, data, ai.incrementAndGet, S)
     }
     runAsync2(workers, task)

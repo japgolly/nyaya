@@ -26,26 +26,18 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
    *
    * Use `.take(n)` for a finite number of samples.
    */
-  def samples(): Iterator[A] =
-    samples(GenCtx(GenSize.Default))
+  def samples(genSize: GenSize = GenSize.Default): Iterator[A] =
+    samplesUsing(GenCtx(genSize, ThreadNumber(0)))
 
   /**
    * Produce an infinite stream of generated data.
    *
    * Use `.take(n)` for a finite number of samples.
    */
-  def samplesSized(genSize: Int): Iterator[A] =
-    samples(GenCtx(GenSize(genSize)))
-
-  /**
-   * Produce an infinite stream of generated data.
-   *
-   * Use `.take(n)` for a finite number of samples.
-   */
-  def samples(ctx: GenCtx): Iterator[A] =
+  def samplesUsing(ctx: GenCtx): Iterator[A] =
     new AbstractIterator[A] {
       override def hasNext = true
-      override def next(): A = run(ctx)
+      override def next(): A = ctx.sample(Gen.this)
     }
 
   def map[B](f: A => B): Gen[B] =
@@ -71,8 +63,11 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def withOptionalSeed(s: Option[Long]): Gen[A] =
     Gen.setOptionalSeed(s) >> this
 
-  def withRandomSeed: Gen[A] =
-    Gen.randomSeed >> this
+  def withConstSeed(seed: Long): Gen[A] =
+    Gen.setConstSeed(seed) >> this
+
+  def withOptionalConstSeed(s: Option[Long]): Gen[A] =
+    Gen.setOptionalConstSeed(s) >> this
 
   def option: Gen[Option[A]] =
     Gen(c => if (c.nextBit()) None else Some(run(c)))
@@ -162,7 +157,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     Gen { ctx ⇒
       val size = genSize.run(ctx)
       var set = Set.empty[B]
-      samples(ctx)
+      samplesUsing(ctx)
         .filter(a ⇒ if (set.contains(a)) false else { set += a; true })
         .take(size)
         .foreach(_ ⇒ ())
@@ -400,35 +395,27 @@ object Gen {
     }
   }
 
+  def setSeedBy(f: SeedCtx => Long): Gen[Unit] =
+    Gen(ctx => ctx setSeed f(ctx.seedCtx()))
+
   def setSeed(seed: Long): Gen[Unit] =
-    Gen(_ setSeed seed)
+    setSeedBy(seed + _.offset)
 
-  def setOptionalSeed(s: Option[Long]): Gen[Unit] =
-    s.fold(unit)(setSeed)
+  def setOptionalSeed(o: Option[Long]): Gen[Unit] =
+    o.fold(unit)(setSeed)
 
-  /**
-   * Apply a new deterministic seed to the RNG.
-   *
-   * @return The seed used.
-   */
-  def reseed: Gen[Long] =
-    for {
-      seed <- long
-      _    <- setSeed(seed)
-    } yield seed
+  def setConstSeed(seed: Long): Gen[Unit] =
+    Gen(ctx => ctx setSeed seed)
 
-  /**
-   * Apply a new, non-deterministic seed to the RNG.
-   *
-   * @return The seed used.
-   */
-  def randomSeed: Gen[Long] =
-    for {
-      seed <- Gen.point(java.lang.Long.valueOf(UUID.randomUUID().toString.replace("-", "") take 15, 16))
-      _    <- setSeed(seed)
-    } yield seed
+  def setOptionalConstSeed(o: Option[Long]): Gen[Unit] =
+    o.fold(unit)(setConstSeed)
 
-  // TODO Redo all this seed stuff
+  /** Apply a new, non-deterministic seed. */
+  lazy val reseed: Gen[Unit] =
+    Gen { ctx =>
+      val r = new java.util.Random
+      ctx setSeed r.nextLong()
+    }
 
   /** Returns a number in [0,GenSize) */
   val chooseSize: Gen[Int] =
@@ -794,7 +781,7 @@ object Gen {
     if (as.isEmpty)
       Gen pure Iterator.empty
     else
-      Gen(Gen.shuffle(as).samples(_).flatten)
+      Gen(Gen.shuffle(as).samplesUsing(_).flatten)
 
   // -------------------
   // Date & Time related

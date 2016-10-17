@@ -1,13 +1,35 @@
 package nyaya.gen
 
+case class ThreadNumber(value: Int) extends AnyVal
+
+case class SampleNumber(value: Int) extends AnyVal
+
+case class SeedCtx(thread: ThreadNumber, sample: SampleNumber) {
+  def offset: Long =
+    (sample.value.toLong << 16) | thread.value.toLong
+}
+
 /**
  * State and config passed to generators.
  *
  * This data is mutable.
  */
-final class GenCtx(val rnd: java.util.Random, _genSize: GenSize) {
+final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: ThreadNumber) {
   private var lastBit = 32
   private var intBits = 0
+  private var sampleNumber = SampleNumber(0)
+
+  def seedCtx(): SeedCtx =
+    SeedCtx(thread, sampleNumber)
+
+  def sample[A](g: Gen[A]): A = {
+    val a = g run this
+    incSampleNumber()
+    a
+  }
+
+  def incSampleNumber(): Unit =
+    sampleNumber = SampleNumber(sampleNumber.value + 1)
 
   /** 32x less calls nextInt() compared to java.util.Random.nextBoolean() */
   def nextBit(): Boolean = {
@@ -75,19 +97,6 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize) {
 // =====================================================================================================================
 
 object GenCtx {
-
-  def apply(gs: GenSize): GenCtx =
-    new GenCtx(new java.util.Random, gs)
-
-  def apply(gs: GenSize, seed: Long): GenCtx = {
-    val g = GenCtx(gs)
-    g setSeed seed
-    g
-  }
-
-  def apply(gs: GenSize, seed: Option[Long]): GenCtx = {
-    val g = GenCtx(gs)
-    seed foreach g.setSeed
-    g
-  }
+  def apply(gs: GenSize, thread: ThreadNumber): GenCtx =
+    new GenCtx(new java.util.Random, gs, thread)
 }

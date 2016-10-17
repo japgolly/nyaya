@@ -126,7 +126,7 @@ object GenTest extends TestSuite {
       val inp = "heheyay"
       val vgc = inp.toCharArray.toVector.map(Gen.pure)
       val gvc = Gen sequence vgc
-      val res = gvc.map(_ mkString "") run GenCtx(GenSize(0))
+      val res = gvc.map(_ mkString "") run GenCtx(GenSize(0), ThreadNumber(0))
       assert(res == inp)
     }
 
@@ -152,12 +152,11 @@ object GenTest extends TestSuite {
 
     'reseed {
       val g = for {
-        s <- Gen.reseed
-        a <- Gen.int
-        _ <- Gen.setSeed(s)
-        b <- Gen.int
-      } yield (a, b)
-      g.mustSatisfy(Prop.test("be equal", {case (a,b) => a == b }))
+        a <- Gen.setConstSeed(0) >> Gen.int
+        b <- Gen.setConstSeed(0) >> Gen.reseed >> Gen.int
+        c <- Gen.setConstSeed(0) >> Gen.reseed >> Gen.int
+      } yield Set(a, b, c)
+      g.mustSatisfy(Prop.test("must have 3 elements", _.size == 3))
     }
 
     'orderedSeq {
@@ -228,7 +227,7 @@ object GenTest extends TestSuite {
     }
 
     'uuid {
-      val a, b = Gen.uuid.sample()
+      val (a, b) = Gen.uuid.pair.sample()
       assert(a != b)
     }
 
@@ -238,12 +237,24 @@ object GenTest extends TestSuite {
         Gen.long,
         Gen.long withSeed 0,
         Gen.long withSeed 1,
-        Gen.long).sample()
-      val s0 = -4962768465676381896L
-      val s1 = -4964420948893066024L
-      val n1 = 7564655870752979346L
-      assert(c == s0, d == s1, e == n1)
+        Gen.long
+      ).sample()
+      // println((c, d, e))
+      val (s0, s1a, s1b) = (-4962768465676381896L,-4964420948893066024L,7564655870752979346L)
+      assert(c == s0, d == s1a, e == s1b)
       assert(Set(a,b,c,d,e).size == 5)
+    }
+
+    'withSeedAcrossSamples {
+      val actual = Gen.long.withSeed(0).samples().take(3).toList
+      val expect = List(-4962768465676381896L, -7346045213905167455L, 8717422115870565898L)
+      assert(actual == expect)
+    }
+
+    'withConstSeed {
+      val actual = Gen.long.withConstSeed(0).samples().take(3).toList
+      val expect = List.fill(3)(-4962768465676381896L)
+      assert(actual == expect)
     }
 
     'dateTime {
