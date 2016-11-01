@@ -1,88 +1,137 @@
 import sbt._
 import Keys._
 import pl.project13.scala.sbt.JmhPlugin
-import com.typesafe.sbt.pgp.PgpKeys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import ScalaJSPlugin._
 import ScalaJSPlugin.autoImport._
-import Dialect._
-import Typical.{settings => _, _}
+import Lib._
 
 object NyayaBuild {
 
-  val Scala211 = "2.11.8"
+  private val ghProject = "nyaya"
 
-  val commonSettings: CDS =
-    CDS.all(
-      _.settings(
-        organization       := "com.github.japgolly.nyaya",
-        homepage           := Some(url("https://github.com/japgolly/nyaya")),
-        licenses           += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-        scalaVersion       := Scala211,
-        crossScalaVersions := Seq(Scala211),
-        scalacOptions     ++= Seq("-deprecation", "-unchecked", "-feature",
-                                "-language:postfixOps", "-language:implicitConversions",
-                                "-language:higherKinds", "-language:existentials"),
-        triggeredMessage   := Watched.clearWhenTriggered,
-        updateOptions      := updateOptions.value.withCachedResolution(true))
-      .configure(
-        addCommandAliases(
-          "C"    -> "root/clean",
-          "/"    -> "project root",
-          "BM"   -> "project benchmark",
-          "cc"   -> ";clear;compile",
-          "ctc"  -> ";clear;test:compile",
-          "ct"   -> ";clear;test",
-          "cq"   -> ";clear;testQuick",
-          "ccc"  -> ";clear;clean;compile",
-          "cctc" -> ";clear;clean;test:compile",
-          "cct"  -> ";clear;clean;test"))
-    ) :+ Typical.settings("nyaya")
+  private val publicationSettings =
+    Lib.publicationSettings(ghProject)
 
-  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.7")
+  object Ver {
+    final val KindProjector = "0.9.3"
+    final val Monocle       = "1.3.1"
+    final val MTest         = "0.4.4"
+    final val Scala211      = "2.11.8"
+    final val Scalaz        = "7.2.7"
+  }
 
-  def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.3.1")
-  val monocleCore  = monocle("core")
-  val monocleMacro = monocle("macro")
+  def scalacFlags = Seq(
+    "-deprecation",
+    "-unchecked",
+    "-Ywarn-dead-code",
+    "-Ywarn-unused",
+    "-Ywarn-value-discard",
+    "-feature",
+    "-language:postfixOps",
+    "-language:implicitConversions",
+    "-language:higherKinds",
+    "-language:existentials")
+
+  val commonSettings = ConfigureBoth(
+    _.settings(
+      organization             := "com.github.japgolly.nyaya",
+      homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
+      licenses                 += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
+      scalaVersion             := Ver.Scala211,
+      scalacOptions           ++= scalacFlags,
+      scalacOptions in Test   --= Seq("-Ywarn-dead-code"),
+      shellPrompt in ThisBuild := ((s: State) => Project.extract(s).currentRef.project + "> "),
+      triggeredMessage         := Watched.clearWhenTriggered,
+      incOptions               := incOptions.value.withNameHashing(true),
+      updateOptions            := updateOptions.value.withCachedResolution(true),
+      addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
+    .configure(
+      addCommandAliases(
+        "BM"  -> "project benchmark",
+        "/"   -> "project root",
+        "L"   -> "root/publishLocal",
+        "C"   -> "root/clean",
+        "T"   -> ";root/clean;root/test",
+        "TL"  -> ";T;L",
+        "c"   -> "compile",
+        "tc"  -> "test:compile",
+        "t"   -> "test",
+        "to"  -> "test-only",
+        "tq"  -> "test-quick",
+        "cc"  -> ";clean;compile",
+        "ctc" -> ";clean;test:compile",
+        "ct"  -> ";clean;test")))
+
+    def utestSettings = ConfigureBoth(
+    _.settings(
+      libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % "test",
+      testFrameworks      += new TestFramework("utest.runner.Framework")))
+    .jsConfigure(
+      // Not mandatory; just faster.
+      _.settings(jsEnv in Test := PhantomJSEnv().value))
+
 
   // ==============================================================================================
 
-  lazy val root = Project("root", file("."))
-    .configure(commonSettings(None))
-    .aggregate(util, prop, gen, ntest, benchmark)
+  lazy val root = (project in file("."))
+    .configure(commonSettings.jvm, preventPublication)
+    .aggregate(
+      utilJVM, propJVM, genJVM, testsJVM,
+      utilJS, propJS, genJS, testsJS,
+      benchmark)
 
-  // lazy val allJvm = Project("jvm", file(".")) .configure(commonSettings(None))
-    // .aggregate(coreJvm, ntestJvm)
-  // lazy val allJs = Project("js", file(".")) .configure(commonSettings(None))
-    // .aggregate(coreJs, ntestJs)
+  lazy val utilJVM = util.jvm
+  lazy val utilJS  = util.js
+  lazy val util = crossProject
+    .in(file("util"))
+    .configureCross(commonSettings, publicationSettings, utestSettings)
+    .settings(
+      moduleName := "nyaya-util",
+      libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
-  lazy val (util, utilJvm, utilJs) =
-    crossDialectProject("nyaya-util", commonSettings
-      .configure(utestSettings())
-      .addLibs(scalaz))
+  lazy val propJVM = prop.jvm
+  lazy val propJS  = prop.js
+  lazy val prop = crossProject
+    .in(file("prop"))
+    .configureCross(commonSettings)
+    .dependsOn(util)
+    .configureCross(utestSettings)
+    .settings(
+      moduleName := "nyaya-prop",
+      libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
-  lazy val (prop, propJvm, propJs) =
-    crossDialectProject("nyaya-prop", commonSettings
-      .dependsOn(utilJvm, utilJs)
-      .configure(utestSettings())
-      .addLibs(scalaz))
+  lazy val genJVM = gen.jvm
+  lazy val genJS  = gen.js
+  lazy val gen = crossProject
+    .in(file("gen"))
+    .configureCross(commonSettings)
+    .dependsOn(util)
+    .configureCross(utestSettings)
+    .settings(
+      moduleName := "nyaya-gen",
+      libraryDependencies ++= Seq(
+        "org.scalaz" %%% "scalaz-core" % Ver.Scalaz,
+        "com.github.julien-truffaut" %%% "monocle-core" % Ver.Monocle,
+        "com.github.julien-truffaut" %%% "monocle-macro" % Ver.Monocle % "test"
+      ))
 
-  lazy val (gen, genJvm, genJs) =
-    crossDialectProject("nyaya-gen", commonSettings
-      .dependsOn(utilJvm, utilJs)
-      .configure(utestSettings())
-      .addLibs(scalaz, monocleCore, monocleMacro % "test"))
+  lazy val testsJVM = tests.jvm
+  lazy val testsJS  = tests.js
+  lazy val tests = crossProject
+    .in(file("test"))
+      .configureCross(commonSettings)
+      .dependsOn(prop, gen)
+      .configureCross(utestSettings)
+    .settings(
+      name := "test",
+      moduleName := "nyaya-test",
+      libraryDependencies ++= Seq(
+        "com.github.julien-truffaut" %%% "monocle-core" % Ver.Monocle,
+        "com.github.julien-truffaut" %%% "monocle-macro" % Ver.Monocle % "test"
+      ))
 
-  lazy val (ntest, ntestJvm, ntestJs) =
-    crossDialectProject("nyaya-test", commonSettings
-      .dependsOn(propJvm, propJs)
-      .dependsOn(genJvm, genJs)
-      .configure(utestSettings())
-      .addLibs(monocleCore, monocleMacro % "test"))
-
-  lazy val benchmark =
-    Project("benchmark", file("benchmark"))
-      .enablePlugins(JmhPlugin)
-      .configure(commonSettings(JVM), preventPublication)
-      .dependsOn(propJvm, genJvm, ntestJvm)
+  lazy val benchmark = (project in file("benchmark"))
+    .enablePlugins(JmhPlugin)
+    .configure(commonSettings.jvm, preventPublication)
+    .dependsOn(propJVM, genJVM, testsJVM)
 }
