@@ -124,11 +124,7 @@ object NyayaBuild {
       .configureCross(utestSettings)
     .settings(
       name := "test",
-      moduleName := "nyaya-test",
-      libraryDependencies ++= Seq(
-        "com.github.julien-truffaut" %%% "monocle-core" % Ver.Monocle,
-        "com.github.julien-truffaut" %%% "monocle-macro" % Ver.Monocle % "test"
-      ))
+      moduleName := "nyaya-test")
 
   lazy val benchmark = (project in file("benchmark"))
     .enablePlugins(JmhPlugin)
