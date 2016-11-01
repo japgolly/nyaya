@@ -111,7 +111,7 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
     Distinct[A, X, H, Y, Z, C](fixer + f.fixer, a => _ => runs(a) flatMap f.runs)
 
   def *(f: DistinctFn[A, A])(implicit ev: B === A): DistinctEndo[A] =
-    DistinctEndo(NonEmptyList(ev.subst[({type λ[α] = Distinct[A, X, H, Y, Z, α]})#λ](this), f :: Nil))
+    DistinctEndo(NonEmptyList(ev.subst[Distinct[A, X, H, Y, Z, ?]](this), f :: Nil))
 
   // def ***[C, D](f: Distinct1[C, D]): Distinct1[(A, C), (B, D)] =
 }
