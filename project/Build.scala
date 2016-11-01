@@ -8,7 +8,7 @@ import ScalaJSPlugin.autoImport._
 import Dialect._
 import Typical.{settings => _, _}
 
-object Nyaya extends Build {
+object NyayaBuild {
 
   val Scala211 = "2.11.8"
 
@@ -16,7 +16,6 @@ object Nyaya extends Build {
     CDS.all(
       _.settings(
         organization       := "com.github.japgolly.nyaya",
-        version            := "0.8.1-SNAPSHOT",
         homepage           := Some(url("https://github.com/japgolly/nyaya")),
         licenses           += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
         scalaVersion       := Scala211,
@@ -47,7 +46,6 @@ object Nyaya extends Build {
   val monocleMacro = monocle("macro")
 
   // ==============================================================================================
-  override def rootProject = Some(root)
 
   lazy val root = Project("root", file("."))
     .configure(commonSettings(None))
