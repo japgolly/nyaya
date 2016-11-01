@@ -44,7 +44,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.8.0" % 
 <br>
 #### Requires:
 * Scala 2.11
-* Scala.JS 0.6.5+ *(optional)*
+* Scala.JS 0.6.13+ *(optional)*
 
 <br>
 ##### What does Nyaya mean?

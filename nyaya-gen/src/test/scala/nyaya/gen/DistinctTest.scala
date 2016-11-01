@@ -1,6 +1,6 @@
 package nyaya.gen
 
-import monocle.macros.Lenser
+import monocle.macros.GenLens
 import scalaz.std.list._
 import scalaz.std.set._
 import utest._
@@ -11,11 +11,11 @@ object DistinctTest extends TestSuite {
   case class Person(name: String, age: Age, set: Set[Age])
   case class Stuff(list: List[Age], ppl: List[Person])
 
-  val pl = new Lenser[Person]
+  val pl = new GenLens[Person]
   val personName = pl(_.name)
   val personAge  = pl(_.age)
   val personSet  = pl(_.set)
-  val sl = new Lenser[Stuff]
+  val sl = new GenLens[Stuff]
   val stuffList = sl(_.list)
   val stuffPpl  = sl(_.ppl)
 

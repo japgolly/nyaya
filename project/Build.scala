@@ -40,9 +40,9 @@ object Nyaya extends Build {
           "cct"  -> ";clear;clean;test"))
     ) :+ Typical.settings("nyaya")
 
-  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.6")
+  val scalaz = Library("org.scalaz", "scalaz-core", "7.2.7")
 
-  def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.2.2")
+  def monocle(m: String) = Library("com.github.julien-truffaut", "monocle-"+m, "1.3.1")
   val monocleCore  = monocle("core")
   val monocleMacro = monocle("macro")
 
