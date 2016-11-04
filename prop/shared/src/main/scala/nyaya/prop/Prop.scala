@@ -14,7 +14,7 @@ object PropA {
     }
 }
 
-object Prop {
+object Prop_TempHack {
 
   def pass[A](name: String = "Pass"): Prop[A] =
     test(name, _ => true)
