@@ -82,7 +82,7 @@ object CoGen {
   implicit def coGenFn1[A, Z](implicit ga: Gen[A], cz: CoGen[Z]): CoGen[A => Z] =
     CoGen(f => Gen(ctx => {
       val a = ga.run(ctx)
-      val z = f(z)
+      val z = f(a)
       cz(z).run(ctx)
     }))
 
