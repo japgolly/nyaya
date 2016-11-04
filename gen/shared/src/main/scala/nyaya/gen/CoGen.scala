@@ -1,6 +1,7 @@
 package nyaya.gen
 
 import java.util.UUID
+import scalaz.Divisible
 
 /**
   * https://hackage.haskell.org/package/QuickCheck-2.9.2/docs/Test-QuickCheck-Arbitrary.html#t:CoArbitrary
@@ -34,8 +35,11 @@ object CoGen {
   def variant[A](f: A => Long): CoGen[A] =
     CoGen(a => Gen.setSeedVariant(f(a)))
 
-  implicit lazy val coGenUnit: CoGen[Unit] =
+  val nop: CoGen[Any] =
     const(Gen.unit)
+
+  implicit def coGenUnit: CoGen[Unit] =
+    nop
 
   implicit lazy val coGenBoolean: CoGen[Boolean] =
     variant(b => if (b) 1 else 0)
@@ -106,4 +110,18 @@ object CoGen {
       }
     )
 
+  implicit val scalazInstance: Divisible[CoGen] =
+    new Divisible[CoGen] {
+      override def contramap[A, B](r: CoGen[A])(f: B => A) =
+        r contramap f
+
+      override def divide[A, B, C](fa: CoGen[A], fb: CoGen[B])(f: C => (A, B)): CoGen[C] =
+        CoGen { c =>
+          val ab = f(c)
+          fa(ab._1) >> fb(ab._2)
+        }
+
+      override def conquer[A] =
+        nop
+    }
 }
