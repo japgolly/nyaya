@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
 import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.{IndexedSeq, NumericRange}
 import scala.collection.mutable.ArrayBuffer
-import scalaz.{NonEmptyList => NonEmptyListZ}
+import scalaz.{Name, Need, NonEmptyList => NonEmptyListZ}
 import scalaz.std.function._
 import SizeSpec.DisableDefault._
 
@@ -344,28 +344,6 @@ object Gen {
   }
 
   // ===================================================================================================================
-
-  import scalaz.{BindRec, Distributive, Kleisli, Monad, Name, Need, Traverse}
-
-  implicit val scalazInstance: Monad[Gen] with BindRec[Gen] =
-    new Monad[Gen] with BindRec[Gen] {
-      override def point[A](a: => A)                         : Gen[A] = Gen pure a
-      override def ap[A, B](fa: => Gen[A])(g: => Gen[A => B]): Gen[B] = g flatMap fa.map
-      override def bind[A, B](fa: Gen[A])(f: A => Gen[B])    : Gen[B] = fa flatMap f
-      override def map[A,B](fa: Gen[A])(f: A => B)           : Gen[B] = fa map f
-
-      import scalaz.{\/, -\/, \/-}
-      override def tailrecM[A, B](f: A => Gen[A \/ B])(a: A): Gen[B] =
-        Gen { c =>
-          @tailrec
-          def go(a1: A): B =
-            f(a1).run(c) match {
-              case -\/(a2) => go(a2)
-              case \/-(b)  => b
-            }
-          go(a)
-        }
-    }
 
   def tailrec[A, B](f: A => Gen[Either[A, B]])(a: A): Gen[B] =
     Gen { c =>
@@ -882,18 +860,9 @@ object Gen {
   @inline def sequence[T[X] <: TraversableOnce[X], A](gs: T[Gen[A]])(implicit cbf: CanBuildFrom[T[Gen[A]], A, T[A]]): Gen[T[A]] =
     traverse(gs)(identity)
 
-  // ---------------------
-  // Traverse using Scalaz
-  // ---------------------
-
-  def traverseZ [T[_], A, B](as: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(as)(f)
-  def traverseZG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
-  def sequenceZ [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
-
-  def distribute  [F[_], B]   (a: Gen[F[B]])(implicit D: Distributive[F])            : F[Gen[B]]             = D.cosequence(a)
-  def distributeR [A, B]      (a: Gen[A => B])                                       : A => Gen[B]           = distribute[A => ?, B](a)
-  def distributeRK[A, B]      (a: Gen[A => B])                                       : Kleisli[Gen, A, B]    = Kleisli(distributeR(a))
-  def distributeK [F[_], A, B](a: Gen[Kleisli[F, A, B]])(implicit D: Distributive[F]): Kleisli[F, A, Gen[B]] = distribute[Kleisli[F, A, ?], B](a)
+  // ------------------------------------------------------
+  // Arity boilerplate
+  // ------------------------------------------------------
 
   def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = for {a←A;b←B} yield (a,b)
   def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = for {a←A;b←B;c←C} yield (a,b,c)
@@ -921,6 +890,43 @@ object Gen {
   @inline def lift7[A,B,C,D,E,F,G,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G])(z: (A,B,C,D,E,F,G)⇒Z): Gen[Z] = apply7(z)(A,B,C,D,E,F,G)
   @inline def lift8[A,B,C,D,E,F,G,H,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H])(z: (A,B,C,D,E,F,G,H)⇒Z): Gen[Z] = apply8(z)(A,B,C,D,E,F,G,H)
   @inline def lift9[A,B,C,D,E,F,G,H,I,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I])(z: (A,B,C,D,E,F,G,H,I)⇒Z): Gen[Z] = apply9(z)(A,B,C,D,E,F,G,H,I)
+
+  // ------------------------------------------------------
+  // Scalaz stuff
+  // ------------------------------------------------------
+
+  import scalaz._
+
+  implicit val scalazInstance: Monad[Gen] with Distributive[Gen] with BindRec[Gen] =
+    new Monad[Gen] with Distributive[Gen] with BindRec[Gen] {
+      override def point[A](a: => A)                         : Gen[A] = Gen point a
+      override def ap[A, B](fa: => Gen[A])(g: => Gen[A => B]): Gen[B] = g flatMap fa.map
+      override def bind[A, B](fa: Gen[A])(f: A => Gen[B])    : Gen[B] = fa flatMap f
+      override def map[A,B](fa: Gen[A])(f: A => B)           : Gen[B] = fa map f
+
+      override def distributeImpl[F[_], A, B](fa: F[A])(f: A => Gen[B])(implicit F: Functor[F]): Gen[F[B]] =
+        Gen(ctx => F.map(fa)(f(_) run ctx))
+
+      override def tailrecM[A, B](f: A => Gen[A \/ B])(a: A): Gen[B] =
+        Gen { c =>
+          @tailrec
+          def go(a1: A): B =
+            f(a1).run(c) match {
+              case -\/(a2) => go(a2)
+              case \/-(b)  => b
+            }
+          go(a)
+        }
+    }
+
+  def traverseZ [T[_], A, B](as: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(as)(f)
+  def traverseZG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
+  def sequenceZ [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
+
+  def distribute  [F[_], B]   (a: Gen[F[B]])(implicit D: Distributive[F])            : F[Gen[B]]             = D.cosequence(a)
+  def distributeR [A, B]      (a: Gen[A => B])                                       : A => Gen[B]           = distribute[A => ?, B](a)
+  def distributeRK[A, B]      (a: Gen[A => B])                                       : Kleisli[Gen, A, B]    = Kleisli(distributeR(a))
+  def distributeK [F[_], A, B](a: Gen[Kleisli[F, A, B]])(implicit D: Distributive[F]): Kleisli[F, A, Gen[B]] = distribute[Kleisli[F, A, ?], B](a)
 
   // ===================================================================================================================
   // Deprecated
