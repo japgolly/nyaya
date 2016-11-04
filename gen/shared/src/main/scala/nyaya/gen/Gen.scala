@@ -686,8 +686,11 @@ object Gen {
   def chooseArray_![A](as: Array[A]): Gen[A] =
     chooseInt(as.length).map(as.apply)
 
-  def chooseGen[A](a: Gen[A], as: Gen[A]*): Gen[A] =
-    choose(a, as: _*).flatten
+  def chooseGen[A](g1: Gen[A], gn: Gen[A]*): Gen[A] =
+    choose(g1, gn: _*).flatten
+
+  def chooseGen_![A](gens: TraversableOnce[Gen[A]]): Gen[A] =
+    choose_!(gens).flatten
 
   def chooseNE[S, A](s: S)(implicit ne: ToNonEmptySeq[S, A]): Gen[A] =
     choose_!(ne toSeq s)
