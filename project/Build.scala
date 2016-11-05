@@ -78,8 +78,8 @@ object NyayaBuild {
   lazy val root = (project in file("."))
     .configure(commonSettings.jvm, preventPublication)
     .aggregate(
-      utilJVM, propJVM, genJVM, testsJVM,
-      utilJS, propJS, genJS, testsJS,
+      utilJVM, propJVM, genJVM, testJVM,
+      utilJS, propJS, genJS, testJS,
       benchmark)
 
   lazy val utilJVM = util.jvm
@@ -95,7 +95,7 @@ object NyayaBuild {
   lazy val propJS  = prop.js
   lazy val prop = crossProject
     .in(file("prop"))
-    .configureCross(commonSettings)
+    .configureCross(commonSettings, publicationSettings)
     .dependsOn(util)
     .configureCross(utestSettings)
     .settings(
@@ -106,7 +106,7 @@ object NyayaBuild {
   lazy val genJS  = gen.js
   lazy val gen = crossProject
     .in(file("gen"))
-    .configureCross(commonSettings)
+    .configureCross(commonSettings, publicationSettings)
     .dependsOn(util)
     .configureCross(utestSettings)
     .settings(
@@ -117,11 +117,11 @@ object NyayaBuild {
         "com.github.julien-truffaut" %%% "monocle-macro" % Ver.Monocle % "test"
       ))
 
-  lazy val testsJVM = tests.jvm
-  lazy val testsJS  = tests.js
-  lazy val tests = crossProject
+  lazy val testJVM = testModule.jvm
+  lazy val testJS  = testModule.js
+  lazy val testModule = crossProject
     .in(file("test"))
-      .configureCross(commonSettings)
+      .configureCross(commonSettings, publicationSettings)
       .dependsOn(prop, gen)
       .configureCross(utestSettings)
     .settings(
@@ -131,5 +131,5 @@ object NyayaBuild {
   lazy val benchmark = (project in file("benchmark"))
     .enablePlugins(JmhPlugin)
     .configure(commonSettings.jvm, preventPublication)
-    .dependsOn(propJVM, genJVM, testsJVM)
+    .dependsOn(propJVM, genJVM, testJVM)
 }
