@@ -1,4 +1,4 @@
-version in ThisBuild := "0.8.1-SNAPSHOT"
+version in ThisBuild := "0.8.1"
 
 val root      = NyayaBuild.root
 val utilJVM   = NyayaBuild.utilJVM
