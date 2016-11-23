@@ -18,7 +18,6 @@ package object prop {
   type EvalL    = Logic[Eval_, Nothing]
 
   type Prop[A] = Logic[PropA, A]
-  val Prop = Prop_TempHack
 
   implicit class Prop_AnyExt[A](private val a: A) extends AnyVal {
 
