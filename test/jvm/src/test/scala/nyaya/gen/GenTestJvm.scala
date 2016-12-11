@@ -4,6 +4,7 @@ import java.nio.charset.Charset
 import java.time.format.DateTimeFormatter
 import java.time._
 import scala.concurrent.duration._
+import scala.collection.SortedSet
 import scalaz.{-\/, BindRec, NonEmptyList, \/-}
 import scalaz.std.AllInstances._
 import utest._
@@ -25,10 +26,10 @@ object GenTestJvm extends TestSuite {
       val nowUTC = Instant.ofEpochMilli(now.millisSinceEpoch).atZone(UTC).toLocalDate
       implicit val genNow = Gen pure now
 
-      def testDeltaDayRange(b: DateTimeBuilder, is: TraversableOnce[Int]): Unit = {
+      def testDeltaDayRange(b: DateTimeBuilder, is: Traversable[Int]): Unit = {
         val g = b.asZonedDateTime(UTC)
-        val results = g.samples().take(is.size * 500).map(_.toLocalDate.toString).toList.sorted.distinct
-        val expect = is.map(nowUTC.plusDays(_).toString).toList.sorted.distinct
+        val results = g.samples().take(is.size * 2048).map(_.toLocalDate.toString).to[SortedSet]
+        val expect = is.map(nowUTC.plusDays(_).toString).to[SortedSet]
         assert(results == expect)
       }
 
