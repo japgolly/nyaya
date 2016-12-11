@@ -26,8 +26,6 @@ object DateTimeBuilder {
     override val future = fixed(Long.MaxValue - 1)
   }
 
-  def Now(): Long = System.currentTimeMillis()
-
   def default(implicit genNow: Gen[Now]): DateTimeBuilder =
     new DateTimeBuilder(genNow, Unlimited, Unlimited)
 
