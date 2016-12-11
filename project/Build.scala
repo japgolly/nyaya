@@ -17,7 +17,7 @@ object NyayaBuild {
     final val Monocle       = "1.3.2"
     final val MTest         = "0.4.4"
     final val Scala211      = "2.11.8"
-    final val Scala212      = "2.12.0"
+    final val Scala212      = "2.12.1"
     final val Scalaz        = "7.2.7"
   }
 
