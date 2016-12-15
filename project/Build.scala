@@ -89,6 +89,8 @@ object NyayaBuild {
       moduleName := "nyaya-util",
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
+  val VerMicrolibs = "1.0-SNAPSHOT"
+
   lazy val propJVM = prop.jvm
   lazy val propJS  = prop.js
   lazy val prop = crossProject
@@ -98,6 +100,12 @@ object NyayaBuild {
     .configureCross(utestSettings)
     .settings(
       moduleName := "nyaya-prop",
+      libraryDependencies ++= Seq(
+        "com.github.japgolly.microlibs" %% "name-fn"     % VerMicrolibs,
+        "com.github.japgolly.microlibs" %% "nonempty"    % VerMicrolibs,
+        "com.github.japgolly.microlibs" %% "recursion"   % VerMicrolibs,
+        "com.github.japgolly.microlibs" %% "stdlib-ext"  % VerMicrolibs
+      ),
       libraryDependencies += "org.scalaz" %%% "scalaz-core" % Ver.Scalaz)
 
   lazy val genJVM = gen.jvm
@@ -109,6 +117,12 @@ object NyayaBuild {
     .configureCross(utestSettings)
     .settings(
       moduleName := "nyaya-gen",
+      libraryDependencies ++= Seq(
+        "com.github.japgolly.microlibs" %% "name-fn"     % VerMicrolibs,
+        "com.github.japgolly.microlibs" %% "nonempty"    % VerMicrolibs,
+        "com.github.japgolly.microlibs" %% "recursion"   % VerMicrolibs,
+        "com.github.japgolly.microlibs" %% "stdlib-ext"  % VerMicrolibs
+      ),
       libraryDependencies ++= Seq(
         "org.scalaz" %%% "scalaz-core" % Ver.Scalaz,
         "com.github.julien-truffaut" %%% "monocle-core" % Ver.Monocle,

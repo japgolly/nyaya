@@ -1,46 +1,20 @@
 package nyaya.neo
 
-import scalaz._
+import scalaz.{Name => _, _}
 import Scalaz._
+import japgolly.microlibs.recursion._
+import japgolly.microlibs.name_fn._
+import japgolly.microlibs.nonempty._
+import japgolly.microlibs.stdlib_ext.StdlibExt._
 
-case class Fix[F[_]](unfix: F[Fix[F]])
-
-object BLAH {
-
-  type Algebra[F[_], A] = F[A] => A
-  type CoAlgebra[F[_], A] = A => F[A]
-  type AlgebraM[M[_], F[_], A] = F[A] => M[A]
-  type CoAlgebraM[M[_], F[_], A] = A => M[F[A]]
+object Neo1 {
   type CoFree[F[_], A] = (A, Fix[F])
 
-  def cata[F[_] /*: Functor*/, A](alg: Algebra[F, A]): Fix[F] => A = ???
-  def ana[F[_] /*: Functor*/, A](alg: CoAlgebra[F, A]): A => Fix[F] = ???
   def histo[F[_], A](a: F[Cofree[F, A]] => A): Fix[F] => A = ??? // Algebra[F[Cofree[F, ?]]] => A
   def prepro[F[_] /*: Functor*/, A](alg: Algebra[F, A], nt: F ~> F): Fix[F] => A = ???
   def zygo[F[_] /*: Functor*/, A, B](f: F[(A, B)] => A, alg: Algebra[F, B]): Fix[F] => A = ??? // Algebra[F[(?, B)], A]
   def para[F[_] /*: Functor*/, A](alg: F[(Fix[F], A)] => A): Fix[F] => A = ??? // Algebra[F[(Fix[F], ?)], A]
 
-  def cataM_T[M[_], F[_], A](alg: AlgebraM[M, F, A])(implicit T: Traverse[F], M: Monad[M]): Fix[F] => M[A] =
-    xf => {
-      val fx: F[Fix[F]] = xf.unfix
-      val mfa: M[F[A]] = T.traverse(fx)(cataM_T(alg)(T, M))
-      val ma: M[A] = M.bind(mfa)(alg)
-      ma
-    }
-  def cataM_D[M[_], F[_], A](alg: AlgebraM[M, F, A])(implicit D: Distributive[F], D2: Distributive[Fix], M: Monad[M]): Fix[F] => M[A] =
-    xf => {
-      val fx: F[Fix[F]] = xf.unfix
-      // F Fix -> (Fix -> M A) -> M F A
-      // F ← M   :: Dist -- rare
-      // G ← F   :: Functor -- nope
-      // A ← Fix
-      // B ← A
-      val mfa: M[F[A]] = D.distributeImpl(fx)(xf2 => cataM_D(alg)(D, D2, M)(xf2))
-      val ma: M[A] = M.bind(mfa)(alg)
-      ma
-    }
-
-  case class Name(value: String)
   case class Failure(value: String)
   // type Result = Option[Failure]
 
@@ -129,7 +103,7 @@ object BLAH {
     case Conjunction(n, a, b) => b: EvalTrace
   }
 
-  def evalToFailureTreeCoalgrbra: CoAlgebra[FailureTreeF, EvalF[Eval]] = {
+  def evalToFailureTreeCoalgrbra: Coalgebra[FailureTreeF, EvalF[Eval]] = {
     case Proposition(n, Some(f)) => FailureTreeF.Terminal(n, f)
     case Proposition(n, None) => ???
   }
@@ -162,9 +136,9 @@ object BLAH {
   }
 
   def propToEval[A](a: A): Prop[A] => Eval =
-    p => ana(propToEval2(Some(a), a))(p.unfix)
+    p => Recursion.ana(propToEval2(Some(a), a))(p.unfix)(???)
 
-  def propToEval2[A](sa: Some[A], a: A): CoAlgebra[EvalF, PropF[A, Prop[A]]] = {
+  def propToEval2[A](sa: Some[A], a: A): Coalgebra[EvalF, PropF[A, Prop[A]]] = {
     case Proposition(n, f) => Proposition(n(sa), f(a))
     case Conjunction(n, x, y) => Conjunction(n.map(_ apply sa), x.unfix, y.unfix)
   }
