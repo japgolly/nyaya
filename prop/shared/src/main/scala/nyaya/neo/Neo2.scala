@@ -44,6 +44,28 @@ Eval should be called...
 * Test
  */
 
+  // TODO Maybe a good idea to make negative lazy later?
+  // Or maybe both sides should just be scalaz.Need[A]
+  case class Polar[+A](negative: A, positive: A) {
+    def swap: Polar[A] = Polar(positive, negative)
+    def map[B](f: A => B): Polar[B] = Polar(f(negative), f(positive))
+  }
+  object Polar {
+    implicit val scalazInstance: Distributive[Polar] with Traverse[Polar] =
+      new Distributive[Polar] with Traverse[Polar] {
+        override def map[A, B](fa: Polar[A])(f: A => B): Polar[B] =
+          fa map f
+        override def traverseImpl[G[_], A, B](fa: Polar[A])(f: A => G[B])(implicit G: Applicative[G]): G[Polar[B]] =
+          G.apply2(f(fa.negative), f(fa.positive))(Polar.apply)
+        override def distributeImpl[G[_], A, B](ga: G[A])(f: A => Polar[B])(implicit G: Functor[G]): Polar[G[B]] =
+          Polar[G[B]](ga.map(f(_).negative), ga.map(f(_).positive))
+      }
+    def cosequence[F[_]: Functor, A](fpa: F[Polar[A]]): Polar[F[A]] =
+      fpa.distribute(x => x)
+  }
+
+  // TODO Maybe Eval should just have a Polar[() => Option[FailureTree]]
+
   /**
     * @tparam A Result
     * @tparam R Recursive case
@@ -70,7 +92,7 @@ Eval should be called...
 //  }
   // TODO In prop tests we need to show the random value used in failure
   case class Failure(reason: String)
-  case class EvalN(name: Name, failure: Option[Failure])
+  case class EvalN(name: Name, result: Polar[Option[Failure]])
   type EvalF[+R] = LogicF[EvalN, R]
   type Eval = Fix[EvalF]
 
@@ -91,22 +113,46 @@ Eval should be called...
   object FailureTree {
     def leaf(f: Failure): FailureTree = Fix[FailureTreeF](FailureTreeF.Leaf(f))
     def branch(f: NonEmptyVector[Fix[FailureTreeF]]): FailureTree = Fix[FailureTreeF](FailureTreeF.Branch(f))
+    @inline def none: Option[FailureTree] = None
   }
 
   // TODO metamorphism
   // prune branches
 
-  def traceToFailureTree: Algebra[EvalF, Option[FailureTree]] = {
-    case LogicF.Value(EvalN(_, None)) => None
-    case LogicF.Value(EvalN(n, Some(f))) => Some(FailureTree.leaf(f))
-    case LogicF.Negation(Some(ft)) => None
-//    case LogicF.Negation(None) => Some(FailureTree.leaf( ?????? ))
+  def traceToFailureTree: Algebra[EvalF, Polar[Option[FailureTree]]] = {
 
-    case l: LogicF.Conjunction[Option[FailureTree]] =>
-      NonEmptyVector.option(l.conjuncts.toIterator.filterDefined.toVector)
-        .map(FailureTree.branch)
+    case LogicF.Value(EvalN(_, r)) => r.map(_ map FailureTree.leaf)
 
-    // TODO Biconditional(_, _), Disjunction(_, _, _), Implication(_, _)
+    case LogicF.Negation(x) => x.swap
+
+    case l: LogicF.Conjunction[Polar[Option[FailureTree]]] =>
+      Polar.cosequence(l.conjuncts).map { ofailures =>
+        val failures = ofailures.toIterator.filterDefined.toVector
+        NonEmptyVector.maybe(failures, FailureTree.none)(ft => Some(FailureTree.branch(ft)))
+      }
+      // Maybe better to have:
+      // Polar(exists(...), forall(...))
+
+    case l: LogicF.Disjunction[Polar[Option[FailureTree]]] =>
+      Polar.cosequence(l.disjuncts).map { ofailures =>
+        val failures = ofailures.toIterator.filterDefined.toVector
+        // TODO inefficient
+        if (failures.length == ofailures.size)
+          Some(FailureTree.branch(NonEmptyVector.force(failures)))
+        else
+          None
+      }
+    // Maybe better to have:
+    // Polar(forall(...), exists(...))
+
+    case LogicF.Implication(p, q) =>
+      Polar[Option[FailureTree]](
+        ???,
+        (p.positive, q.positive) match {
+          case (None, f@ Some(_)) => f
+          case _ => None
+        }
+      )
   }
 
   // Algebra[EvalF, Option FT]
