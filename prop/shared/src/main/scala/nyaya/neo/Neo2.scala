@@ -62,6 +62,9 @@ Eval should be called...
       }
     def cosequence[F[_]: Functor, A](fpa: F[Polar[A]]): Polar[F[A]] =
       fpa.distribute(x => x)
+
+    def pass[A](a: A): Polar[Option[A]] = apply(None, Some(a))
+    def fail[A](a: A): Polar[Option[A]] = apply(Some(a), None)
   }
 
   // TODO Maybe Eval should just have a Polar[() => Option[FailureTree]]
@@ -73,16 +76,42 @@ Eval should be called...
   sealed trait LogicF[+A, +R]
   object LogicF {
     case class Value[+A](value: A) extends LogicF[A, Nothing]
-    case class Conjunction[+R](a: R, b: R, c: List[R]) extends LogicF[Nothing, R] {
+    sealed abstract class Recursive[+R] extends LogicF[Nothing, R]
+    case class Conjunction[+R](a: R, b: R, c: List[R]) extends Recursive[R] {
       def conjuncts: List[R] = a :: b :: c
     }
-    case class Disjunction[+R](a: R, b: R, c: List[R]) extends LogicF[Nothing, R] {
+    case class Disjunction[+R](a: R, b: R, c: List[R]) extends Recursive[R] {
       def disjuncts: List[R] = a :: b :: c
     }
-    case class Negation[+R](a: R) extends LogicF[Nothing, R]
-    case class Implication[+R](a: R, b: R) extends LogicF[Nothing, R]
-    case class Biconditional[+R](a: R, b: R) extends LogicF[Nothing, R]
+    case class Negation[+R](a: R) extends Recursive[R]
+    case class Implication[+R](a: R, b: R) extends Recursive[R]
+    case class Biconditional[+R](a: R, b: R) extends Recursive[R]
+
+    def traverseA[R]: Traverse[LogicF[?, R]] =
+      new Traverse[LogicF[?, R]] {
+        override def map[A, B](fa: LogicF[A, R])(f: A => B): LogicF[B, R] =
+          ???
+        override def traverseImpl[G[_], A, B](fa: LogicF[A, R])(f: A => G[B])(implicit G: Applicative[G]): G[LogicF[B, R]] =
+          ???
+      }
+
+    def traverseR[A]: Traverse[LogicF[A, ?]] =
+      new Traverse[LogicF[A, ?]] {
+        override def map[X, Y](fa: LogicF[A, X])(f: X => Y): LogicF[A, Y] =
+          ???
+        override def traverseImpl[G[_], X, Y](fa: LogicF[A, X])(f: X => G[Y])(implicit G: Applicative[G]): G[LogicF[A, Y]] =
+          ???
+      }
   }
+
+  @inline implicit class Xxxxxx[A, B](private val self: LogicF[A, Fix[LogicF[B, ?]]]) extends AnyVal {
+    def flatMapLike(f: A => Fix[LogicF[B, ?]]): Fix[LogicF[B, ?]] =
+      self match {
+        case LogicF.Value(a) => f(a)
+        case x: LogicF.Recursive[Fix[LogicF[B, ?]]] => Fix[LogicF[B, ?]](x)
+      }
+  }
+
 
 //  case class Show[A](show: A => String) extends AnyVal
 //  trait EvalInput { // TODO This seems wrong. Every Eval has an input?
@@ -96,9 +125,18 @@ Eval should be called...
   type EvalF[+R] = LogicF[EvalN, R]
   type Eval = Fix[EvalF]
 
+  implicit val traverseEvalF: Traverse[EvalF] =
+    LogicF.traverseR[EvalN]
+
   case class PropN[-A](nameFn: NameFn[A], prop: A => Eval)
   type PropF[A, +R] = LogicF[PropN[A], R]
   type Prop[A] = Fix[PropF[A, ?]]
+
+  def runProp[A](p: Prop[A])(a: A): Eval = {
+    implicit val traverse = LogicF.traverseR[PropN[A]]
+    val alg: Algebra[PropF[A, ?], Eval] = _.flatMapLike(_.prop(a))
+    Recursion.cata[PropF[A, ?], Eval](alg)(p)
+  }
 
   // ===================================================================================================================
 
@@ -116,10 +154,10 @@ Eval should be called...
     @inline def none: Option[FailureTree] = None
   }
 
-  // TODO metamorphism
-  // prune branches
+  def traceToFailureTree(eval: Eval): Option[FailureTree] =
+    Recursion.cata(traceToFailureTreeAlg)(eval).positive
 
-  def traceToFailureTree: Algebra[EvalF, Polar[Option[FailureTree]]] = {
+  val traceToFailureTreeAlg: Algebra[EvalF, Polar[Option[FailureTree]]] = {
 
     case LogicF.Value(EvalN(_, r)) => r.map(_ map FailureTree.leaf)
 
@@ -155,12 +193,9 @@ Eval should be called...
       )
   }
 
-  // Algebra[EvalF, Option FT]
-
-  // n, f           => S leaf(n, f)
-  // n, (Sf1 & Sf2) => S branch(n, Sf1 + Sf2)
-  // n, (Sf1 & Nf2) => S branch(n, Sf1)
-  // n, (Nf1 & Sf2) => S branch(n, Sf2)
-  // _, (Nf1 & Nf2) => N
+  val failureTreePrinter: Algebra[FailureTreeF, String] = {
+    case FailureTreeF.Leaf(f)    => f.reason
+    case FailureTreeF.Branch(fs) => fs.iterator.map(_.replace("\n", "\n  ")).mkString("\n")
+  }
 
 }
