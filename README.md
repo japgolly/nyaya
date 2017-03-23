@@ -37,22 +37,26 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.8.1" % 
 ```
 
 <br>
+
 #### Doc
 * [Features in more detail](doc/FEATURES.md).
 * [Changelogs](doc/changelog/).
 
 <br>
+
 #### Requires:
 * Scala 2.11+
 * Scala.JS 0.6.13+ *(optional)*
 
 <br>
+
 ##### What does Nyaya mean?
 See:
 * https://en.wikipedia.org/wiki/Nyaya
 * https://en.wikipedia.org/wiki/History_of_logic
 
 <br>
+
 #### Licence
 ```
 Copyright (C) 2014-2016 David Barri
