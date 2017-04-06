@@ -23,7 +23,9 @@ Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> N
 ```
 
 <br>
+
 #### SBT setup
+
 ```scala
 // Property expression, evaluation, assertion.
 libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "0.8.1"
@@ -39,6 +41,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.8.1" % 
 <br>
 
 #### Doc
+
 * [Features in more detail](doc/FEATURES.md).
 * [Changelogs](doc/changelog/).
 
@@ -51,6 +54,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.8.1" % 
 <br>
 
 ##### What does Nyaya mean?
+
 See:
 * https://en.wikipedia.org/wiki/Nyaya
 * https://en.wikipedia.org/wiki/History_of_logic
