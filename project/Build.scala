@@ -3,6 +3,9 @@ import Keys._
 import pl.project13.scala.sbt.JmhPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import ScalaJSPlugin.autoImport._
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType, _}
+import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
 import Lib._
 
 object NyayaBuild {
@@ -13,12 +16,12 @@ object NyayaBuild {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    final val KindProjector = "0.9.3"
-    final val Monocle       = "1.3.2"
-    final val MTest         = "0.4.4"
-    final val Scala211      = "2.11.8"
-    final val Scala212      = "2.12.1"
-    final val Scalaz        = "7.2.7"
+    final val KindProjector = "0.9.7"
+    final val Monocle       = "1.5.0"
+    final val MTest         = "0.6.4"
+    final val Scala211      = "2.11.12"
+    final val Scala212      = "2.12.6"
+    final val Scalaz        = "7.2.25"
   }
 
   def scalacFlags = Seq(
@@ -84,7 +87,7 @@ object NyayaBuild {
 
   lazy val utilJVM = util.jvm
   lazy val utilJS  = util.js
-  lazy val util = crossProject
+  lazy val util = crossProject(JVMPlatform, JSPlatform)
     .in(file("util"))
     .configureCross(commonSettings, publicationSettings, utestSettings)
     .settings(
@@ -93,7 +96,7 @@ object NyayaBuild {
 
   lazy val propJVM = prop.jvm
   lazy val propJS  = prop.js
-  lazy val prop = crossProject
+  lazy val prop = crossProject(JVMPlatform, JSPlatform)
     .in(file("prop"))
     .configureCross(commonSettings, publicationSettings)
     .dependsOn(util)
@@ -104,7 +107,7 @@ object NyayaBuild {
 
   lazy val genJVM = gen.jvm
   lazy val genJS  = gen.js
-  lazy val gen = crossProject
+  lazy val gen = crossProject(JVMPlatform, JSPlatform)
     .in(file("gen"))
     .configureCross(commonSettings, publicationSettings)
     .dependsOn(util)
@@ -119,7 +122,7 @@ object NyayaBuild {
 
   lazy val testJVM = testModule.jvm
   lazy val testJS  = testModule.js
-  lazy val testModule = crossProject
+  lazy val testModule = crossProject(JVMPlatform, JSPlatform)
     .in(file("test"))
       .configureCross(commonSettings, publicationSettings)
       .dependsOn(prop, gen)

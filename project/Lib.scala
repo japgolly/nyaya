@@ -2,9 +2,11 @@ import sbt._
 import Keys._
 import com.typesafe.sbt.pgp.PgpKeys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
-import org.scalajs.sbtplugin.cross.CrossProject
-import ScalaJSPlugin._
+import sbtcrossproject.CrossProject
 import ScalaJSPlugin.autoImport._
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+import sbtcrossproject.CrossPlugin.autoImport._
+import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
 
 object Lib {
   type CPE = CrossProject => CrossProject
