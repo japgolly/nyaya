@@ -47,7 +47,6 @@ object NyayaBuild {
       scalacOptions in Test   --= Seq("-Ywarn-dead-code"),
       shellPrompt in ThisBuild := ((s: State) => Project.extract(s).currentRef.project + "> "),
       triggeredMessage         := Watched.clearWhenTriggered,
-      incOptions               := incOptions.value.withNameHashing(true),
       updateOptions            := updateOptions.value.withCachedResolution(true),
       addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
     .configure(

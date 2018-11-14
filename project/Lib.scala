@@ -7,6 +7,7 @@ import ScalaJSPlugin.autoImport._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
+import scala.language.implicitConversions
 
 object Lib {
   type CPE = CrossProject => CrossProject
@@ -71,10 +72,10 @@ object Lib {
 
   def preventPublication: PE =
     _.settings(
-      publish            := (),
-      publishLocal       := (),
-      publishSigned      := (),
-      publishLocalSigned := (),
+      publish            := {},
+      publishLocal       := {},
+      publishSigned      := {},
+      publishLocalSigned := {},
       publishArtifact    := false,
       publishTo          := Some(Resolver.file("Unused transient repository", target.value / "fakepublish")),
       packagedArtifacts  := Map.empty)
