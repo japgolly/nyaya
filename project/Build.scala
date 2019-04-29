@@ -16,7 +16,7 @@ object NyayaBuild {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    final val KindProjector = "0.9.7"
+    final val KindProjector = "0.9.10"
     final val Monocle       = "1.5.0"
     final val MTest         = "0.6.4"
     final val Scala211      = "2.11.12"
