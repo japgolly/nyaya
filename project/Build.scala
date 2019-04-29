@@ -21,7 +21,7 @@ object NyayaBuild {
     final val MTest         = "0.6.4"
     final val Scala211      = "2.11.12"
     final val Scala212      = "2.12.6"
-    final val Scalaz        = "7.2.25"
+    final val Scalaz        = "7.2.27"
   }
 
   def scalacFlags = Seq(
