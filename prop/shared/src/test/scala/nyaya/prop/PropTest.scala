@@ -18,7 +18,11 @@ object PropTest extends TestSuite {
 
   def assertContains(actual: String, substr: String): Unit =
     if (!actual.contains(substr)) {
-      println(s"\nExpected to find [$substr] in [$actual]\n")
+      if ((actual + substr) contains "\n") {
+        val sep = s"\n${"="*100}\n"
+        println(s"\nExpected to find${sep}$substr${sep}in${sep}$actual${sep}")
+      } else
+        println(s"\nExpected to find: [$substr] in [$actual]\n")
       assert(false)
     }
 
@@ -264,7 +268,7 @@ object PropTest extends TestSuite {
           |  └─ whitelist I
           |     └─ (Set(1, 3),List(a, bx, abc, c))
           |        Whitelist: (2) Set(1, 3)
-          |        Found    : (4) Stream(1, 2, 3, 1)
+          |        Found    : (4) List(1, 2, 3, 1)
           |        Illegal  : {2}
         """.stripMargin.trim))
     }

@@ -121,7 +121,7 @@ object Eval {
     val cs = testData.iterator.toSet
     atom(name, input, {
       val rs = required.filterNot(cs contains _)
-      setMembershipResult(input, "Required", required, "Found   ", testData, "Missing ", rs)
+      setMembershipResult(input, "Required", required, "Found   ", testData.iterator.toList, "Missing ", rs)
     })
   }
 
@@ -131,21 +131,19 @@ object Eval {
                                      failureName: String)(implicit ev: C <:< B): EvalL =
     atom(name, input, {
       val rs = cs.iterator.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
-      setMembershipResult(input, bsName, bs, csName, cs, failureName, rs)
+      setMembershipResult(input, bsName, bs, csName, cs.iterator.toList, failureName, rs)
     })
 
   private[this] def setMembershipResult(input: Any,
-                                        asName: String, as: => IterableOnce[_],
-                                        bsName: String, bs: => IterableOnce[_],
+                                        asName: String, as: => Iterable[_],
+                                        bsName: String, bs: => Iterable[_],
                                         failureName: String, problems: Set[_]): FailureReasonO =
     if (problems.isEmpty)
       None
     else
       Some {
-        def fmt(name: String, vs: IterableOnce[_]) = {
-          val x = vs.iterator.toList
+        def fmt(name: String, x: Iterable[_]) =
           s"$name: (${x.size}) $x"
-        }
         s"$input\n${fmt(asName, as)}\n${fmt(bsName, bs)}\n$failureName: ${fmtSet(problems)}"
       }
 
