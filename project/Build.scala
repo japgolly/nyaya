@@ -28,14 +28,17 @@ object NyayaBuild {
   def scalacFlags = Seq(
     "-deprecation",
     "-unchecked",
-    "-Ywarn-dead-code",
-    "-Ywarn-unused",
-    "-Ywarn-value-discard",
     "-feature",
     "-language:postfixOps",
     "-language:implicitConversions",
     "-language:higherKinds",
-    "-language:existentials")
+    "-language:existentials",
+    "-opt:l:inline",
+    "-opt-inline-from:scala.**",
+    "-opt-inline-from:nyaya.**",
+    "-Ywarn-dead-code",
+    "-Ywarn-unused",
+    "-Ywarn-value-discard")
 
   val commonSettings = ConfigureBoth(
     _.settings(
