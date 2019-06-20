@@ -16,12 +16,13 @@ object NyayaBuild {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    final val KindProjector = "0.9.10"
-    final val Monocle       = "1.5.0"
-    final val MTest         = "0.6.4"
-    final val Scala211      = "2.11.12"
-    final val Scala212      = "2.12.8"
-    final val Scalaz        = "7.2.25"
+    final val KindProjector   = "0.10.3"
+    final val Monocle         = "1.6.0-RC1"
+    final val MTest           = "0.6.9"
+    final val Scala212        = "2.12.8"
+    final val Scala213        = "2.13.0"
+    final val ScalaCollCompat = "2.0.0"
+    final val Scalaz          = "7.2.27"
   }
 
   def scalacFlags = Seq(
@@ -41,30 +42,16 @@ object NyayaBuild {
       organization             := "com.github.japgolly.nyaya",
       homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                 += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-      scalaVersion             := Ver.Scala211,
-      crossScalaVersions       := Seq(Ver.Scala211, Ver.Scala212),
+      scalaVersion             := Ver.Scala213,
+      crossScalaVersions       := Seq(Ver.Scala212, Ver.Scala213),
       scalacOptions           ++= scalacFlags,
       scalacOptions in Test   --= Seq("-Ywarn-dead-code"),
+      testFrameworks           := Nil,
       shellPrompt in ThisBuild := ((s: State) => Project.extract(s).currentRef.project + "> "),
       triggeredMessage         := Watched.clearWhenTriggered,
       updateOptions            := updateOptions.value.withCachedResolution(true),
-      addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
-    .configure(
-      addCommandAliases(
-        "BM"  -> "project benchmark",
-        "/"   -> "project root",
-        "L"   -> "root/publishLocal",
-        "C"   -> "root/clean",
-        "T"   -> ";root/clean;root/test",
-        "TL"  -> ";T;L",
-        "c"   -> "compile",
-        "tc"  -> "test:compile",
-        "t"   -> "test",
-        "to"  -> "test-only",
-        "tq"  -> "test-quick",
-        "cc"  -> ";clean;compile",
-        "ctc" -> ";clean;test:compile",
-        "ct"  -> ";clean;test")))
+      libraryDependencies += "org.scala-lang.modules" %%% "scala-collection-compat" % Ver.ScalaCollCompat,
+      addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector)))
 
     def utestSettings = ConfigureBoth(
     _.settings(
