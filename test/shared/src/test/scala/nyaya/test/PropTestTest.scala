@@ -17,11 +17,11 @@ object PropTestTest extends TestSuite {
 
   override def tests = TestSuite {
 
-    'distinct {
+    "distinct" - {
       prop mustBeSatisfiedBy intGen
     }
 
-    'runs {
+    "runs" - {
       def test(s: Int): Unit = {
         def t(sd: Settings.SizeDist): Unit = {
           val i = new AtomicInteger(0)
@@ -41,7 +41,7 @@ object PropTestTest extends TestSuite {
       "100" - test(100)
     }
 
-    'proof {
+    "proof" - {
       val lock = new Object
       var is = List.empty[Option[Boolean]]
       val p = Prop.test[Option[Boolean]]("proof", i => lock.synchronized{is ::= i; true})

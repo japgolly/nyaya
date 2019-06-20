@@ -20,7 +20,7 @@ object GenTestJvm extends TestSuite {
 
   override def tests = TestSuite {
 
-    'dateTime {
+    "dateTime" - {
 
       // scala> Instant.ofEpochMilli(1476661717639L).atZone(ZoneId of "UTC")
       // res1: java.time.ZonedDateTime = 2016-10-16T23:48:37.639Z[UTC]
@@ -35,33 +35,33 @@ object GenTestJvm extends TestSuite {
         assert(results == expect)
       }
 
-      'deltaPast -
+      "deltaPast" -
         testDeltaDayRange(Gen.dateTime.fromNowMinus(3.days).untilNow, -3 to 0)
 
-      'deltaFuture -
+      "deltaFuture" -
         testDeltaDayRange(Gen.dateTime.fromNow.untilNowPlus(3.days), 0 to 3)
 
-      'deltaAround -
+      "deltaAround" -
         testDeltaDayRange(Gen.dateTime.fromNowMinus(7.days).untilNowPlus(5.days), -7 to 5)
 
-      'zonedDateTime {
+      "zonedDateTime" - {
         val used = Gen.dateTime.asZonedDateTime.samples().take(100).map(_.getZone).toSet
         assert(used.size > 1)
       }
 
-      'zonedDateTimeZ {
+      "zonedDateTimeZ" - {
         val zoneId = Gen.zoneId.sample()
         val used = Gen.dateTime.asZonedDateTime(zoneId).samples().take(100).map(_.getZone).toSet
         assert(used == Set(zoneId))
       }
 
-      'zonedDateTimeG {
+      "zonedDateTimeG" - {
         val zoneIds = Gen.zoneId.sizedSet(3).sample()
         val used = Gen.dateTime.asZonedDateTime(Gen choose_! zoneIds).samples().take(100).map(_.getZone).toSet
         assert(used == zoneIds)
       }
 
-      'zonedDateTimeAvoidingJDK8066982 {
+      "zonedDateTimeAvoidingJDK8066982" - {
         /*
         val gen: Gen[(Long, ZoneId)] = Gen.time.aroundNow(365.days * 30).genEpochMs *** Gen.zoneId
   //      val f: ((Long, ZoneId)) => ZonedDateTime = x => Instant.ofEpochMilli(x._1).atZone(x._2)
@@ -78,14 +78,14 @@ object GenTestJvm extends TestSuite {
         gen.mustSatisfy(prop)//(defaultPropSettings.setDebug.setSampleSize(1000000))
       }
 
-      'deterministic {
+      "deterministic" - {
         val g: ZonedDateTime = Gen.dateTime.aroundNowDays(8).asZonedDateTime(UTC).withSeed(0).sample()
         assert(g.toString == "2016-10-14T23:17:45.668Z[UTC]")
       }
 
     }
 
-    'parallel {
+    "parallel" - {
       def settings = defaultPropSettings.copy(executor = ParallelExecutor(2)).setSampleSize(4)
       val lock = new AnyRef
       var seen = Vector.empty[Int]
@@ -95,19 +95,19 @@ object GenTestJvm extends TestSuite {
       })
       def results() = lock.synchronized(seen)
 
-      'noSeed {
+      "noSeed" - {
         Gen.int.mustSatisfy(prop)(settings)
         val r = results()
         assert(r.toSet.size == r.size) // no duplicates
       }
 
-      'withSeed {
+      "withSeed" - {
         Gen.int.withSeed(0).mustSatisfy(prop)(settings)
         val r = results()
         assert(r.toSet.size == r.size) // no duplicates
       }
 
-      'withConstSeed {
+      "withConstSeed" - {
         Gen.int.withConstSeed(0).mustSatisfy(prop)(settings)
         assert(results().toSet.size == 1)
       }

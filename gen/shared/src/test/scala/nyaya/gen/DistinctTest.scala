@@ -40,8 +40,8 @@ object DistinctTest extends TestSuite {
   val r = ta.toSet
 
   override def tests = TestSuite {
-    'names                      - assert(names(t).sorted == List("A", "B", "C"))
-    'ages {
+    "names"                      - assert(names(t).sorted == List("A", "B", "C"))
+    "ages" - {
       "Same number of ages"     - assert(sa.size == ta.size)
       "All ages distinct"       - assert(r.size == ta.size)
       "Original ages preserved" - (sa.toSet[Age] - 0 - 500).foreach(o => assert(r contains o))

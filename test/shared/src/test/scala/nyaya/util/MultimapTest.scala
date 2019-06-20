@@ -83,8 +83,8 @@ object MultimapTest extends TestSuite {
   val genList  : Gen[PropInputs[List,   Int ]] = gen(Gen.int, _.list)
 
   override def tests = TestSuite {
-    'list   - genList  .mustSatisfyE(_.eval)
-    'set    - genSet   .mustSatisfyE(_.eval)
-    'vector - genVector.mustSatisfyE(_.eval)
+    "list"   - genList  .mustSatisfyE(_.eval)
+    "set"    - genSet   .mustSatisfyE(_.eval)
+    "vector" - genVector.mustSatisfyE(_.eval)
   }
 }

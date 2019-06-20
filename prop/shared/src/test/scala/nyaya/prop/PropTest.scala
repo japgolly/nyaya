@@ -105,50 +105,50 @@ object PropTest extends TestSuite {
   val conF  = failSimple("(even ∧ mod3 ∧ mod5)")
 
   override def tests = TestSuite {
-    'atom {
+    "atom" - {
       test(even, 2, ok)
       test(even, 3, evenF)
     }
-    'negation {
+    "negation" - {
       test(odd, 3, ok)
       test(odd, 2, oddF)
     }
-    'doubleNegation {
+    "doubleNegation" - {
       val p  = ~(~even)
       test(p, 2, ok)
       test(p, 3, evenF)
     }
-    'disjunction {
+    "disjunction" - {
       test(mod235d, 30, ok)
       test(mod235d,  4, ok)
       test(mod235d, 31, disF >> causeNames(evenN, mod3N, mod5N))
     }
-   'conjunction {
+   "conjunction" - {
      test(mod235c, 30, ok)
      test(mod235c, 31, conF >> causeNames(evenN, mod3N, mod5N))
      test(mod235c,  4, conF >> causeNames(mod3N, mod5N))
      test(mod235c, 15, conF >> cause1(evenF))
    }
-   'implication {
+   "implication" - {
      val mod5impEven = mod5 ==> even
      test(mod5impEven, 1, ok)
      test(mod5impEven, 10, ok)
      test(mod5impEven, 5, failSimple(s"$mod5N ⇒ $evenN") >> cause1(evenF))
    }
-   'reduction {
+   "reduction" - {
      val evenRedMod5 = even <== mod5
      test(evenRedMod5,  1, ok)
      test(evenRedMod5, 10, ok)
      test(evenRedMod5,  5, failSimple(s"$evenN ⇐ $mod5N") >> cause1(evenF))
    }
-   'biconditional {
+   "biconditional" - {
      val evenIffMod5 = even <==> mod5
      val f = failSimple(s"$evenN ⇔ $mod5N")
      test(evenIffMod5, 10, ok)
      test(evenIffMod5,  5, f >> cause1(evenF))
      test(evenIffMod5,  2, f >> cause1(mod5F))
    }
-   'nested {
+   "nested" - {
      val a = even ∧ odd
      val b = even ==> a
      val c = mod5 ∧ b
@@ -160,12 +160,12 @@ object PropTest extends TestSuite {
              cause1(name(oddN) >>
                rootCause)))))
    }
-   'rootCause {
+   "rootCause" - {
      test(mod235c, 10, rootCausesN(mod3N))
      val p = mod5 ∧ (even ==> (even ∧ odd)) ∧ (mod3 ∧ ~even)
      test(p, 10, rootCausesN(oddN, mod3N))
    }
-   'contramap {
+   "contramap" - {
      case class Yay(s: String, i: Int)
      val p = mod235c.contramap[Yay](_.i) ∧ upper.contramap[Yay](_.s)
      test(p, Yay("GOOD", 30), rootCausesN() >> ok)
@@ -173,10 +173,10 @@ object PropTest extends TestSuite {
      test(p, Yay("GOOD", 15), rootCausesN(evenN))
      test(p, Yay("both", 4),  rootCausesN(mod3N, mod5N, upperN))
    }
-    'renamed {
+    "renamed" - {
       test(mod235c.rename("whateverness"), 6, failureTreeIs("whateverness\n└─ mod5"))
     }
-    'forall {
+    "forall" - {
       * -{
         val allEven = even.forallF[List]
         test(allEven, List(4,6), ok)
@@ -207,7 +207,7 @@ object PropTest extends TestSuite {
         """.stripMargin.trim))
       }
     }
-    'whitelist {
+    "whitelist" - {
       val p = Prop.whitelist[List[Int]]("whitelist!")(_ => Set(1,2,3,7), identity)
       test(p, Nil, ok)
       test(p, List(1,1,2), ok)
@@ -222,7 +222,7 @@ object PropTest extends TestSuite {
           |        Illegal  : {8, 9}
         """.stripMargin.trim))
     }
-    'blacklist {
+    "blacklist" - {
       val p = Prop.blacklist[List[Int]]("blacklist!")(_ => Set(9,5,6), identity)
       test(p, Nil, ok)
       test(p, List(1,1,2), ok)
@@ -237,7 +237,7 @@ object PropTest extends TestSuite {
           |        Illegal  : {5, 9}
         """.stripMargin.trim))
     }
-    'allPresent {
+    "allPresent" - {
       val p = Prop.allPresent[List[Int]]("allPresent!")(_ => Set(1,2,3,0), identity)
       test(p, List(1,1,2,5), ko >> reportHas(
         """
@@ -253,7 +253,7 @@ object PropTest extends TestSuite {
       test(p, List(1,3,2,0), ok)
       test(p, List(1,3,2,0,6,7,8), ok)
     }
-    'whitelistI {
+    "whitelistI" - {
       type T = (Set[Int], List[String])
       val p = Prop.whitelist[T]("whitelist I")(_._1, _._2.iterator.map(_.length))
       test(p, (Set(1, 3), List("a", "b", "abc", "c")), ok)
@@ -268,7 +268,7 @@ object PropTest extends TestSuite {
           |        Illegal  : {2}
         """.stripMargin.trim))
     }
-    'distinct {
+    "distinct" - {
       val p = Prop.distinctC[List, Char]("hello")
       test(p, List.empty, ok)
       test(p, List('a'), ok)
