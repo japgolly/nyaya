@@ -6,6 +6,7 @@ import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
 import nyaya.test.PropTest._
+import scala.collection.compat._
 
 object GenTest extends TestSuite {
 
@@ -210,7 +211,7 @@ object GenTest extends TestSuite {
     }
 
     'orderedSeq {
-      def assertAll(g: Gen[Vector[Char]])(expect: TraversableOnce[String]): Unit = {
+      def assertAll(g: Gen[Vector[Char]])(expect: IterableOnce[String]): Unit = {
         val e = expect.toSet
         val a = g.samples().take(e.size * 50).map(_ mkString "").toSet
         assert(a == e)

@@ -13,6 +13,8 @@ import nyaya.test.ParallelExecutor
 import nyaya.test.PropTest._
 import DateTimeBuilderJava8.UTC
 import Gen.Now
+import scala.Iterable
+import scala.collection.compat._
 
 object GenTestJvm extends TestSuite {
 
@@ -26,10 +28,10 @@ object GenTestJvm extends TestSuite {
       val nowUTC = Instant.ofEpochMilli(now.millisSinceEpoch).atZone(UTC).toLocalDate
       implicit val genNow = Gen pure now
 
-      def testDeltaDayRange(b: DateTimeBuilder, is: Traversable[Int]): Unit = {
+      def testDeltaDayRange(b: DateTimeBuilder, is: Iterable[Int]): Unit = {
         val g = b.asZonedDateTime(UTC)
-        val results = g.samples().take(is.size * 2048).map(_.toLocalDate.toString).to[SortedSet]
-        val expect = is.map(nowUTC.plusDays(_).toString).to[SortedSet]
+        val results = g.samples().take(is.size * 2048).map(_.toLocalDate.toString).to(SortedSet)
+        val expect = is.map(nowUTC.plusDays(_).toString).to(SortedSet)
         assert(results == expect)
       }
 

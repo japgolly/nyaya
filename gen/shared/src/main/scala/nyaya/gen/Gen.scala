@@ -6,12 +6,13 @@ import nyaya.util.{NonEmptyList => NonEmptyListN}
 import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
 import scala.collection.JavaConverters._
-import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.{IndexedSeq, NumericRange}
 import scala.collection.mutable.ArrayBuffer
 import scalaz.{Name, Need, NonEmptyList => NonEmptyListZ}
 import scalaz.std.function._
 import SizeSpec.DisableDefault._
+import scala.Iterable
+import scala.collection.compat._
 
 final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
@@ -104,11 +105,11 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   @inline def fillFoldSS1[B](ss: SizeSpec, z: B)(f: (B, A) => B): Gen[B] =
     ss.gen1 flatMap (fillFold[B](_, z)(f))
 
-  def fill[B](n: Int)(implicit cbf: CanBuildFrom[Nothing, A, B]): Gen[B] = {
+  def fill[B](n: Int)(implicit cbf: Factory[A, B]): Gen[B] = {
     if (n >= 100000)
       println(s"WARNING: Gen.fill instructed to create very large data: n=$n")
     Gen { c =>
-      val b = cbf()
+      val b = cbf.newBuilder
       var i = n
       while (i > 0) {
         val x = run(c)
@@ -119,10 +120,10 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     }
   }
 
-  @inline def fillSS[B](ss: SizeSpec)(implicit cbf: CanBuildFrom[Nothing, A, B]): Gen[B] =
+  @inline def fillSS[B](ss: SizeSpec)(implicit cbf: Factory[A, B]): Gen[B] =
     ss.gen flatMap fill[B]
 
-  @inline def fillSS1[B](ss: SizeSpec)(implicit cbf: CanBuildFrom[Nothing, A, B]): Gen[B] =
+  @inline def fillSS1[B](ss: SizeSpec)(implicit cbf: Factory[A, B]): Gen[B] =
     ss.gen1 flatMap fill[B]
 
   def list       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS(ss)
@@ -164,26 +165,26 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       set
     }
 
-  def shuffle[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[C[B], B, C[B]]): Gen[C[B]] =
+  def shuffle[C[X] <: IterableOnce[X], B](implicit ev: A <:< C[B], cbf: BuildFrom[C[B], B, C[B]]): Gen[C[B]] =
     Gen { c =>
       val orig = run(c)
       val buf = new ArrayBuffer[B] ++= orig
       Gen.runShuffle(buf, c.rnd)
-      (cbf(orig) ++= buf).result()
+      (cbf.newBuilder(orig) ++= buf).result()
     }
 
-  def subset[C[X] <: TraversableOnce[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
+  def subset[C[X] <: IterableOnce[X], B](implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen(c => Gen.runSubset(run(c), c))
 
   /**
    * Generates a non-empty subset, unless the underlying seq is empty (in which case this returns an empty seq too).
    */
-  def subset1[C[X] <: IndexedSeq[X], B](implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
+  def subset1[C[X] <: IndexedSeq[X], B](implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen { c =>
       val a = run(c)
       var r = Gen.runSubset[C, B](run(c), c)
       if (r.isEmpty && a.nonEmpty) {
-        val b = cbf()
+        val b = cbf.newBuilder
         b.sizeHint(1)
         val i = c.rnd.nextInt(a.length)
         b += a(i)
@@ -192,11 +193,11 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       r
     }
 
-  def take[C[X] <: TraversableOnce[X], B](n: SizeSpec)(implicit ev: A <:< C[B], cbf: CanBuildFrom[Nothing, B, C[B]]): Gen[C[B]] =
+  def take[C[X] <: IterableOnce[X], B](n: SizeSpec)(implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen { c =>
       val takeSize = n.gen run c
       if (takeSize == 0)
-        cbf().result()
+        cbf().newBuildercbf.newBuilder
       else {
         val orig = ev(run(c))
 
@@ -206,7 +207,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
         // Now take
         var i = takeSize min buf.length
-        val b = cbf()
+        val b = cbf.newBuilder
         b.sizeHint(i)
         while (i > 0) {
           i -= 1
@@ -233,7 +234,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   @inline def mapTo[K >: A, V](gv: Gen[V])(implicit ss: SizeSpec): Gen[Map[K, V]] =
     gv.mapBy(this: Gen[K])(ss)
 
-  def mapByKeySubset[K](legalKeys: TraversableOnce[K]): Gen[Map[K, A]] =
+  def mapByKeySubset[K](legalKeys: IterableOnce[K]): Gen[Map[K, A]] =
     // Gen.subset(legalKeys).flatMap(mapByEachKey) <-- works fine, below is faster
     Gen { c =>
       var m = Map.empty[K, A]
@@ -243,7 +244,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       m
     }
 
-  def mapByEachKey[K](keys: TraversableOnce[K]): Gen[Map[K, A]] =
+  def mapByEachKey[K](keys: IterableOnce[K]): Gen[Map[K, A]] =
     // Gen.traverse(keys)(strengthL).map(_.toMap) <-- works fine, below is faster
     Gen { c =>
       var m = Map.empty[K, A]
@@ -328,10 +329,10 @@ object Gen {
   final case class ToNonEmptySeq[S, A](toSeq: S => Seq[A]) extends AnyVal
 
   object ToNonEmptySeq {
-    def merge[A](a: A, s: Traversable[A]): Seq[A] =
+    def merge[A](a: A, s: Iterable[A]): Seq[A] =
       a +: s.toIndexedSeq // toIndexedSeq because this is really for choose_!
 
-    implicit def headAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[(A, S[A]), A] =
+    implicit def headAndTraversable[S[x] <: Iterable[x], A]: ToNonEmptySeq[(A, S[A]), A] =
       apply(o => merge(o._1, o._2))
 
     import scalaz.OneAnd
@@ -339,7 +340,7 @@ object Gen {
     implicit def scalazNEL[A]: ToNonEmptySeq[NonEmptyListZ[A], A] =
       apply(_.list.toList)
 
-    implicit def scalazOneAndTraversable[S[x] <: Traversable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
+    implicit def scalazOneAndTraversable[S[x] <: Iterable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
       apply(o => merge(o.head, o.tail))
   }
 
@@ -356,8 +357,8 @@ object Gen {
       go(a)
     }
 
-  private[Gen] def runSubset[C[X] <: TraversableOnce[X], A](as: C[A], c: GenCtx)(implicit cbf: CanBuildFrom[Nothing, A, C[A]]): C[A] = {
-    val r = cbf()
+  private[Gen] def runSubset[C[X] <: IterableOnce[X], A](as: C[A], c: GenCtx)(implicit cbf: Factory[A, C[A]]): C[A] = {
+    val r = cbf.newBuilder
     as foreach (b => if (c.nextBit()) r += b)
     r.result()
   }
@@ -647,7 +648,7 @@ object Gen {
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
-  def choose_![A](as: TraversableOnce[A]): Gen[A] =
+  def choose_![A](as: IterableOnce[A]): Gen[A] =
     as match {
       case is: IndexedSeq[A] => chooseIndexed_!(is)
       case _                 => chooseIndexed_!((Vector.newBuilder[A] ++= as).result())
@@ -667,7 +668,7 @@ object Gen {
   def chooseGen[A](g1: Gen[A], gn: Gen[A]*): Gen[A] =
     choose(g1, gn: _*).flatten
 
-  def chooseGen_![A](gens: TraversableOnce[Gen[A]]): Gen[A] =
+  def chooseGen_![A](gens: IterableOnce[Gen[A]]): Gen[A] =
     choose_!(gens).flatten
 
   def chooseNE[S, A](s: S)(implicit ne: ToNonEmptySeq[S, A]): Gen[A] =
@@ -676,38 +677,38 @@ object Gen {
   def chooseGenNE[S, G, A](s: S)(implicit ne: ToNonEmptySeq[S, G], g: G <:< Gen[A]): Gen[A] =
     chooseNE(s).flatten
 
-  def tryChoose[A](as: TraversableOnce[A]): Gen[Option[A]] =
+  def tryChoose[A](as: IterableOnce[A]): Gen[Option[A]] =
     if (as.isEmpty)
       pure(None)
     else
       choose_!(as).option
 
-  def tryGenChoose[A](as: TraversableOnce[A]): Option[Gen[A]] =
+  def tryGenChoose[A](as: IterableOnce[A]): Option[Gen[A]] =
     if (as.isEmpty)
       None
     else
       Some(choose_!(as))
 
-  def tryGenChooseLazily[A](as: TraversableOnce[A]): Option[Gen[A]] =
+  def tryGenChooseLazily[A](as: IterableOnce[A]): Option[Gen[A]] =
     if (as.isEmpty)
       None
     else
       Some(lazily(choose_!(as)))
 
-  @inline def shuffle[A, C[X] <: TraversableOnce[X]](as: C[A])(implicit bf: CanBuildFrom[C[A], A, C[A]]): Gen[C[A]] =
+  @inline def shuffle[A, C[X] <: IterableOnce[X]](as: C[A])(implicit bf: BuildFrom[C[A], A, C[A]]): Gen[C[A]] =
     pure(as).shuffle
 
-  @inline def subset[A, C[X] <: TraversableOnce[X]](as: C[A])(implicit bf: CanBuildFrom[Nothing, A, C[A]]): Gen[C[A]] =
+  @inline def subset[A, C[X] <: IterableOnce[X]](as: C[A])(implicit bf: Factory[A, C[A]]): Gen[C[A]] =
     pure(as).subset
 
   /**
    * Generates a non-empty subset, unless the underlying seq is empty (in which case this returns an empty seq too).
    */
-  @inline def subset1[A, C[X] <: IndexedSeq[X]](as: C[A])(implicit bf: CanBuildFrom[Nothing, A, C[A]]): Gen[C[A]] =
+  @inline def subset1[A, C[X] <: IndexedSeq[X]](as: C[A])(implicit bf: Factory[A, C[A]]): Gen[C[A]] =
     pure(as).subset1
 
   /** Randomly either generates a new value, or chooses one from a known set. */
-  def newOrOld[A](newGen: => Gen[A], old: => TraversableOnce[A]): Gen[A] = {
+  def newOrOld[A](newGen: => Gen[A], old: => IterableOnce[A]): Gen[A] = {
     lazy val n: Gen[A] = newGen
     lazy val o: Gen[A] = tryGenChoose(old) getOrElse n
     Gen(c => (if (c.nextBit()) n else o) run c)
@@ -759,7 +760,7 @@ object Gen {
    * @param dropElems    Whether or not the generator can drop elements. (eg. drop b and return [a,c])
    * @param emptyResult  Whether or not the generator can return an empty vector as a result.
    */
-  def orderedSeq[A](orderedElems: Traversable[A],
+  def orderedSeq[A](orderedElems: Iterable[A],
                     maxDups     : Int,
                     dropElems   : Boolean = true,
                     emptyResult : Boolean = true): Gen[Vector[A]] =
@@ -790,7 +791,7 @@ object Gen {
     * fairlyDistributedSeq(1, 2, 3)(6)
     * may return [1,3,2,2,1,3] or [3,2,1,3,2,1] but never [1,1,1,1,2,3].
     */
-  def fairlyDistributedSeq[A](as: Traversable[A])(implicit ss: SizeSpec): Gen[Vector[A]] =
+  def fairlyDistributedSeq[A](as: Iterable[A])(implicit ss: SizeSpec): Gen[Vector[A]] =
     if (as.isEmpty)
       Gen pure Vector.empty
     else
@@ -805,7 +806,7 @@ object Gen {
     * fairlyDistributedSeq(1, 2, 3)(6)
     * may return [1,3,2,2,1,3] or [3,2,1,3,2,1] but never [1,1,1,1,2,3].
     */
-  def fairlyDistributed[A](as: Traversable[A]): Gen[Iterator[A]] =
+  def fairlyDistributed[A](as: Iterable[A]): Gen[Iterator[A]] =
     if (as.isEmpty)
       Gen pure Iterator.empty
     else
@@ -843,21 +844,21 @@ object Gen {
   // Traverse using plain Scala collections and CanBuildFrom (fast)
   // --------------------------------------------------------------
 
-  def traverse[T[X] <: TraversableOnce[X], A, B](as: T[A])(f: A => Gen[B])(implicit cbf: CanBuildFrom[T[A], B, T[B]]): Gen[T[B]] =
+  def traverse[T[X] <: IterableOnce[X], A, B](as: T[A])(f: A => Gen[B])(implicit cbf: BuildFrom[T[A], B, T[B]]): Gen[T[B]] =
     Gen { c =>
-      val r = cbf(as)
+      val r = cbf.newBuilder(as)
       as.foreach(a => r += f(a).run(c))
       r.result()
     }
 
-  def traverseG[T[X] <: TraversableOnce[X], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit cbf: CanBuildFrom[T[Gen[A]], B, T[B]]): Gen[T[B]] =
+  def traverseG[T[X] <: IterableOnce[X], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit cbf: BuildFrom[T[Gen[A]], B, T[B]]): Gen[T[B]] =
     Gen { c =>
-      val r = cbf(gs)
+      val r = cbf.newBuilder(gs)
       gs.foreach(g => r += f(g run c).run(c))
       r.result()
     }
 
-  @inline def sequence[T[X] <: TraversableOnce[X], A](gs: T[Gen[A]])(implicit cbf: CanBuildFrom[T[Gen[A]], A, T[A]]): Gen[T[A]] =
+  @inline def sequence[T[X] <: IterableOnce[X], A](gs: T[Gen[A]])(implicit cbf: BuildFrom[T[Gen[A]], A, T[A]]): Gen[T[A]] =
     traverse(gs)(identity)
 
   // ------------------------------------------------------

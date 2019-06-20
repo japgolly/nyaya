@@ -122,7 +122,7 @@ object Multimap {
     val avg = values.toDouble / keys.toDouble
     val avgi = avg.toInt
     val stddev = {
-      val s = (0.0 /: vs)((q,x) => q + Math.pow(x - avg, 2))
+      val s = vs.foldLeft(0.0)((q,x) => q + Math.pow(x - avg, 2))
       Math.sqrt(s / keys.toDouble)
     }
     override val toString =
@@ -146,8 +146,8 @@ object Multimap {
     new Multimap[K, L, V](Map.empty)
 
   def reverse[A, L[_]: MultiValues, B](ab: Map[A, L[B]])(implicit ev: Commutative[L]): Multimap[B, L, A] =
-    (empty[B, L, A] /: ab){ case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
+    ab.foldLeft(empty[B, L, A]){ case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
 
   def reverseM[A, L[_]: MultiValues, M[_]: MultiValues, B](ab: Map[A, L[B]])(implicit ev: Commutative[M]): Multimap[B, M, A] =
-    (empty[B, M, A] /: ab){ case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
+    ab.foldLeft(empty[B, M, A]){ case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
 }

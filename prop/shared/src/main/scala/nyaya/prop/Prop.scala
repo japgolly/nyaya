@@ -4,6 +4,7 @@ import scala.annotation.elidable
 import scala.collection.GenTraversable
 import scalaz.{\/, Equal, Foldable, Contravariant, Need}
 import scalaz.syntax.equal._
+import scala.collection.compat._
 
 final class PropA[A] private[nyaya](val t: A => EvalL)
 
@@ -90,7 +91,7 @@ object Prop {
    */
   @inline def whitelist[A](name: String) = new WhitelistB[A](name)
   final class WhitelistB[A](private val name: String) extends AnyVal {
-    def apply[B, C](whitelist: A => Set[B], testData: A => TraversableOnce[C])(implicit ev: C <:< B): Prop[A] =
+    def apply[B, C](whitelist: A => Set[B], testData: A => IterableOnce[C])(implicit ev: C <:< B): Prop[A] =
       evaln(s"$name whitelist", a => Eval.whitelist(name, a, whitelist(a), testData(a)))
   }
 
@@ -99,7 +100,7 @@ object Prop {
    */
   @inline def blacklist[A](name: String) = new BlacklistB[A](name)
   final class BlacklistB[A](private val name: String) extends AnyVal {
-    def apply[B, C](blacklist: A => Set[B], testData: A => TraversableOnce[C])(implicit ev: C <:< B): Prop[A] =
+    def apply[B, C](blacklist: A => Set[B], testData: A => IterableOnce[C])(implicit ev: C <:< B): Prop[A] =
       evaln(s"$name blacklist", a => Eval.blacklist(name, a, blacklist(a), testData(a)))
   }
 
@@ -108,7 +109,7 @@ object Prop {
    */
   @inline def allPresent[A](name: String) = new AllPresentB[A](name)
   final class AllPresentB[A](private val name: String) extends AnyVal {
-    def apply[B, C](requiredSubset: A => Set[B], testData: A => TraversableOnce[C])(implicit ev: B <:< C): Prop[A] =
+    def apply[B, C](requiredSubset: A => Set[B], testData: A => IterableOnce[C])(implicit ev: B <:< C): Prop[A] =
       evaln(s"$name allPresent", a => Eval.allPresent(name, a, requiredSubset(a), testData(a)))
   }
 }
