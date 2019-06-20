@@ -5,14 +5,13 @@ import java.util.UUID
 import nyaya.util.{NonEmptyList => NonEmptyListN}
 import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
-import scala.collection.JavaConverters._
+import scala.collection.compat._
 import scala.collection.immutable.{IndexedSeq, NumericRange}
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters._
 import scalaz.{Name, Need, NonEmptyList => NonEmptyListZ}
 import scalaz.std.function._
 import SizeSpec.DisableDefault._
-import scala.Iterable
-import scala.collection.compat._
 
 final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
@@ -128,12 +127,10 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
   def list       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS(ss)
   def set[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS(ss)
-  def stream     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS(ss)
   def vector     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS(ss)
 
   def list1       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS1(ss)
   def set1[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS1(ss)
-  def stream1     (implicit ss: SizeSpec): Gen[Stream[A]] = fillSS1(ss)
   def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
 
   /**
@@ -155,17 +152,17 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   _sizedSet(ss.gen1)
 
   private def _sizedSet[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
-    Gen { ctx ⇒
+    Gen { ctx =>
       val size = genSize.run(ctx)
       var set = Set.empty[B]
       samplesUsing(ctx)
-        .filter(a ⇒ if (set.contains(a)) false else { set += a; true })
+        .filter(a => if (set.contains(a)) false else { set += a; true })
         .take(size)
-        .foreach(_ ⇒ ())
+        .foreach(_ => ())
       set
     }
 
-  def shuffle[C[X] <: IterableOnce[X], B](implicit ev: A <:< C[B], cbf: BuildFrom[C[B], B, C[B]]): Gen[C[B]] =
+  def shuffle[C[X] <: Iterable[X], B](implicit ev: A <:< C[B], cbf: BuildFrom[C[B], B, C[B]]): Gen[C[B]] =
     Gen { c =>
       val orig = run(c)
       val buf = new ArrayBuffer[B] ++= orig
@@ -173,7 +170,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       (cbf.newBuilder(orig) ++= buf).result()
     }
 
-  def subset[C[X] <: IterableOnce[X], B](implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
+  def subset[C[X] <: Iterable[X], B](implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen(c => Gen.runSubset(run(c), c))
 
   /**
@@ -193,11 +190,11 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       r
     }
 
-  def take[C[X] <: IterableOnce[X], B](n: SizeSpec)(implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
+  def take[C[X] <: Iterable[X], B](n: SizeSpec)(implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen { c =>
       val takeSize = n.gen run c
       if (takeSize == 0)
-        cbf().newBuildercbf.newBuilder
+        cbf.newBuilder.result()
       else {
         val orig = ev(run(c))
 
@@ -234,21 +231,21 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   @inline def mapTo[K >: A, V](gv: Gen[V])(implicit ss: SizeSpec): Gen[Map[K, V]] =
     gv.mapBy(this: Gen[K])(ss)
 
-  def mapByKeySubset[K](legalKeys: IterableOnce[K]): Gen[Map[K, A]] =
+  def mapByKeySubset[K](legalKeys: Iterable[K]): Gen[Map[K, A]] =
     // Gen.subset(legalKeys).flatMap(mapByEachKey) <-- works fine, below is faster
     Gen { c =>
       var m = Map.empty[K, A]
-      legalKeys.foreach(k =>
+      legalKeys.iterator.foreach(k =>
         if (c.nextBit())
           m = m.updated(k, run(c)))
       m
     }
 
-  def mapByEachKey[K](keys: IterableOnce[K]): Gen[Map[K, A]] =
+  def mapByEachKey[K](keys: Iterable[K]): Gen[Map[K, A]] =
     // Gen.traverse(keys)(strengthL).map(_.toMap) <-- works fine, below is faster
     Gen { c =>
       var m = Map.empty[K, A]
-      keys.foreach(k =>
+      keys.iterator.foreach(k =>
         m = m.updated(k, run(c)))
       m
     }
@@ -359,7 +356,7 @@ object Gen {
 
   private[Gen] def runSubset[C[X] <: IterableOnce[X], A](as: C[A], c: GenCtx)(implicit cbf: Factory[A, C[A]]): C[A] = {
     val r = cbf.newBuilder
-    as foreach (b => if (c.nextBit()) r += b)
+    as.iterator.foreach(b => if (c.nextBit()) r += b)
     r.result()
   }
 
@@ -553,7 +550,7 @@ object Gen {
     else {
       // Copied from ThreadLocalRandom#nextLong(long)
       val m = bound - 1
-      Gen { ctx ⇒
+      Gen { ctx =>
         var r = ctx.rnd.nextLong()
         if ((bound & m) == 0L) // power of two
           r & m
@@ -651,7 +648,7 @@ object Gen {
   def choose_![A](as: IterableOnce[A]): Gen[A] =
     as match {
       case is: IndexedSeq[A] => chooseIndexed_!(is)
-      case _                 => chooseIndexed_!((Vector.newBuilder[A] ++= as).result())
+      case _                 => chooseIndexed_!(as.iterator.toIndexedSeq)
     }
 
   def choose[A](a: A, as: A*): Gen[A] =
@@ -678,27 +675,27 @@ object Gen {
     chooseNE(s).flatten
 
   def tryChoose[A](as: IterableOnce[A]): Gen[Option[A]] =
-    if (as.isEmpty)
+    if (as.iterator.isEmpty)
       pure(None)
     else
       choose_!(as).option
 
   def tryGenChoose[A](as: IterableOnce[A]): Option[Gen[A]] =
-    if (as.isEmpty)
+    if (as.iterator.isEmpty)
       None
     else
       Some(choose_!(as))
 
   def tryGenChooseLazily[A](as: IterableOnce[A]): Option[Gen[A]] =
-    if (as.isEmpty)
+    if (as.iterator.isEmpty)
       None
     else
       Some(lazily(choose_!(as)))
 
-  @inline def shuffle[A, C[X] <: IterableOnce[X]](as: C[A])(implicit bf: BuildFrom[C[A], A, C[A]]): Gen[C[A]] =
+  @inline def shuffle[A, C[X] <: Iterable[X]](as: C[A])(implicit bf: BuildFrom[C[A], A, C[A]]): Gen[C[A]] =
     pure(as).shuffle
 
-  @inline def subset[A, C[X] <: IterableOnce[X]](as: C[A])(implicit bf: Factory[A, C[A]]): Gen[C[A]] =
+  @inline def subset[A, C[X] <: Iterable[X]](as: C[A])(implicit bf: Factory[A, C[A]]): Gen[C[A]] =
     pure(as).subset
 
   /**
@@ -796,8 +793,8 @@ object Gen {
       Gen pure Vector.empty
     else
       for {
-        sz ← ss.gen
-        it ← fairlyDistributed(as)
+        sz <- ss.gen
+        it <- fairlyDistributed(as)
       } yield it.take(sz).toVector
 
   /**
@@ -819,9 +816,13 @@ object Gen {
   /** Caution: non-deterministic */
   lazy val zoneId: Gen[ZoneId] =
     Gen.choose_!(
-      (ZoneId.getAvailableZoneIds().asScala - "GMT0") // GMT0 causes Java to throw exceptions when reparsing
-        .toVector
-        .sorted // Hope for a little more determinism
+      ZoneId.getAvailableZoneIds()
+        .iterator()
+        .asScala
+        .filter(_ != "GMT0") // GMT0 causes Java to throw exceptions when reparsing
+        .toArray
+        .sortInPlace()
+        .iterator
         .map(ZoneId.of))
 
   final case class Now(millisSinceEpoch: Long) extends AnyVal
@@ -844,53 +845,53 @@ object Gen {
   // Traverse using plain Scala collections and CanBuildFrom (fast)
   // --------------------------------------------------------------
 
-  def traverse[T[X] <: IterableOnce[X], A, B](as: T[A])(f: A => Gen[B])(implicit cbf: BuildFrom[T[A], B, T[B]]): Gen[T[B]] =
+  def traverse[T[X] <: Iterable[X], A, B](as: T[A])(f: A => Gen[B])(implicit cbf: BuildFrom[T[A], B, T[B]]): Gen[T[B]] =
     Gen { c =>
       val r = cbf.newBuilder(as)
-      as.foreach(a => r += f(a).run(c))
+      as.iterator.foreach(a => r += f(a).run(c))
       r.result()
     }
 
-  def traverseG[T[X] <: IterableOnce[X], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit cbf: BuildFrom[T[Gen[A]], B, T[B]]): Gen[T[B]] =
+  def traverseG[T[X] <: Iterable[X], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit cbf: BuildFrom[T[Gen[A]], B, T[B]]): Gen[T[B]] =
     Gen { c =>
       val r = cbf.newBuilder(gs)
-      gs.foreach(g => r += f(g run c).run(c))
+      gs.iterator.foreach(g => r += f(g run c).run(c))
       r.result()
     }
 
-  @inline def sequence[T[X] <: IterableOnce[X], A](gs: T[Gen[A]])(implicit cbf: BuildFrom[T[Gen[A]], A, T[A]]): Gen[T[A]] =
+  @inline def sequence[T[X] <: Iterable[X], A](gs: T[Gen[A]])(implicit cbf: BuildFrom[T[Gen[A]], A, T[A]]): Gen[T[A]] =
     traverse(gs)(identity)
 
   // ------------------------------------------------------
   // Arity boilerplate
   // ------------------------------------------------------
 
-  def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = for {a←A;b←B} yield (a,b)
-  def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = for {a←A;b←B;c←C} yield (a,b,c)
-  def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = for {a←A;b←B;c←C;d←D} yield (a,b,c,d)
-  def tuple5[A,B,C,D,E](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[(A,B,C,D,E)] = for {a←A;b←B;c←C;d←D;e←E} yield (a,b,c,d,e)
-  def tuple6[A,B,C,D,E,F](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[(A,B,C,D,E,F)] = for {a←A;b←B;c←C;d←D;e←E;f←F} yield (a,b,c,d,e,f)
-  def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G} yield (a,b,c,d,e,f,g)
-  def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H} yield (a,b,c,d,e,f,g,h)
-  def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H;i←I} yield (a,b,c,d,e,f,g,h,i)
+  def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = for {a<-A;b<-B} yield (a,b)
+  def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = for {a<-A;b<-B;c<-C} yield (a,b,c)
+  def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = for {a<-A;b<-B;c<-C;d<-D} yield (a,b,c,d)
+  def tuple5[A,B,C,D,E](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[(A,B,C,D,E)] = for {a<-A;b<-B;c<-C;d<-D;e<-E} yield (a,b,c,d,e)
+  def tuple6[A,B,C,D,E,F](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[(A,B,C,D,E,F)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F} yield (a,b,c,d,e,f)
+  def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G} yield (a,b,c,d,e,f,g)
+  def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H} yield (a,b,c,d,e,f,g,h)
+  def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H;i<-I} yield (a,b,c,d,e,f,g,h,i)
 
-  def apply2[A,B,Z](z: (A,B)⇒Z)(A:Gen[A], B:Gen[B]): Gen[Z] = for {a←A;b←B} yield z(a,b)
-  def apply3[A,B,C,Z](z: (A,B,C)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = for {a←A;b←B;c←C} yield z(a,b,c)
-  def apply4[A,B,C,D,Z](z: (A,B,C,D)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = for {a←A;b←B;c←C;d←D} yield z(a,b,c,d)
-  def apply5[A,B,C,D,E,Z](z: (A,B,C,D,E)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E} yield z(a,b,c,d,e)
-  def apply6[A,B,C,D,E,F,Z](z: (A,B,C,D,E,F)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F} yield z(a,b,c,d,e,f)
-  def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G} yield z(a,b,c,d,e,f,g)
-  def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H} yield z(a,b,c,d,e,f,g,h)
-  def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)⇒Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = for {a←A;b←B;c←C;d←D;e←E;f←F;g←G;h←H;i←I} yield z(a,b,c,d,e,f,g,h,i)
+  def apply2[A,B,Z](z: (A,B)=>Z)(A:Gen[A], B:Gen[B]): Gen[Z] = for {a<-A;b<-B} yield z(a,b)
+  def apply3[A,B,C,Z](z: (A,B,C)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = for {a<-A;b<-B;c<-C} yield z(a,b,c)
+  def apply4[A,B,C,D,Z](z: (A,B,C,D)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D} yield z(a,b,c,d)
+  def apply5[A,B,C,D,E,Z](z: (A,B,C,D,E)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E} yield z(a,b,c,d,e)
+  def apply6[A,B,C,D,E,F,Z](z: (A,B,C,D,E,F)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F} yield z(a,b,c,d,e,f)
+  def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G} yield z(a,b,c,d,e,f,g)
+  def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H} yield z(a,b,c,d,e,f,g,h)
+  def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H;i<-I} yield z(a,b,c,d,e,f,g,h,i)
 
-  @inline def lift2[A,B,Z](A:Gen[A], B:Gen[B])(z: (A,B)⇒Z): Gen[Z] = apply2(z)(A,B)
-  @inline def lift3[A,B,C,Z](A:Gen[A], B:Gen[B], C:Gen[C])(z: (A,B,C)⇒Z): Gen[Z] = apply3(z)(A,B,C)
-  @inline def lift4[A,B,C,D,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D])(z: (A,B,C,D)⇒Z): Gen[Z] = apply4(z)(A,B,C,D)
-  @inline def lift5[A,B,C,D,E,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E])(z: (A,B,C,D,E)⇒Z): Gen[Z] = apply5(z)(A,B,C,D,E)
-  @inline def lift6[A,B,C,D,E,F,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F])(z: (A,B,C,D,E,F)⇒Z): Gen[Z] = apply6(z)(A,B,C,D,E,F)
-  @inline def lift7[A,B,C,D,E,F,G,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G])(z: (A,B,C,D,E,F,G)⇒Z): Gen[Z] = apply7(z)(A,B,C,D,E,F,G)
-  @inline def lift8[A,B,C,D,E,F,G,H,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H])(z: (A,B,C,D,E,F,G,H)⇒Z): Gen[Z] = apply8(z)(A,B,C,D,E,F,G,H)
-  @inline def lift9[A,B,C,D,E,F,G,H,I,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I])(z: (A,B,C,D,E,F,G,H,I)⇒Z): Gen[Z] = apply9(z)(A,B,C,D,E,F,G,H,I)
+  @inline def lift2[A,B,Z](A:Gen[A], B:Gen[B])(z: (A,B)=>Z): Gen[Z] = apply2(z)(A,B)
+  @inline def lift3[A,B,C,Z](A:Gen[A], B:Gen[B], C:Gen[C])(z: (A,B,C)=>Z): Gen[Z] = apply3(z)(A,B,C)
+  @inline def lift4[A,B,C,D,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D])(z: (A,B,C,D)=>Z): Gen[Z] = apply4(z)(A,B,C,D)
+  @inline def lift5[A,B,C,D,E,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E])(z: (A,B,C,D,E)=>Z): Gen[Z] = apply5(z)(A,B,C,D,E)
+  @inline def lift6[A,B,C,D,E,F,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F])(z: (A,B,C,D,E,F)=>Z): Gen[Z] = apply6(z)(A,B,C,D,E,F)
+  @inline def lift7[A,B,C,D,E,F,G,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G])(z: (A,B,C,D,E,F,G)=>Z): Gen[Z] = apply7(z)(A,B,C,D,E,F,G)
+  @inline def lift8[A,B,C,D,E,F,G,H,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H])(z: (A,B,C,D,E,F,G,H)=>Z): Gen[Z] = apply8(z)(A,B,C,D,E,F,G,H)
+  @inline def lift9[A,B,C,D,E,F,G,H,I,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I])(z: (A,B,C,D,E,F,G,H,I)=>Z): Gen[Z] = apply9(z)(A,B,C,D,E,F,G,H,I)
 
   // ------------------------------------------------------
   // Scalaz stuff

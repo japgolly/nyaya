@@ -46,13 +46,19 @@ final class Multimap[K, L[_], V](val m: Map[K, L[V]])(implicit L: MultiValues[L]
   def delk    (k: K)                  = copy(m - k)
   def delv    (v: V)                  = copy(m delv v)
   def delks   (ks: L[K])              = copy(ks.foldl(m)(_ - _))
-  def delvs   (vs: L[V])              = copy(m.mapValues(_ deln vs))
+  def delvs   (vs: L[V])              = copy(m.view.mapValues(_ deln vs).toMap)
   def setks   (ks: L[K], v: V)        = copy(m.delv(v).addks(ks, v))
   def setvs   (k: K, vs: L[V])        = mod(k, _ => vs)
 
-  def reverse(implicit ev: Commutative[L]): Multimap[V, L, K] = Multimap.reverse(m)
+  def reverse(implicit ev: Commutative[L]): Multimap[V, L, K] = {
+    val _ = ev
+    Multimap.reverse(m)
+  }
 
-  def reverseM[M[_]: MultiValues](implicit ev: Commutative[M]): Multimap[V, M, K] = Multimap.reverseM(m)
+  def reverseM[M[_]: MultiValues](implicit ev: Commutative[M]): Multimap[V, M, K] = {
+    val _ = ev
+    Multimap.reverseM(m)
+  }
 
   def ++(n: Map[K, L[V]]) =
     copy(n.foldLeft(m)((q, x) => q.addn(x._1, x._2)))
@@ -89,7 +95,7 @@ object Multimap {
 
   private[util] object Internal {
     implicit final class MultiMapExt[K, L[_], V](private val m: Map[K, L[V]]) extends AnyVal {
-      @inline def delv(v: V)                (implicit L: MultiValues[L]): Map[K, L[V]] = m.mapValues(_ del1 v)
+      @inline def delv(v: V)                (implicit L: MultiValues[L]): Map[K, L[V]] = m.view.mapValues(_ del1 v).toMap
       @inline def getOrEmpty(k: K)          (implicit L: MultiValues[L]): L[V]         = m.getOrElse(k, L.empty)
       @inline def add(kv: (K, V))           (implicit L: MultiValues[L]): Map[K, L[V]] = mod(kv._1, _ add1 kv._2)
       @inline def add(k: K, v: V)           (implicit L: MultiValues[L]): Map[K, L[V]] = mod(k, _ add1 v)
@@ -145,9 +151,13 @@ object Multimap {
   def empty[K, L[_]: MultiValues, V] =
     new Multimap[K, L, V](Map.empty)
 
-  def reverse[A, L[_]: MultiValues, B](ab: Map[A, L[B]])(implicit ev: Commutative[L]): Multimap[B, L, A] =
-    ab.foldLeft(empty[B, L, A]){ case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
+  def reverse[A, L[_]: MultiValues, B](ab: Map[A, L[B]])(implicit ev: Commutative[L]): Multimap[B, L, A] = {
+    val _ = ev
+    ab.foldLeft(empty[B, L, A]) { case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
+  }
 
-  def reverseM[A, L[_]: MultiValues, M[_]: MultiValues, B](ab: Map[A, L[B]])(implicit ev: Commutative[M]): Multimap[B, M, A] =
-    ab.foldLeft(empty[B, M, A]){ case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
+  def reverseM[A, L[_]: MultiValues, M[_]: MultiValues, B](ab: Map[A, L[B]])(implicit ev: Commutative[M]): Multimap[B, M, A] = {
+    val _ = ev
+    ab.foldLeft(empty[B, M, A]) { case (q, (a, bs)) => bs.foldl(q)(_.add(_, a)) }
+  }
 }

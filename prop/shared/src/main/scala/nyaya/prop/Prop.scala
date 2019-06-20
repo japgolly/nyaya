@@ -1,7 +1,7 @@
 package nyaya.prop
 
 import scala.annotation.elidable
-import scala.collection.GenTraversable
+import scala.collection.Iterable
 import scalaz.{\/, Equal, Foldable, Contravariant, Need}
 import scalaz.syntax.equal._
 import scala.collection.compat._
@@ -77,13 +77,13 @@ object Prop {
   def distinctI[A, B](name: => String, f: A => Iterator[B]): Prop[A] =
     distinct[B](name).contramap(f(_).toList)
 
-  def distinctC[C[_], A](name: => String)(implicit ev: C[A] <:< GenTraversable[A]): Prop[C[A]] =
+  def distinctC[C[_], A](name: => String)(implicit ev: C[A] <:< Iterable[A]): Prop[C[A]] =
     distinct(name, ev)
 
-  def distinct[A, B](name: => String, f: A => GenTraversable[B]): Prop[A] =
+  def distinct[A, B](name: => String, f: A => Iterable[B]): Prop[A] =
     distinct[B](name).contramap(f)
 
-  def distinct[A](name: => String): Prop[GenTraversable[A]] =
+  def distinct[A](name: => String): Prop[Iterable[A]] =
     evaln(Eval distinctName name, as => Eval.distinct(name, as, as))
 
   /**

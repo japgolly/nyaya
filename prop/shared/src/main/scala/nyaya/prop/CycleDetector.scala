@@ -1,7 +1,7 @@
 package nyaya.prop
 
 import scala.annotation.tailrec
-import scala.collection.GenTraversable
+import scala.collection.Iterable
 import scalaz.{\/-, -\/, \/}
 
 final case class CycleFree[A](value: A)
@@ -90,11 +90,11 @@ object CycleDetector {
       identity, check((_, a) => vertices(a), id))
 
     def map[A, I](id: A => I) = CycleDetector[Map[A, A], A](
-      _.keys.toIterator, check(_.get(_).iterator, id))
+      _.keys.iterator, check(_.get(_).iterator, id))
 
-    def multimap[V[_], A, I](id: A => I, empty: V[A])(implicit ev: V[A] <:< GenTraversable[A]) =
+    def multimap[V[_], A, I](id: A => I, empty: V[A])(implicit ev: V[A] <:< Iterable[A]) =
       CycleDetector[Map[A, V[A]], A](
-        _.keys.toIterator,
-        check(_.getOrElse(_, empty).toIterator, id))
+        _.keys.iterator,
+        check(_.getOrElse(_, empty).iterator, id))
   }
 }

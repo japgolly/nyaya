@@ -32,7 +32,7 @@ object MultimapTest extends TestSuite {
 
     // This will test that two operations (f and g) commute
     type MM = Multimap[A, L, A]
-    def comm[R: Equal](name: => String, z: MM, r: MM => R, f: MM ⇒ MM, g: MM ⇒ MM) =
+    def comm[R: Equal](name: => String, z: MM, r: MM => R, f: MM => MM, g: MM => MM) =
       E.equal(name, r(f(g(z))), r(g(f(z))))
 
     // And now the propositions begin...
@@ -70,11 +70,11 @@ object MultimapTest extends TestSuite {
                                        (implicit c: Option[Commutative[L]], E: Equal[L[A]]): Gen[PropInputs[L, A]] = {
     val gla = gl(ga)
     for {
-      kvs ← Gen.tuple2(ga, gla).list
+      kvs <- Gen.tuple2(ga, gla).list
       mm  = Multimap(kvs.toMap)
-      a   ← ga
-      b   ← ga
-      as  ← gla
+      a   <- ga
+      b   <- ga
+      as  <- gla
     } yield PropInputs[L, A](mm, a, b, as, c)
   }
 

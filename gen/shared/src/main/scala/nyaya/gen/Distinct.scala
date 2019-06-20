@@ -172,7 +172,7 @@ object Distinct {
       addhs(xs)
 
     def addhs(xs: IterableOnce[X]): Fixer[X, H, Y, Z] =
-      copy(inith = xs.foldLeft(this.inith)(_ + f(_)))
+      copy(inith = xs.iterator.foldLeft(this.inith)(_ + f(_)))
 
     def +(φ: Fixer[X, H, Y, Z]): Fixer[X, H, Y, Z] =
       copy(inith = this.inith ++ φ.inith)

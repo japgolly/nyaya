@@ -1,9 +1,9 @@
 package nyaya.prop
 
 import scala.annotation.elidable
-import scala.collection.GenTraversable
+import scala.collection.Iterable
 import scala.collection.mutable
-import scalaz._
+import scalaz.{Contravariant, Equal, Foldable, Need, Value, \/}
 import scalaz.syntax.foldable._
 import nyaya.util.Multimap
 import nyaya.util.Util
@@ -79,7 +79,7 @@ object Eval {
   def distinctI[A](name: => String, input: Any, as: Iterator[A]): EvalL =
     distinct(name, input, as.toList)
 
-  def distinct[A](name: => String, input: Any, as: GenTraversable[A]): EvalL =
+  def distinct[A](name: => String, input: Any, as: Iterable[A]): EvalL =
     atom(distinctName(name), input, {
 
       val m = mutable.HashMap.empty[A, Int]
@@ -118,7 +118,7 @@ object Eval {
    * Test that all Bs are present in Cs.
    */
   def allPresent[B, C](name: => String, input: Any, required: Set[B], testData: => IterableOnce[C])(implicit ev: B <:< C): EvalL = {
-    val cs = testData.toSet
+    val cs = testData.iterator.toSet
     atom(name, input, {
       val rs = required.filterNot(cs contains _)
       setMembershipResult(input, "Required", required, "Found   ", testData, "Missing ", rs)
@@ -130,7 +130,7 @@ object Eval {
                                      csName: String, cs: => IterableOnce[C],
                                      failureName: String)(implicit ev: C <:< B): EvalL =
     atom(name, input, {
-      val rs = cs.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
+      val rs = cs.iterator.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
       setMembershipResult(input, bsName, bs, csName, cs, failureName, rs)
     })
 
@@ -143,7 +143,7 @@ object Eval {
     else
       Some {
         def fmt(name: String, vs: IterableOnce[_]) = {
-          val x = vs.toIterable
+          val x = vs.iterator.toList
           s"$name: (${x.size}) $x"
         }
         s"$input\n${fmt(asName, as)}\n${fmt(bsName, bs)}\n$failureName: ${fmtSet(problems)}"
@@ -164,7 +164,7 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
   def liftL                  : EvalL   = Atom[Eval_, Nothing](Some(name), this)
 
   lazy val reasonsAndCauses: Map[FailureReason, List[Eval]] =
-    failures.m.mapValues(_.flatten)
+    failures.m.view.mapValues(_.flatten).toMap
 
   def rootCauses: Set[Name] =
     rootCausesAndInputs.keySet
@@ -184,8 +184,8 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
   def failureTree = failureTreeI("")
   def failureTreeI(indent: String): String = Util.quickSB(failureTreeSB(_, indent))
   def failureTreeSB(sb: StringBuilder, indent: String): Unit =
-    Util.asciiTreeSB[Eval](List(this))(sb,
-      _.reasonsAndCauses.valuesIterator.flatMap(_.toList).map(v => (v.name.value, v)).toMap.toList.sortBy(_._1).map(_._2),
+    Util.asciiTreeSB[Eval](this :: Nil)(sb,
+      _.reasonsAndCauses.valuesIterator.flatMap(_.toList).map(v => (v.name.value, v)).toMap.toArray.sortInPlaceBy(_._1).iterator.map(_._2).toArray[Eval],
       _.name.value, indent)
 
   def rootCauseTree = rootCauseTreeI("")

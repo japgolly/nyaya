@@ -49,6 +49,13 @@ object Baggy {
     override def append  [A](h: Stream[A], i: Stream[A]) = i #::: h
   }
 
+  implicit object LazyListBaggy extends Baggy[LazyList] {
+    override def empty   [A]                                 = LazyList.empty
+    override def contains[A](h: LazyList[A], a: A)           = h contains a
+    override def add     [A](h: LazyList[A], a: A)           = a #:: h
+    override def append  [A](h: LazyList[A], i: LazyList[A]) = i #::: h
+  }
+
   implicit object VectorBaggy extends Baggy[Vector] {
     override def empty   [A]                             = Vector.empty
     override def contains[A](h: Vector[A], a: A)         = h contains a

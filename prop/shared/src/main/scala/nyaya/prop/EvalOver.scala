@@ -1,6 +1,6 @@
 package nyaya.prop
 
-import scala.collection.GenTraversable
+import scala.collection.Iterable
 import scalaz.{\/, Foldable, Equal}
 import scala.collection.compat._
 
@@ -27,7 +27,7 @@ final case class EvalOver(input: Any) {
   def forall[F[_]: Foldable, B](fb: F[B])(each: B => EvalL): EvalL =
     Eval.forall(input, fb)(each)
 
-  def distinct[A](name: => String, as: GenTraversable[A]): EvalL =
+  def distinct[A](name: => String, as: Iterable[A]): EvalL =
     Eval.distinct(name, input, as)
 
   def distinctI[A](name: => String, as: Iterator[A]): EvalL =
