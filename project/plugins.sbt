@@ -6,6 +6,4 @@ addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.2")
 
 addSbtPlugin("pl.project13.scala" % "sbt-jmh" % "0.3.7")
 
-addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.3.4")
-
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "0.6.0")
