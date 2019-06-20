@@ -1,11 +1,8 @@
 package nyaya.gen
 
-import java.nio.charset.Charset
-import java.time.format.DateTimeFormatter
 import java.time._
 import scala.concurrent.duration._
 import scala.collection.SortedSet
-import scalaz.{-\/, BindRec, NonEmptyList, \/-}
 import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
@@ -13,12 +10,10 @@ import nyaya.test.ParallelExecutor
 import nyaya.test.PropTest._
 import DateTimeBuilderJava8.UTC
 import Gen.Now
-import scala.Iterable
-import scala.collection.compat._
 
 object GenTestJvm extends TestSuite {
 
-  override def tests = TestSuite {
+  override def tests = Tests {
 
     "dateTime" - {
 

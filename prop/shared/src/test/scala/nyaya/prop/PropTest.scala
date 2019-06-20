@@ -59,9 +59,9 @@ object PropTest extends TestSuite {
   def rootCauses   (f: Any => Set[String] => Unit) = Tst(i => v => f(i)(v.rootCauses.map(_.value)))
   def rootCausesN  (s: String*)                    = rootCauses(_ => v => assertEq(v.toList.sorted, s.toList.sorted))
   def rootCausesP  (p: Prop[Int]*)                 = rootCausesN(p.map(_(0).name.value): _*)
-  def failureTree  (f: String => Unit)             = Tst(i => v => f(v.failureTree))
+  def failureTree  (f: String => Unit)             = Tst(_ => v => f(v.failureTree))
   def failureTreeIs(e: String)                     = failureTree(a => assertEq(a, e))
-  def report       (f: String => Unit)             = Tst(i => v => f(v.report))
+  def report       (f: String => Unit)             = Tst(_ => v => f(v.report))
   def reportIs     (e: String)                     = report(a => assertEq(a, e))
   def reportHas    (e: String)                     = report(a => assertContains(a, e))
   def failSimple   (n: String)                     = ko >> name(n) >> inputA
@@ -104,7 +104,7 @@ object PropTest extends TestSuite {
   val disF  = failSimple("(even ∨ mod3 ∨ mod5)")
   val conF  = failSimple("(even ∧ mod3 ∧ mod5)")
 
-  override def tests = TestSuite {
+  override def tests = Tests {
     "atom" - {
       test(even, 2, ok)
       test(even, 3, evenF)

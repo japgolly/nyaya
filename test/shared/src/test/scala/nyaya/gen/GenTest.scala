@@ -57,7 +57,7 @@ object GenTest extends TestSuite {
 
   val abc = "abc".toCharArray.toList
 
-  override def tests = TestSuite {
+  override def tests = Tests {
 
     "chooseInt" - {
       "bound" - {
@@ -149,7 +149,7 @@ object GenTest extends TestSuite {
       val u1 = Gen.chooseChar_!('a' to 'z')
       val u2 = Gen.chooseChar_!("@=!")
       val u3 = Gen.chooseChar_!("@=!", 'a' to 'z', 'A' to 'Z')
-      def test(gs: Gen[Char]*) = ()
+      def test(gs: Gen[Char]*) = { val _ = gs; () }
       test(s1, s2, s3)
       test(u1, u2, u3)
     }
@@ -212,7 +212,7 @@ object GenTest extends TestSuite {
 
     "orderedSeq" - {
       def assertAll(g: Gen[Vector[Char]])(expect: IterableOnce[String]): Unit = {
-        val e = expect.toSet
+        val e = expect.iterator.toSet
         val a = g.samples().take(e.size * 50).map(_ mkString "").toSet
         assert(a == e)
       }

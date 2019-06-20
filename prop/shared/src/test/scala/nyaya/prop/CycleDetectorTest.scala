@@ -25,7 +25,7 @@ object CycleDetectorTest extends TestSuite {
     assert(actual == expect)
   }
 
-  override def tests = TestSuite {
+  override def tests = Tests {
     "directed" - {
       val cd = CycleDetector.Directed.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, false, ns: _*)

@@ -39,7 +39,7 @@ object DistinctTest extends TestSuite {
   val List(sa, ta) = List(s, t) map ages
   val r = ta.toSet
 
-  override def tests = TestSuite {
+  override def tests = Tests {
     "names"                      - assert(names(t).sorted == List("A", "B", "C"))
     "ages" - {
       "Same number of ages"     - assert(sa.size == ta.size)

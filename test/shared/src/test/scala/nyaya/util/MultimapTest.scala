@@ -5,7 +5,6 @@ import scalaz.std.AllInstances._
 import utest._
 import nyaya.gen._
 import nyaya.prop._
-import nyaya.test._
 import nyaya.test.PropTest._
 import Multimap.Internal._
 import MultiValues.Commutative
@@ -82,7 +81,7 @@ object MultimapTest extends TestSuite {
   val genVector: Gen[PropInputs[Vector, Long]] = gen(Gen.long, _.vector)
   val genList  : Gen[PropInputs[List,   Int ]] = gen(Gen.int, _.list)
 
-  override def tests = TestSuite {
+  override def tests = Tests {
     "list"   - genList  .mustSatisfyE(_.eval)
     "set"    - genSet   .mustSatisfyE(_.eval)
     "vector" - genVector.mustSatisfyE(_.eval)

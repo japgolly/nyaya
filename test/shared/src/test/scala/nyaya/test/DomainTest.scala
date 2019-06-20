@@ -15,7 +15,7 @@ object DomainTest extends TestSuite {
     assert(sa == se, ca == ce)
   }
 
-  override def tests = TestSuite {
+  override def tests = Tests {
     "boolean" - test(b)(true, false)
     "option"  - test(b.option)(None, Some(true), Some(false))
     "either"  - test(b +++ z)(true.left, false.left, 0.right, 1.right)
