@@ -1,5 +1,6 @@
 package nyaya.util
 
+import scala.collection.compat._
 import scalaz.Equal
 import MultiValues.Commutative
 import Multimap._, Internal._
