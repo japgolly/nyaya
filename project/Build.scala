@@ -16,7 +16,7 @@ object NyayaBuild {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    final val KindProjector = "0.9.10"
+    final val KindProjector = "0.10.3"
     final val Monocle       = "1.5.0"
     final val MTest         = "0.6.4"
     final val Scala211      = "2.11.12"
@@ -48,7 +48,7 @@ object NyayaBuild {
       shellPrompt in ThisBuild := ((s: State) => Project.extract(s).currentRef.project + "> "),
       triggeredMessage         := Watched.clearWhenTriggered,
       updateOptions            := updateOptions.value.withCachedResolution(true),
-      addCompilerPlugin("org.spire-math" %% "kind-projector" % Ver.KindProjector))
+      addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector))
     .configure(
       addCommandAliases(
         "BM"  -> "project benchmark",
