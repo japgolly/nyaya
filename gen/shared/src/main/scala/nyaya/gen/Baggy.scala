@@ -12,7 +12,7 @@ trait Baggy[H[_]] {
   def append  [A](h: H[A], i: H[A]): H[A]
 }
 
-object Baggy {
+object Baggy extends Platform.BaggyImplicits {
 
   implicit object EphemeralStreamBaggy extends Baggy[EphemeralStream] {
     override def empty   [A]                                               = EphemeralStream[A]
@@ -47,13 +47,6 @@ object Baggy {
     override def contains[A](h: Stream[A], a: A)         = h contains a
     override def add     [A](h: Stream[A], a: A)         = a #:: h
     override def append  [A](h: Stream[A], i: Stream[A]) = i #::: h
-  }
-
-  implicit object LazyListBaggy extends Baggy[LazyList] {
-    override def empty   [A]                                 = LazyList.empty
-    override def contains[A](h: LazyList[A], a: A)           = h contains a
-    override def add     [A](h: LazyList[A], a: A)           = a #:: h
-    override def append  [A](h: LazyList[A], i: LazyList[A]) = i #::: h
   }
 
   implicit object VectorBaggy extends Baggy[Vector] {
