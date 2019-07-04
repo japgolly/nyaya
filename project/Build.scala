@@ -37,7 +37,7 @@ object NyayaBuild {
     "-opt-inline-from:scala.**",
     "-opt-inline-from:nyaya.**",
     "-Ywarn-dead-code",
-    "-Ywarn-unused",
+    // "-Ywarn-unused",
     "-Ywarn-value-discard")
 
   val commonSettings = ConfigureBoth(
