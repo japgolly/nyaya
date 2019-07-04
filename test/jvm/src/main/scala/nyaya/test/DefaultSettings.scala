@@ -8,6 +8,6 @@ package nyaya.test
 
 object DefaultSettings {
 
-  implicit val propSettings =
+  implicit val propSettings: Settings =
     Settings(executor = ParallelExecutor())
 }

@@ -1,7 +1,8 @@
 package nyaya.prop
 
-import scala.collection.GenTraversable
+import scala.collection.Iterable
 import scalaz.{\/, Foldable, Equal}
+import scala.collection.compat._
 
 final case class EvalOver(input: Any) {
 
@@ -26,21 +27,21 @@ final case class EvalOver(input: Any) {
   def forall[F[_]: Foldable, B](fb: F[B])(each: B => EvalL): EvalL =
     Eval.forall(input, fb)(each)
 
-  def distinct[A](name: => String, as: GenTraversable[A]): EvalL =
+  def distinct[A](name: => String, as: Iterable[A]): EvalL =
     Eval.distinct(name, input, as)
 
   def distinctI[A](name: => String, as: Iterator[A]): EvalL =
     distinct(name, as.toList)
 
   /** Test that all Cs are on a whitelist. */
-  def whitelist[B, C](name: => String, whitelist: Set[B], testData: => TraversableOnce[C])(implicit ev: C <:< B): EvalL =
+  def whitelist[B, C](name: => String, whitelist: Set[B], testData: => IterableOnce[C])(implicit ev: C <:< B): EvalL =
     Eval.whitelist(name, input, whitelist, testData)
 
   /** Test that no Cs are on a blacklist. */
-  def blacklist[B, C](name: => String, blacklist: Set[B], testData: => TraversableOnce[C])(implicit ev: C <:< B): EvalL =
+  def blacklist[B, C](name: => String, blacklist: Set[B], testData: => IterableOnce[C])(implicit ev: C <:< B): EvalL =
     Eval.blacklist(name, input, blacklist, testData)
 
   /** Test that all Bs are present in Cs. */
-  def allPresent[B, C](name: => String, required: Set[B], testData: => TraversableOnce[C])(implicit ev: B <:< C): EvalL =
+  def allPresent[B, C](name: => String, required: Set[B], testData: => IterableOnce[C])(implicit ev: B <:< C): EvalL =
     Eval.allPresent(name, input, required, testData)
 }

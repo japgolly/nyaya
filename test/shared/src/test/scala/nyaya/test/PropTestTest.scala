@@ -15,13 +15,13 @@ object PropTestTest extends TestSuite {
   val prop = Prop.test[List[Int]]("distinct ints", is => is.distinct == is)
   val intGen = Gen.chooseInt(0,5).list(0 to 10).map(Distinct.int.lift[List].run)
 
-  override def tests = TestSuite {
+  override def tests = Tests {
 
-    'distinct {
+    "distinct" - {
       prop mustBeSatisfiedBy intGen
     }
 
-    'runs {
+    "runs" - {
       def test(s: Int): Unit = {
         def t(sd: Settings.SizeDist): Unit = {
           val i = new AtomicInteger(0)
@@ -31,7 +31,7 @@ object PropTestTest extends TestSuite {
           assert(r.runs == s, r.result == Result.Satisfied, i.get() == s)
         }
         t(Seq.empty)
-        t(Seq(1 → \/-(GenSize(4)), 1 → -\/(0.2), 8 → -\/(0.8)))
+        t(Seq(1 -> \/-(GenSize(4)), 1 -> -\/(0.2), 8 -> -\/(0.8)))
       }
         "1" - test(  1)
         "4" - test(  4)
@@ -41,7 +41,7 @@ object PropTestTest extends TestSuite {
       "100" - test(100)
     }
 
-    'proof {
+    "proof" - {
       val lock = new Object
       var is = List.empty[Option[Boolean]]
       val p = Prop.test[Option[Boolean]]("proof", i => lock.synchronized{is ::= i; true})

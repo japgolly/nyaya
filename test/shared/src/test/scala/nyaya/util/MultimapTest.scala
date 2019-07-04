@@ -5,7 +5,6 @@ import scalaz.std.AllInstances._
 import utest._
 import nyaya.gen._
 import nyaya.prop._
-import nyaya.test._
 import nyaya.test.PropTest._
 import Multimap.Internal._
 import MultiValues.Commutative
@@ -32,7 +31,7 @@ object MultimapTest extends TestSuite {
 
     // This will test that two operations (f and g) commute
     type MM = Multimap[A, L, A]
-    def comm[R: Equal](name: => String, z: MM, r: MM => R, f: MM ⇒ MM, g: MM ⇒ MM) =
+    def comm[R: Equal](name: => String, z: MM, r: MM => R, f: MM => MM, g: MM => MM) =
       E.equal(name, r(f(g(z))), r(g(f(z))))
 
     // And now the propositions begin...
@@ -70,11 +69,11 @@ object MultimapTest extends TestSuite {
                                        (implicit c: Option[Commutative[L]], E: Equal[L[A]]): Gen[PropInputs[L, A]] = {
     val gla = gl(ga)
     for {
-      kvs ← Gen.tuple2(ga, gla).list
+      kvs <- Gen.tuple2(ga, gla).list
       mm  = Multimap(kvs.toMap)
-      a   ← ga
-      b   ← ga
-      as  ← gla
+      a   <- ga
+      b   <- ga
+      as  <- gla
     } yield PropInputs[L, A](mm, a, b, as, c)
   }
 
@@ -82,9 +81,9 @@ object MultimapTest extends TestSuite {
   val genVector: Gen[PropInputs[Vector, Long]] = gen(Gen.long, _.vector)
   val genList  : Gen[PropInputs[List,   Int ]] = gen(Gen.int, _.list)
 
-  override def tests = TestSuite {
-    'list   - genList  .mustSatisfyE(_.eval)
-    'set    - genSet   .mustSatisfyE(_.eval)
-    'vector - genVector.mustSatisfyE(_.eval)
+  override def tests = Tests {
+    "list"   - genList  .mustSatisfyE(_.eval)
+    "set"    - genSet   .mustSatisfyE(_.eval)
+    "vector" - genVector.mustSatisfyE(_.eval)
   }
 }

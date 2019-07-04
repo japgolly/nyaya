@@ -2,7 +2,6 @@ package nyaya.benchmark
 
 import org.openjdk.jmh.annotations._
 import nyaya.gen._
-import SizeSpec.Exactly
 import GenBM._
 
 object GenBM {

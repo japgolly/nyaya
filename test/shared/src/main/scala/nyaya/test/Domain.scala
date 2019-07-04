@@ -1,9 +1,9 @@
 package nyaya.test
 
-import scala.collection.generic.CanBuildFrom
 import scala.collection.immutable.NumericRange
 import scala.reflect.ClassTag
 import scalaz.{Functor, \/-, -\/, \/}
+import scala.collection.compat._
 
 trait Domain[A] {
   val size: Int
@@ -33,7 +33,7 @@ trait Domain[A] {
   def triple: Domain[(A, A, A)] =
     this *** pair map (t => (t._1, t._2._1, t._2._2))
 
-  def seq[S[_]](r: Range)(implicit c: CanBuildFrom[Nothing, A, S[A]]): Domain[S[A]] =
+  def seq[S[_]](r: Range)(implicit c: Factory[A, S[A]]): Domain[S[A]] =
     new Domain.IntoSeq(this, r)(c)
 
   def array(s: Int)  (implicit t: ClassTag[A]): Domain[Array[A]] = seq[Array](s to s)
@@ -84,7 +84,7 @@ object Domain {
     override def apply(i: Int) = as(i)
   }
 
-  final class IntoSeq[S[_], A](a: Domain[A], r: Range)(implicit c: CanBuildFrom[Nothing, A, S[A]]) extends Domain[S[A]] {
+  final class IntoSeq[S[_], A](a: Domain[A], r: Range)(implicit c: Factory[A, S[A]]) extends Domain[S[A]] {
     private[this] val as = a.size
     val (size, starts) = r.foldLeft((0, Vector.empty[Int])) {
       case ((sum, q), i) => (sum + (if (i == 0) 1 else math.pow(as, i).toInt), q :+ sum)
@@ -95,7 +95,7 @@ object Domain {
       while (s > 0 && i < starts(s)) s -= 1
       var seqSize = r(s)
       i -= starts(s)
-      val builder = c.apply()
+      val builder = c.newBuilder
       while (seqSize > 0) {
         builder += a(i % as)
         i /= as

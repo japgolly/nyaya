@@ -25,29 +25,29 @@ object CycleDetectorTest extends TestSuite {
     assert(actual == expect)
   }
 
-  override def tests = TestSuite {
-    'directed {
+  override def tests = Tests {
+    "directed" - {
       val cd = CycleDetector.Directed.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, false, ns: _*)
 
-      'lines     - test(None,      `1234`,`5678`)
-      'diamond   - test(None,      diamond)
+      "lines"     - test(None,      `1234`,`5678`)
+      "diamond"   - test(None,      diamond)
       "1(35)24"  - test(None,      `1(35)24`)
       "1(35)245" - test(Some(4,5), `1(35)245`)
-      'circle    - test(Some(3,4), `41234`)
-      'self      - test(Some(9,9), `9→9`)
+      "circle"    - test(Some(3,4), `41234`)
+      "self"      - test(Some(9,9), `9→9`)
     }
 
-    'undirected {
+    "undirected" - {
       val cd = CycleDetector.Undirected.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, true, ns: _*)
 
-      'lines     - test(None,    `1234`,`5678`)
-      'diamond   - test(Some(3,4), diamond)
+      "lines"     - test(None,    `1234`,`5678`)
+      "diamond"   - test(Some(3,4), diamond)
       "1(35)24"  - test(Some(5,2), `1(35)24`)
       "1(35)245" - test(Some(3,5), `1(35)245`)
-      'circle    - test(Some(3,4), `41234`)
-      'self      - test(Some(9,9), `9→9`)
+      "circle"    - test(Some(3,4), `41234`)
+      "self"      - test(Some(9,9), `9→9`)
     }
   }
 }
