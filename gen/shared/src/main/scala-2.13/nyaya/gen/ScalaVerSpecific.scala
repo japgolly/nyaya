@@ -1,6 +1,6 @@
 package nyaya.gen
 
-object Platform {
+object ScalaVerSpecific {
 
   trait BaggyImplicits {
 

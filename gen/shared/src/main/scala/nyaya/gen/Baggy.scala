@@ -12,7 +12,7 @@ trait Baggy[H[_]] {
   def append  [A](h: H[A], i: H[A]): H[A]
 }
 
-object Baggy extends Platform.BaggyImplicits {
+object Baggy extends ScalaVerSpecific.BaggyImplicits {
 
   implicit object EphemeralStreamBaggy extends Baggy[EphemeralStream] {
     override def empty   [A]                                               = EphemeralStream[A]
