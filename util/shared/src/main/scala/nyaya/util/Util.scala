@@ -1,7 +1,7 @@
 package nyaya.util
 
 import scala.annotation.tailrec
-import scala.collection.GenTraversable
+import scala.collection.Iterable
 
 object Util {
 
@@ -29,10 +29,10 @@ object Util {
       case n => "\\u%04x" format n.toLong
     }.mkString
 
-  def asciiTree[N](root: GenTraversable[N])(leaves: N => GenTraversable[N], show: N => String, indent: String = ""): String =
+  def asciiTree[N](root: Iterable[N])(leaves: N => Iterable[N], show: N => String, indent: String = ""): String =
     quickSB(asciiTreeSB(root)(_, leaves, show, indent))
 
-  def asciiTreeSB[N](root: GenTraversable[N])(sb: StringBuilder, leaves: N => GenTraversable[N], show: N => String, indent: String = ""): Unit = {
+  def asciiTreeSB[N](root: Iterable[N])(sb: StringBuilder, leaves: N => Iterable[N], show: N => String, indent: String = ""): Unit = {
     val pm = "│  "
     val pl = "   "
     val cm = "├─ "

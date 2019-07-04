@@ -112,7 +112,7 @@ object PTest {
   }
 
   private[test] def debug1[A](a: A, r: RunState[A], S: Settings): Unit = {
-    def c(code: String, m: Any) = s"\033[${code}m$m\033[0m"
+    def c(code: String, m: Any) = s"\u001b[${code}m${m}\u001b[0m"
     var aa = a.toString
     val maxLen = if (r.success) S.debugMaxLen else aa.length
     val al = aa.length

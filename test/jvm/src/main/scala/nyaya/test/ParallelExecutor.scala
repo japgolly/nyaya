@@ -1,6 +1,7 @@
 package nyaya.test
 
-import java.util.concurrent._, atomic.AtomicInteger
+import java.util.concurrent.{Callable, ExecutorService, Executors, Future, TimeUnit}
+import java.util.concurrent.atomic.AtomicInteger
 import nyaya.gen.ThreadNumber
 import nyaya.prop.Prop
 import ParallelExecutor._

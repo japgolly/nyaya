@@ -8,6 +8,7 @@ import scalaz.syntax.foldable._
 import Baggy._
 import Baggy.Implicits._
 import Distinct.{Fixer, foldableList}
+import scala.collection.compat._
 
 sealed trait DistinctFn[A, B] {
   def run: A => B
@@ -170,8 +171,8 @@ object Distinct {
     @inline final def addh(xs: X*): Fixer[X, H, Y, Z] =
       addhs(xs)
 
-    def addhs(xs: TraversableOnce[X]): Fixer[X, H, Y, Z] =
-      copy(inith = xs.foldLeft(this.inith)(_ + f(_)))
+    def addhs(xs: IterableOnce[X]): Fixer[X, H, Y, Z] =
+      copy(inith = xs.iterator.foldLeft(this.inith)(_ + f(_)))
 
     def +(φ: Fixer[X, H, Y, Z]): Fixer[X, H, Y, Z] =
       copy(inith = this.inith ++ φ.inith)

@@ -1,7 +1,6 @@
 package nyaya.prop
 
 import scalaz.{Contravariant, Need}
-import scalaz.syntax.foldable1._
 import nyaya.util.NonEmptyList
 
 final case class Named        [P[_], A   ](n: Name, l: Logic[P, A])        extends Logic[P, A]

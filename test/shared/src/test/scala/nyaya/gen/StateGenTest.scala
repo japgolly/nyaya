@@ -11,7 +11,7 @@ object StateGenTest extends TestSuite {
       _ <- StateGen.put(s + 10)
     } yield s + i
 
-  override def tests = TestSuite {
+  override def tests = Tests {
     val (s, i) = g(40).samples().next()
     assert(s == 50, i >= 40 && i < 50)
   }
