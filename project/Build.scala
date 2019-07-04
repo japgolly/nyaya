@@ -1,11 +1,13 @@
 import sbt._
-import Keys._
-import pl.project13.scala.sbt.JmhPlugin
-import org.scalajs.sbtplugin.ScalaJSPlugin
-import ScalaJSPlugin.autoImport._
+import sbt.Keys._
+import com.typesafe.sbt.pgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+import org.scalajs.sbtplugin.ScalaJSPlugin
+import pl.project13.scala.sbt.JmhPlugin
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType, _}
+import sbtrelease.ReleasePlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
+import ScalaJSPlugin.autoImport._
 import Lib._
 
 object NyayaBuild {
@@ -42,18 +44,21 @@ object NyayaBuild {
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      organization             := "com.github.japgolly.nyaya",
-      homepage                 := Some(url("https://github.com/japgolly/" + ghProject)),
-      licenses                 += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-      scalaVersion             := Ver.Scala213,
-      crossScalaVersions       := Seq(Ver.Scala212, Ver.Scala213),
-      scalacOptions           ++= scalacFlags,
-      scalacOptions in Test   --= Seq("-Ywarn-dead-code"),
-      testFrameworks           := Nil,
-      shellPrompt in ThisBuild := ((s: State) => Project.extract(s).currentRef.project + "> "),
-      triggeredMessage         := Watched.clearWhenTriggered,
-      updateOptions            := updateOptions.value.withCachedResolution(true),
-      libraryDependencies += "org.scala-lang.modules" %%% "scala-collection-compat" % Ver.ScalaCollCompat,
+      organization                  := "com.github.japgolly.nyaya",
+      homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
+      licenses                      += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
+      scalaVersion                  := Ver.Scala213,
+      crossScalaVersions            := Seq(Ver.Scala212, Ver.Scala213),
+      scalacOptions                ++= scalacFlags,
+      scalacOptions in Test        --= Seq("-Ywarn-dead-code"),
+      testFrameworks                := Nil,
+      shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
+      triggeredMessage              := Watched.clearWhenTriggered,
+      updateOptions                 := updateOptions.value.withCachedResolution(true),
+      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+      releaseTagComment             := s"v${(version in ThisBuild).value}",
+      releaseVcsSign                := true,
+      libraryDependencies           += "org.scala-lang.modules" %%% "scala-collection-compat" % Ver.ScalaCollCompat,
       addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector)))
 
     def utestSettings = ConfigureBoth(
