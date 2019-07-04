@@ -28,14 +28,14 @@ Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> N
 
 ```scala
 // Property expression, evaluation, assertion.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "0.8.1"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "0.9.0"
 
 // Random data generation.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "0.8.1"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "0.9.0"
 
 // Property testing with random data.
 // Property proving.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.8.1" % "test"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.9.0" % "test"
 ```
 
 <br>
@@ -48,8 +48,8 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.8.1" % 
 <br>
 
 #### Requires:
-* Scala 2.11+
-* Scala.JS 0.6.13+ *(optional)*
+* Scala 2.12+
+* Scala.JS 0.6.17+ *(optional)*
 
 <br>
 
@@ -71,7 +71,7 @@ I do all my OSS work unpaid so showing your support will make a big difference.
 
 #### Licence
 ```
-Copyright (C) 2014-2016 David Barri
+Copyright (C) 2014-2019 David Barri
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
