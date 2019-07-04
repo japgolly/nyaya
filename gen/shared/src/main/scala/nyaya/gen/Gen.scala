@@ -3,6 +3,7 @@ package nyaya.gen
 import java.time.ZoneId
 import java.util.UUID
 import nyaya.util.{NonEmptyList => NonEmptyListN}
+import nyaya.util.ScalaVerSpecificUtil.Implicits._
 import scala.annotation.{switch, tailrec}
 import scala.collection.AbstractIterator
 import scala.collection.compat._

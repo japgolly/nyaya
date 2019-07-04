@@ -5,8 +5,8 @@ import scala.collection.Iterable
 import scala.collection.mutable
 import scalaz.{Contravariant, Equal, Foldable, Need, Value, \/}
 import scalaz.syntax.foldable._
-import nyaya.util.Multimap
-import nyaya.util.Util
+import nyaya.util.{Multimap, Util}
+import nyaya.util.ScalaVerSpecificUtil.Implicits._
 import scala.collection.compat._
 
 object Eval {

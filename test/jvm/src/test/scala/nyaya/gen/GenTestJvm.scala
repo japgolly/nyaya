@@ -3,6 +3,7 @@ package nyaya.gen
 import java.time._
 import scala.concurrent.duration._
 import scala.collection.SortedSet
+import scala.collection.compat._
 import scalaz.std.AllInstances._
 import utest._
 import nyaya.prop._
