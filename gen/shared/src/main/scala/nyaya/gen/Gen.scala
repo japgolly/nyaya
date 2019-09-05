@@ -138,7 +138,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     * This will ensure that only unique random data is used and that the resulting set has the desired size.
     *
     * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.set(3)` will never return.
+    * For example, `Gen.bool.sizedSet(3)` will never return.
     */
   def sizedSet[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
     _sizedSet(ss.gen)
@@ -147,7 +147,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     * This will ensure that only unique random data is used and that the resulting set has the desired size.
     *
     * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.set1(3)` will never return.
+    * For example, `Gen.bool.sizedSet1(3)` will never return.
     */
   def sizedSet1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
   _sizedSet(ss.gen1)
