@@ -810,6 +810,24 @@ object Gen {
     else
       Gen(Gen.shuffle(as).samplesUsing(_).flatten)
 
+  def batches[A](as: Vector[A], partitionSize: Range.Inclusive, keepRemainder: Boolean = true): Gen[Vector[Vector[A]]] = {
+    val genSize = Gen.chooseInt(partitionSize.min, partitionSize.max)
+    Gen { ctx =>
+      val b = Vector.newBuilder[Vector[A]]
+      @tailrec def go(rem: Vector[A]): Unit =
+        if (rem.isEmpty)
+          ()
+        else if (rem.length >= partitionSize.min) {
+          val n = genSize.run(ctx)
+          b += rem.take(n)
+          go(rem.drop(n))
+        } else if (keepRemainder)
+          b += rem
+      go(as)
+      b.result()
+    }
+  }
+
   // -------------------
   // Date & Time related
   // -------------------
