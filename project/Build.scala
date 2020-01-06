@@ -18,11 +18,12 @@ object NyayaBuild {
     Lib.publicationSettings(ghProject)
 
   object Ver {
-    final val KindProjector   = "0.10.3"
+    final val BetterMonadicFor = "0.3.1"
+    final val KindProjector   = "0.11.0"
     final val Monocle         = "1.6.0"
     final val MTest           = "0.6.9"
-    final val Scala212        = "2.12.8"
-    final val Scala213        = "2.13.0"
+    final val Scala212        = "2.12.10"
+    final val Scala213        = "2.13.1"
     final val ScalaCollCompat = "2.1.3"
     final val Scalaz          = "7.2.30"
   }
@@ -53,13 +54,13 @@ object NyayaBuild {
       scalacOptions in Test        --= Seq("-Ywarn-dead-code"),
       testFrameworks                := Nil,
       shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
-      triggeredMessage              := Watched.clearWhenTriggered,
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(version in ThisBuild).value}",
       releaseVcsSign                := true,
       libraryDependencies           += "org.scala-lang.modules" %%% "scala-collection-compat" % Ver.ScalaCollCompat,
-      addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector)))
+      addCompilerPlugin("com.olegpy" %% "better-monadic-for" % Ver.BetterMonadicFor),
+      addCompilerPlugin("org.typelevel" %% "kind-projector" % Ver.KindProjector cross CrossVersion.full)))
 
     def utestSettings = ConfigureBoth(
     _.settings(
