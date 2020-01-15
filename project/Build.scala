@@ -4,13 +4,13 @@ import com.typesafe.sbt.pgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import pl.project13.scala.sbt.JmhPlugin
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType, _}
 import sbtrelease.ReleasePlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
 import ScalaJSPlugin.autoImport._
 import Lib._
 
 object NyayaBuild {
+  import sbtcrossproject.CrossPlugin.autoImport._
 
   private val ghProject = "nyaya"
 
@@ -21,7 +21,7 @@ object NyayaBuild {
     val BetterMonadicFor = "0.3.1"
     val KindProjector    = "0.11.0"
     val Monocle          = "1.6.0"
-    val MTest            = "0.6.9"
+    val MTest            = "0.7.3"
     val Scala212         = "2.12.11"
     val Scala213         = "2.13.1"
     val ScalaCollCompat  = "2.1.6"

@@ -7,8 +7,14 @@ scala:
 jdk:
   - openjdk8
 
+env:
+  - TARGET=JVM
+  - TARGET=JS
+  - SCALAJS_VERSION=1.0.0-RC2 TARGET=JVM
+  - SCALAJS_VERSION=1.0.0-RC2 TARGET=JS
+
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION test
+  - sbt ++$TRAVIS_SCALA_VERSION ${TARGET}/test
 
 before_cache:
   - rm -f $HOME/.ivy2/.sbt.ivy.lock
