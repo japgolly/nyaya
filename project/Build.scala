@@ -6,6 +6,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin
 import pl.project13.scala.sbt.JmhPlugin
 import sbtrelease.ReleasePlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
+import org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv
 import ScalaJSPlugin.autoImport._
 import Lib._
 
@@ -21,11 +22,12 @@ object NyayaBuild {
     val BetterMonadicFor = "0.3.1"
     val KindProjector    = "0.11.0"
     val Monocle          = "1.6.0"
-    val MTest            = "0.7.3"
+    val MTest            = "0.7.4"
     val Scala212         = "2.12.11"
     val Scala213         = "2.13.1"
     val ScalaCollCompat  = "2.1.6"
     val Scalaz           = "7.2.30"
+    val Shims            = "2.1-b291d9c-SNAPSHOT"
   }
 
   def scalacFlags = Seq(
@@ -68,7 +70,7 @@ object NyayaBuild {
       testFrameworks      += new TestFramework("utest.runner.Framework")))
     .jsConfigure(
       // Not mandatory; just faster.
-      _.settings(jsEnv in Test := PhantomJSEnv().value))
+      _.settings(jsEnv in Test := new JSDOMNodeJSEnv()))
 
 
   // ==============================================================================================
