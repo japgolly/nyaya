@@ -27,7 +27,7 @@ object NyayaBuild {
     val Scala213         = "2.13.1"
     val ScalaCollCompat  = "2.1.6"
     val Scalaz           = "7.2.30"
-    val Shims            = "2.1-b291d9c-SNAPSHOT"
+    val Shims            = "2.0.0"
   }
 
   def scalacFlags = Seq(
