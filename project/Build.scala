@@ -24,7 +24,7 @@ object NyayaBuild {
     val MTest            = "0.6.9"
     val Scala212         = "2.12.10"
     val Scala213         = "2.13.1"
-    val ScalaCollCompat  = "2.1.3"
+    val ScalaCollCompat  = "2.1.6"
     val Scalaz           = "7.2.30"
   }
 
