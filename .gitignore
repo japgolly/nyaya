@@ -13,3 +13,4 @@ target
 .*.swo
 .*.swn
 
+project/metals.sbt
