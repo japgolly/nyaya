@@ -22,7 +22,7 @@ object NyayaBuild {
     val KindProjector    = "0.11.0"
     val Monocle          = "1.6.0"
     val MTest            = "0.6.9"
-    val Scala212         = "2.12.10"
+    val Scala212         = "2.12.11"
     val Scala213         = "2.13.1"
     val ScalaCollCompat  = "2.1.6"
     val Scalaz           = "7.2.30"
@@ -64,7 +64,7 @@ object NyayaBuild {
 
     def utestSettings = ConfigureBoth(
     _.settings(
-      libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % "test",
+      libraryDependencies += "com.lihaoyi" %%% "utest" % Ver.MTest % Test,
       testFrameworks      += new TestFramework("utest.runner.Framework")))
     .jsConfigure(
       // Not mandatory; just faster.
@@ -112,7 +112,7 @@ object NyayaBuild {
       libraryDependencies ++= Seq(
         "org.scalaz" %%% "scalaz-core" % Ver.Scalaz,
         "com.github.julien-truffaut" %%% "monocle-core" % Ver.Monocle,
-        "com.github.julien-truffaut" %%% "monocle-macro" % Ver.Monocle % "test"
+        "com.github.julien-truffaut" %%% "monocle-macro" % Ver.Monocle % Test
       ))
 
   lazy val testJVM = testModule.jvm
