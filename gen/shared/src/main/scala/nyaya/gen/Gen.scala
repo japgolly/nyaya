@@ -14,7 +14,7 @@ import scalaz.{Name, Need, NonEmptyList => NonEmptyListZ}
 import scalaz.std.function._
 import SizeSpec.DisableDefault._
 
-final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
+final case class Gen[+A](run: Gen.Run[A]) extends AnyVal with ScalaVerSpecific.GenClassExt[A] {
 
   /**
    * Produce a sample datum.
