@@ -9,7 +9,6 @@ import Baggy._
 import Baggy.Implicits._
 import Distinct.{Fixer, foldableList}
 import scala.collection.compat._
-import shims._
 
 sealed trait DistinctFn[A, B] {
   def run: A => B

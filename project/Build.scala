@@ -21,13 +21,12 @@ object NyayaBuild {
   object Ver {
     val BetterMonadicFor = "0.3.1"
     val KindProjector    = "0.11.0"
-    val Monocle          = "1.6.0"
+    val Monocle          = "1.6.3"
     val MTest            = "0.7.4"
     val Scala212         = "2.12.11"
     val Scala213         = "2.13.1"
     val ScalaCollCompat  = "2.1.6"
     val Scalaz           = "7.2.30"
-    val Shims            = "2.0.0"
   }
 
   def scalacFlags = Seq(
