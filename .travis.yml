@@ -7,6 +7,10 @@ scala:
 jdk:
   - openjdk8
 
+env:
+  - SCALAJS_VERSION=
+  - SCALAJS_VERSION=1.0.1
+
 script:
   - sbt ++$TRAVIS_SCALA_VERSION test
 
@@ -19,3 +23,10 @@ cache:
     - $HOME/.coursier
     - $HOME/.ivy2/cache
     - $HOME/.sbt
+
+install:
+  - . $HOME/.nvm/nvm.sh
+  - nvm install stable
+  - nvm use stable
+  - npm install
+  - npm install jsdom

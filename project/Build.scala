@@ -4,13 +4,14 @@ import com.typesafe.sbt.pgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import pl.project13.scala.sbt.JmhPlugin
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType, _}
 import sbtrelease.ReleasePlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
+import org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv
 import ScalaJSPlugin.autoImport._
 import Lib._
 
 object NyayaBuild {
+  import sbtcrossproject.CrossPlugin.autoImport._
 
   private val ghProject = "nyaya"
 
@@ -20,8 +21,8 @@ object NyayaBuild {
   object Ver {
     val BetterMonadicFor = "0.3.1"
     val KindProjector    = "0.11.0"
-    val Monocle          = "1.6.0"
-    val MTest            = "0.6.9"
+    val Monocle          = "1.6.3"
+    val MTest            = "0.7.4"
     val Scala212         = "2.12.11"
     val Scala213         = "2.13.1"
     val ScalaCollCompat  = "2.1.6"
@@ -68,7 +69,7 @@ object NyayaBuild {
       testFrameworks      += new TestFramework("utest.runner.Framework")))
     .jsConfigure(
       // Not mandatory; just faster.
-      _.settings(jsEnv in Test := PhantomJSEnv().value))
+      _.settings(jsEnv in Test := new JSDOMNodeJSEnv()))
 
 
   // ==============================================================================================
