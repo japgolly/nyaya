@@ -4,7 +4,7 @@ import scalaz.StateT
 
 package object gen {
 
-  type StateGen[S, A] = StateT[Gen, S, A]
+  type StateGen[S, A] = StateT[S, Gen, A]
 
   @inline implicit def GenOpsWithInvariantA[A](g: Gen[A]): GenOpsWithInvariantA[A] =
     new GenOpsWithInvariantA(g.run)

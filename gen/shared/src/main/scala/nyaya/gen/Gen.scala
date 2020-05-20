@@ -295,7 +295,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal with ScalaVerSpecific.G
     scalazNEL(ss)
 
   def scalazNEL[B >: A](implicit ss: SizeSpec): Gen[NonEmptyListZ[B]] =
-    for (l <- list1(ss)) yield NonEmptyListZ.nels[B](l.head, l.tail: _*)
+    for (l <- list1(ss)) yield NonEmptyList.fromSeq(l.head, l.tail)
 
   def \/[B](g: Gen[B]): Gen[A \/ B] =
     Gen(c => if (c.nextBit()) -\/(run(c)) else \/-(g run c))
@@ -928,7 +928,7 @@ object Gen {
       override def distributeImpl[F[_], A, B](fa: F[A])(f: A => Gen[B])(implicit F: Functor[F]): Gen[F[B]] =
         Gen(ctx => F.map(fa)(f(_) run ctx))
 
-      override def tailrecM[A, B](f: A => Gen[A \/ B])(a: A): Gen[B] =
+      override def tailrecM[A, B](a: A)(f: A => Gen[A \/ B]): Gen[B] =
         Gen { c =>
           @tailrec
           def go(a1: A): B =
