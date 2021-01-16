@@ -20,7 +20,7 @@ object NyayaBuild {
 
   object Ver {
     val BetterMonadicFor = "0.3.1"
-    val KindProjector    = "0.11.0"
+    val KindProjector    = "0.11.3"
     val Monocle          = "1.6.3"
     val MTest            = "0.7.4"
     val Scala212         = "2.12.11"
