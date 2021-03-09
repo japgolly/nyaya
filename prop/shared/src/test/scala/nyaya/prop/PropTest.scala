@@ -181,13 +181,13 @@ object PropTest extends TestSuite {
       test(mod235c.rename("whateverness"), 6, failureTreeIs("whateverness\n└─ mod5"))
     }
     "forall" - {
-      * -{
+      "*" - {
         val allEven = even.forallF[List]
         test(allEven, List(4,6), ok)
         test(allEven, Nil, ok)
         test(allEven, List(4,5,6,7), ko >> rootCausesN(evenN) >> failureTreeIs("∀{even}\n└─ even"))
       }
-      * -{
+      "*" - {
       val p = mod235c.forallF[List]
       test(p, List(15, 30, 60, 25), ko >> inputA >> rootCausesN(evenN, mod3N) >> reportIs(
         """

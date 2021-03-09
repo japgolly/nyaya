@@ -1,6 +1,6 @@
 import sbt._
 import sbt.Keys._
-import com.typesafe.sbt.pgp.PgpKeys
+import com.jsuereth.sbtpgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import pl.project13.scala.sbt.JmhPlugin
@@ -20,13 +20,13 @@ object NyayaBuild {
 
   object Ver {
     val BetterMonadicFor = "0.3.1"
-    val KindProjector    = "0.11.0"
+    val KindProjector    = "0.11.3"
     val Monocle          = "1.6.3"
-    val MTest            = "0.7.4"
-    val Scala212         = "2.12.11"
-    val Scala213         = "2.13.1"
-    val ScalaCollCompat  = "2.1.6"
-    val Scalaz           = "7.2.30"
+    val MTest            = "0.7.7"
+    val Scala212         = "2.12.13"
+    val Scala213         = "2.13.5"
+    val ScalaCollCompat  = "2.4.2"
+    val Scalaz           = "7.2.31"
   }
 
   def scalacFlags = Seq(

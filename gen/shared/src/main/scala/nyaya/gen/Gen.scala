@@ -945,7 +945,7 @@ object Gen {
   def sequenceZ [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
 
   def distribute  [F[_], B]   (a: Gen[F[B]])(implicit D: Distributive[F])            : F[Gen[B]]             = D.cosequence(a)
-  def distributeR [A, B]      (a: Gen[A => B])                                       : A => Gen[B]           = distribute[A => ?, B](a)
+  def distributeR [A, B]      (a: Gen[A => B])                                       : A => Gen[B]           = distribute[A => *, B](a)
   def distributeRK[A, B]      (a: Gen[A => B])                                       : Kleisli[Gen, A, B]    = Kleisli(distributeR(a))
-  def distributeK [F[_], A, B](a: Gen[Kleisli[F, A, B]])(implicit D: Distributive[F]): Kleisli[F, A, Gen[B]] = distribute[Kleisli[F, A, ?], B](a)
+  def distributeK [F[_], A, B](a: Gen[Kleisli[F, A, B]])(implicit D: Distributive[F]): Kleisli[F, A, Gen[B]] = distribute[Kleisli[F, A, *], B](a)
 }

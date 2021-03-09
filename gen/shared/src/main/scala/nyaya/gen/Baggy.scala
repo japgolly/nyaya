@@ -1,5 +1,6 @@
 package nyaya.gen
 
+import scala.annotation.nowarn
 import scalaz.EphemeralStream
 
 /*
@@ -42,6 +43,7 @@ object Baggy extends ScalaVerSpecific.BaggyImplicits {
     override def append  [A](h: Set[A], i: Set[A]) = h ++ i
   }
 
+  @nowarn("cat=deprecation")
   implicit object StreamBaggy extends Baggy[Stream] {
     override def empty   [A]                             = Stream.empty
     override def contains[A](h: Stream[A], a: A)         = h contains a
