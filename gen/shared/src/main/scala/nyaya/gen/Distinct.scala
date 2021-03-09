@@ -5,8 +5,7 @@ import monocle._
 import scalaz.{Monoid, Foldable, State, Traverse}
 import scalaz.Leibniz.===
 import scalaz.syntax.foldable._
-import Baggy._
-import Baggy.Implicits._
+import SetLike.Implicits._
 import Distinct.{Fixer, foldableList}
 import scala.collection.compat._
 
@@ -14,7 +13,7 @@ sealed trait DistinctFn[A, B] {
   def run: A => B
 }
 
-case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
+case class Distinct[A, X, H[_], Y, Z, B](
     fixer: Fixer[X, H, Y, Z], t: A => (X => State[H[Y], Z]) => State[H[Y], B]) extends DistinctFn[A, B]{
 
   final type S[λ] = State[H[Y], λ]
@@ -76,11 +75,11 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
       (h, t2)
     })
 
-  def lift[F[_] : Foldable : Baggy]: Distinct[F[A], X, H, Y, Z, F[B]] =
+  def lift[F[_]](implicit F: Foldable[F], FB: SetLike[F, B]): Distinct[F[A], X, H, Y, Z, F[B]] =
     dimaps[F[A], F[B]](fa => ab => State { h0 =>
       var h = h0
       val fb =
-        fa.foldl(implicitly[Baggy[F]].empty[B])(q => a => {
+        fa.foldl(FB.empty)(q => a => {
           val (h2, b) = ab(a).run(h)
           h = h2
           q + b
@@ -117,7 +116,7 @@ case class Distinct[A, X, H[_] : Baggy, Y, Z, B](
   // def ***[C, D](f: Distinct1[C, D]): Distinct1[(A, C), (B, D)] =
 }
 
-case class DistinctEndo[A](ds: NonEmptyList[DistinctFn[A, A]]) extends DistinctFn[A, A] {
+final case class DistinctEndo[A](ds: NonEmptyList[DistinctFn[A, A]]) extends DistinctFn[A, A] {
   def run: A => A =
     ds.tail.foldLeft(ds.head.run)(_ compose _.run)
 
@@ -132,7 +131,7 @@ case class DistinctEndo[A](ds: NonEmptyList[DistinctFn[A, A]]) extends DistinctF
     case d@Distinct(_, _)  => d.contramap(f, g)
   }
 
-  def lift[F[_] : Foldable : Baggy]: DistinctEndo[F[A]] = map {
+  def lift[F[_]](implicit F: Foldable[F], FA: SetLike[F, A]): DistinctEndo[F[A]] = map {
     case d@DistinctEndo(_) => d.lift[F]
     case d@Distinct(_, _)  => d.lift[F]
   }
@@ -153,7 +152,8 @@ object Distinct {
         fa.foldLeft(F.zero)((b, a) => F.append(b, f(a)))
     }
 
-  case class Fixer[X, H[_] : Baggy, Y, Z](f: X => Y, g: Y => Z, fix: H[Y] => Y, inith: H[Y]) {
+  final case class Fixer[X, H[_], Y, Z](f: X => Y, g: Y => Z, fix: H[Y] => Y, inith: H[Y])
+                                       (implicit H: SetLike[H, Y]) {
     def apply(x: X): State[H[Y], Z] =
       State[H[Y], Z](h => {
         var y = f(x)
@@ -182,8 +182,8 @@ object Distinct {
   }
 
   object Fixer {
-    def lift[H[_], A](f: H[A] => A)(implicit H: Baggy[H]): Fixer[A, H, A, A] =
-      Fixer[A, H, A, A](identity, identity, f, H.empty)
+    def lift[F[_], A](f: F[A] => A)(implicit F: SetLike[F, A]): Fixer[A, F, A, A] =
+      Fixer[A, F, A, A](identity, identity, f, F.empty)
   }
 
   // =====================================================================================================================
