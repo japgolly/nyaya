@@ -10,6 +10,6 @@ import nyaya.gen.GenSize
 
 object DefaultSettings {
 
-  implicit val propSettings =
+  implicit val propSettings: Settings =
     Settings(genSize = GenSize.Default.map(_ >>> 1)) // Halve the default GenSize. JS is slower.
 }

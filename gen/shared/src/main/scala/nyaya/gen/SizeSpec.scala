@@ -1,6 +1,5 @@
 package nyaya.gen
 
-import scala.annotation.switch
 import scala.collection.immutable.IndexedSeq
 
 sealed trait SizeSpec {
@@ -37,22 +36,23 @@ object SizeSpec {
 
   case class OneOf(possibilities: IndexedSeq[Int]) extends SizeSpec {
 
-    override val (gen, gen1) =
-      (possibilities.length: @switch) match {
+    override val (gen, gen1) = {
+      val len = possibilities.length
 
-        case 1 =>
-          val e = Exactly(possibilities.head)
-          (e.gen, e.gen1)
+      if (len == 1) {
+        val e = Exactly(possibilities.head)
+        (e.gen, e.gen1)
 
-        case 0 =>
-          Default.both
+      } else if (len == 0) {
+        Default.both
 
-        case _ =>
-          val g = Gen.chooseIndexed_!(possibilities)
-          val a = g flatMap (n => Gen(_ fixGenSize n))
-          val b = g flatMap (n => Gen(_ fixGenSize1 n))
-          (a, b)
+      } else {
+        val g = Gen.chooseIndexed_!(possibilities)
+        val a = g flatMap (n => Gen(_ fixGenSize n))
+        val b = g flatMap (n => Gen(_ fixGenSize1 n))
+        (a, b)
       }
+    }
   }
 
   implicit def autoFromSeq(possibilities: IndexedSeq[Int]): SizeSpec =

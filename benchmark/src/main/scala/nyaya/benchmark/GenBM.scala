@@ -205,8 +205,9 @@ class GenBM {
   val subsetBM = bm(Gen subset intSet)
   @Benchmark def subset = subsetBM()
 
-  val take20BM = bm(intSetG take 20)
-  @Benchmark def take20 = take20BM()
+  // TODO: https://github.com/lampepfl/dotty/issues/11681
+  // val take20BM = bm(intSetG take 20)
+  // @Benchmark def take20 = take20BM()
 
   val vectorBM = bm(Gen.int.vector)
   @Benchmark def vector = vectorBM()

@@ -322,7 +322,8 @@ object Gen {
     @inline def string1(implicit ss: SizeSpec): Gen[String] = Gen.stringOf1(Gen(g))(ss)
   }
 
-  @inline implicit def _GenCharExt(g: Gen[Char]) = new GenCharExt(g.run)
+  @inline implicit def _GenCharExt(g: Gen[Char]): GenCharExt =
+    new GenCharExt(g.run)
 
   final case class ToNonEmptySeq[S, A](toSeq: S => Seq[A]) extends AnyVal
 
