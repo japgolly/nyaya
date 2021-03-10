@@ -37,7 +37,7 @@ object MultimapTest extends TestSuite {
     // And now the propositions begin...
     // First the propositions that are only tested when L is commutative
     def commutativeProps = commutative.fold(E.pass)(c => {
-      implicit def cc = c
+      implicit def cc: Commutative[L] = c
       ( E.equal("reverse.reverse = id"      , mm.reverse.reverse                     , mm)
       ∧ E.equal("addvs symmetrical to addks", mm.addvs(a, as).reverse                , mm.reverse.addks(as, a))
       ∧ E.equal("delvs symmetrical to delks", bigm.delvs(ab).reverse                 , bigm.reverse.delks(ab))

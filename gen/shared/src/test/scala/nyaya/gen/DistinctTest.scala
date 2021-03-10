@@ -1,6 +1,6 @@
 package nyaya.gen
 
-import monocle.macros.GenLens
+import monocle.Lens
 import scalaz.std.list._
 import scalaz.std.set._
 import utest._
@@ -11,21 +11,19 @@ object DistinctTest extends TestSuite {
   case class Person(name: String, age: Age, set: Set[Age])
   case class Stuff(list: List[Age], ppl: List[Person])
 
-  val pl = new GenLens[Person]
-  val personName = pl(_.name)
-  val personAge  = pl(_.age)
-  val personSet  = pl(_.set)
-  val sl = new GenLens[Stuff]
-  val stuffList = sl(_.list)
-  val stuffPpl  = sl(_.ppl)
+  val personName = Lens((_: Person).name)(v => _.copy(name = v))
+  val personAge  = Lens((_: Person).age)(v => _.copy(age = v))
+  val personSet  = Lens((_: Person).set)(v => _.copy(set = v))
+  val stuffList  = Lens((_: Stuff).list)(v => _.copy(list = v))
+  val stuffPpl   = Lens((_: Stuff).ppl)(v => _.copy(ppl = v))
 
-  val dAge        = Distinct.fint.xmap(Age)(_.value).addh(Age(0)).distinct
+  val dAge        = Distinct.fint.xmap(Age.apply)(_.value).addh(Age(0)).distinct
   val dPersonAges = dAge.at(personAge) + dAge.lift[Set].at(personSet).addh(Age(500))
   val dStuffAges  = dPersonAges.lift[List].at(stuffPpl) + dAge.lift[List].at(stuffList)
   val dPplNames   = Distinct.str.at(personName).lift[List]
   val dStuff      = dPplNames.at(stuffPpl) * dStuffAges
 
-  implicit def autoAge(i: Int) = Age(i)
+  implicit def autoAge(i: Int): Age = Age(i)
   val p1 = Person("A", 10, Set(10, 20, 30))
   val p2 = Person("B", 10, Set(50, 20))
   val p3 = Person("B", 500, Set(5, 500))

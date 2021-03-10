@@ -6,7 +6,8 @@ import nyaya.util.Util
 import scala.Console._
 
 object PropTest extends PropTestOps {
-  implicit def defaultPropSettings = DefaultSettings.propSettings
+  implicit def defaultPropSettings: Settings =
+    DefaultSettings.propSettings
 }
 
 object PropTestOps extends PropTestOps
@@ -68,9 +69,9 @@ trait PropTestOps {
   private[test] def fail(s: String, e: Throwable = null): Nothing =
     throw new java.lang.AssertionError(s, e)
 
-  @inline implicit def autoToOpsPropExt  [A](p: Prop[A])   = new PropExt(p)
-  @inline implicit def autoToOpsGenExt   [A](g: Gen[A])    = new GenExt(g.run)
-  @inline implicit def autoToOpsDomainExt[A](d: Domain[A]) = new DomainExt(d)
+  @inline implicit def autoToOpsPropExt  [A](p: Prop[A])  : PropExt  [A] = new PropExt(p)
+  @inline implicit def autoToOpsGenExt   [A](g: Gen[A])   : GenExt   [A] = new GenExt(g.run)
+  @inline implicit def autoToOpsDomainExt[A](d: Domain[A]): DomainExt[A] = new DomainExt(d)
 }
 
 import nyaya.test.PropTestOps._

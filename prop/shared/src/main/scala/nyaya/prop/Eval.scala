@@ -200,10 +200,10 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
     case object T extends X {
       override def toString = s"${m.size} failed axioms, ${m.values.foldLeft(Set.empty[FailureReason])(_ ++ _).size} causes of failure."
     }
-    val keys = m.keys.toList.map(K).sortBy(_.toString)
+    val keys = m.keys.toList.map(K.apply).sortBy(_.toString)
     Util.asciiTreeSB[X](List(T))(sb, {
         case T    => keys
-        case K(k) => m(k).map(I).toList.sortBy(_.toString)
+        case K(k) => m(k).map(I.apply).toList.sortBy(_.toString)
         case I(_) => Nil
       }, _.toString, indent)
   }
