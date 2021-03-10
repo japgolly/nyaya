@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
 import com.jsuereth.sbtpgp.PgpKeys._
+import dotty.tools.sbtplugin.DottyPlugin.autoImport._
 import sbtcrossproject.CrossProject
 import sbtcrossproject.CrossPlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
@@ -53,11 +54,19 @@ object Lib {
 
   def sourceMapsToGithub(ghProject: String): PE =
     p => p.settings(
-      scalacOptions ++= (if (isSnapshot.value) Seq.empty else Seq({
-        val a = p.base.toURI.toString.replaceFirst("[^/]+/?$", "")
-        val g = s"https://raw.githubusercontent.com/japgolly/$ghProject"
-        s"-P:scalajs:mapSourceURI:$a->$g/v${version.value}/"
-      }))
+      scalacOptions ++= {
+        val _isDotty    = isDotty.value
+        val _isSnapshot = isSnapshot.value
+        val ver         = version.value
+        if (_isSnapshot)
+          Nil
+        else {
+          val a = p.base.toURI.toString.replaceFirst("[^/]+/?$", "")
+          val g = s"https://raw.githubusercontent.com/japgolly/$ghProject"
+          val flag = if (_isDotty) "-scalajs-mapSourceURI" else "-P:scalajs:mapSourceURI"
+          s"$flag:$a->$g/v$ver/" :: Nil
+        }
+      }
     )
 
   def preventPublication: PE =
