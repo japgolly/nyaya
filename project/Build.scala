@@ -22,10 +22,10 @@ object NyayaBuild {
     val BetterMonadicFor = "0.3.1"
     val KindProjector    = "0.11.3"
     val Monocle          = "1.6.3"
-    val MTest            = "0.7.7"
+    val MTest            = "0.7.9"
     val Scala212         = "2.12.13"
     val Scala213         = "2.13.5"
-    val Scala3           = "3.0.0-RC1"
+    val Scala3           = "3.0.0-RC3"
     val ScalaCollCompat  = "2.4.3"
     val Scalaz           = "7.2.31"
   }
