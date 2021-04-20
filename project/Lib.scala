@@ -1,7 +1,6 @@
 import sbt._
 import Keys._
 import com.jsuereth.sbtpgp.PgpKeys._
-import dotty.tools.sbtplugin.DottyPlugin.autoImport._
 import sbtcrossproject.CrossProject
 import sbtcrossproject.CrossPlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
@@ -55,29 +54,19 @@ object Lib {
   def sourceMapsToGithub(ghProject: String): PE =
     p => p.settings(
       scalacOptions ++= {
-        val _isDotty    = isDotty.value
-        val _isSnapshot = isSnapshot.value
-        val ver         = version.value
-        if (_isSnapshot)
+        val isDotty = scalaVersion.value startsWith "3"
+        val ver     = version.value
+        if (isSnapshot.value)
           Nil
         else {
           val a = p.base.toURI.toString.replaceFirst("[^/]+/?$", "")
           val g = s"https://raw.githubusercontent.com/japgolly/$ghProject"
-          val flag = if (_isDotty) "-scalajs-mapSourceURI" else "-P:scalajs:mapSourceURI"
+          val flag = if (isDotty) "-scalajs-mapSourceURI" else "-P:scalajs:mapSourceURI"
           s"$flag:$a->$g/v$ver/" :: Nil
         }
       }
     )
 
   def preventPublication: PE =
-    _.settings(
-      skip in publish    := true,
-      publish            := {},
-      publishLocal       := {},
-      publishSigned      := {},
-      publishLocalSigned := {},
-      publishArtifact    := false,
-      publishTo          := Some(Resolver.file("Unused transient repository", target.value / "fakepublish")),
-      packagedArtifacts  := Map.empty)
-    // .disablePlugins(plugins.IvyPlugin)
+    _.settings(publish / skip := true)
 }

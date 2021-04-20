@@ -1,7 +1,6 @@
 import sbt._
 import sbt.Keys._
 import com.jsuereth.sbtpgp.PgpKeys
-import dotty.tools.sbtplugin.DottyPlugin.autoImport._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import pl.project13.scala.sbt.JmhPlugin
@@ -32,10 +31,10 @@ object NyayaBuild {
   }
 
   object Dep {
-    val MonocleCore     = Def.setting("com.github.julien-truffaut" %%% "monocle-core"            % Ver.Monocle         withDottyCompat scalaVersion.value)
-    val MTest           = Def.setting("com.lihaoyi"                %%% "utest"                   % Ver.MTest                                             )
-    val ScalaCollCompat = Def.setting("org.scala-lang.modules"     %%% "scala-collection-compat" % Ver.ScalaCollCompat                                   )
-    val Scalaz          = Def.setting("org.scalaz"                 %%% "scalaz-core"             % Ver.Scalaz          withDottyCompat scalaVersion.value)
+    val MonocleCore     = Def.setting("com.github.julien-truffaut" %%% "monocle-core"            % Ver.Monocle cross CrossVersion.for3Use2_13)
+    val MTest           = Def.setting("com.lihaoyi"                %%% "utest"                   % Ver.MTest)
+    val ScalaCollCompat = Def.setting("org.scala-lang.modules"     %%% "scala-collection-compat" % Ver.ScalaCollCompat)
+    val Scalaz          = Def.setting("org.scalaz"                 %%% "scalaz-core"             % Ver.Scalaz cross CrossVersion.for3Use2_13)
 
     // Compiler plugins
     val BetterMonadicFor = compilerPlugin("com.olegpy"    %% "better-monadic-for" % Ver.BetterMonadicFor)
@@ -67,10 +66,10 @@ object NyayaBuild {
       scalaVersion                  := Ver.Scala213,
       crossScalaVersions            := Seq(Ver.Scala212, Ver.Scala213, Ver.Scala3),
       testFrameworks                := Nil,
-      shellPrompt in ThisBuild      := ((s: State) => Project.extract(s).currentRef.project + "> "),
+      ThisBuild / shellPrompt       := ((s: State) => Project.extract(s).currentRef.project + "> "),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-      releaseTagComment             := s"v${(version in ThisBuild).value}",
+      releaseTagComment             := s"v${(ThisBuild / version).value}",
       releaseVcsSign                := true,
       libraryDependencies           += Dep.ScalaCollCompat.value,
       isScala2                      := scalaVersion.value startsWith "2.",
@@ -96,7 +95,7 @@ object NyayaBuild {
       scalacOptions ++= Seq(
         "-source", "3.0-migration",
         "-Ykind-projector",
-      ).filter(_ => isDotty.value),
+      ).filter(_ => scalaVersion.value.startsWith("3")),
 
       Test / scalacOptions --= Seq("-Ywarn-dead-code"),
 
@@ -113,12 +112,12 @@ object NyayaBuild {
       testFrameworks      := Seq(new TestFramework("utest.runner.Framework"))))
     .jsConfigure(
       // Not mandatory; just faster.
-      _.settings(jsEnv in Test := new JSDOMNodeJSEnv()))
+      _.settings(Test / jsEnv := new JSDOMNodeJSEnv()))
 
   def crossProjectScalaDirs: CPE =
     _.settings(
-      unmanagedSourceDirectories in Compile ++= {
-        val root   = (baseDirectory in Compile).value / ".."
+      Compile / unmanagedSourceDirectories ++= {
+        val root   = (Compile / baseDirectory).value / ".."
         val shared = root / "shared" / "src" / "main"
         CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((3, _))  => Seq(shared / "scala-3")
@@ -126,8 +125,8 @@ object NyayaBuild {
           case _             => Nil
         }
       },
-      unmanagedSourceDirectories in Test ++= {
-        val root   = (baseDirectory in Test).value / ".."
+      Test / unmanagedSourceDirectories ++= {
+        val root   = (Test / baseDirectory).value / ".."
         val shared = root / "shared" / "src" / "test"
         CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((3, _))  => Seq(shared / "scala-3")
