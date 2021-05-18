@@ -20,13 +20,13 @@ object NyayaBuild {
 
   object Ver {
     val BetterMonadicFor = "0.3.1"
-    val KindProjector    = "0.11.3"
+    val KindProjector    = "0.13.0"
     val Monocle          = "1.6.3"
-    val MTest            = "0.7.9"
+    val MTest            = "0.7.10"
     val Scala212         = "2.12.13"
     val Scala213         = "2.13.5"
-    val Scala3           = "3.0.0-RC3"
-    val ScalaCollCompat  = "2.4.3"
+    val Scala3           = "3.0.0"
+    val ScalaCollCompat  = "2.4.4"
     val Scalaz           = "7.2.31"
   }
 
@@ -63,7 +63,7 @@ object NyayaBuild {
       organization                  := "com.github.japgolly.nyaya",
       homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
       licenses                      += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
-      scalaVersion                  := Ver.Scala213,
+      scalaVersion                  := Ver.Scala3,
       crossScalaVersions            := Seq(Ver.Scala212, Ver.Scala213, Ver.Scala3),
       testFrameworks                := Nil,
       ThisBuild / shellPrompt       := ((s: State) => Project.extract(s).currentRef.project + "> "),
@@ -102,7 +102,11 @@ object NyayaBuild {
       libraryDependencies ++= Seq(
         Dep.BetterMonadicFor,
         Dep.KindProjector
-      ).filter(_ => isScala2.value)
+      ).filter(_ => isScala2.value),
+
+      // Why?
+      Compile / unmanagedSourceDirectories := (Compile / unmanagedSourceDirectories).value.distinct,
+      Test / unmanagedSourceDirectories := (Test / unmanagedSourceDirectories).value.distinct,
     )
   )
 
@@ -120,7 +124,6 @@ object NyayaBuild {
         val root   = (Compile / baseDirectory).value / ".."
         val shared = root / "shared" / "src" / "main"
         CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((3, _))  => Seq(shared / "scala-3")
           case Some((2, _))  => Seq(shared / "scala-2")
           case _             => Nil
         }
@@ -129,7 +132,6 @@ object NyayaBuild {
         val root   = (Test / baseDirectory).value / ".."
         val shared = root / "shared" / "src" / "test"
         CrossVersion.partialVersion(scalaVersion.value) match {
-          case Some((3, _))  => Seq(shared / "scala-3")
           case Some((2, _))  => Seq(shared / "scala-2")
           case _             => Nil
         }
