@@ -23,7 +23,7 @@ object NyayaBuild {
     val KindProjector    = "0.13.0"
     val Monocle          = "1.6.3"
     val MTest            = "0.7.10"
-    val Scala212         = "2.12.13"
+    val Scala212         = "2.12.14"
     val Scala213         = "2.13.5"
     val Scala3           = "3.0.0"
     val ScalaCollCompat  = "2.4.4"
