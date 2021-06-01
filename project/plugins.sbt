@@ -3,6 +3,6 @@ addSbtPlugin("com.github.sbt"     % "sbt-release"              % "1.0.15")
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.5.1")
 addSbtPlugin("org.xerial.sbt"     % "sbt-sonatype"             % "3.9.7")
-addSbtPlugin("pl.project13.scala" % "sbt-jmh"                  % "0.4.2")
+addSbtPlugin("pl.project13.scala" % "sbt-jmh"                  % "0.4.3")
 
 libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.0"
