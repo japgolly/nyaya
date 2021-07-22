@@ -1,6 +1,6 @@
 package nyaya.gen
 
-import scalaz._
+import cats.data.{State, StateT}
 
 object StateGen {
 
@@ -14,7 +14,7 @@ object StateGen {
     apply(s => f(s).strengthL(s))
 
   def state[S, A](s: State[S, A]): StateGen[S, A] =
-    s.lift[Gen]
+    s.mapK(Gen.fromEval)
 
   def get[S]: StateGen[S, S] =
     StateT(s => Gen.pure((s, s)))
@@ -37,6 +37,6 @@ object StateGen {
   def retStrict[S, A](a: A): StateGen[S, A] =
     StateT(s => Gen.pure((s, a)))
 
-  def tailrec[S, A](f: S => Gen[S \/ (S, A)]): StateGen[S, A] =
-    StateGen(Gen.scalazInstance tailrecM f)
+  def tailrec[S, A](f: S => Gen[Either[S, (S, A)]]): StateGen[S, A] =
+    StateGen(Gen.catsInstance.tailRecM(_)(f))
 }

@@ -1,9 +1,9 @@
 package nyaya.test
 
+import cats.Functor
+import scala.collection.Factory
 import scala.collection.immutable.NumericRange
 import scala.reflect.ClassTag
-import scalaz.{Functor, \/-, -\/, \/}
-import scala.collection.compat._
 
 trait Domain[A] {
   val size: Int
@@ -19,9 +19,9 @@ trait Domain[A] {
     new Domain.OptionT(this)
 
   def either[B](b: Domain[B]): Domain[Either[A, B]] =
-    (this +++ b).map(_.toEither)
+    this +++ b
 
-  def +++[B](b: Domain[B]): Domain[A \/ B] =
+  def +++[B](b: Domain[B]): Domain[Either[A, B]] =
     new Domain.Disjunction(this, b)
 
   def ***[B](b: Domain[B]): Domain[(A, B)] =
@@ -67,10 +67,10 @@ object Domain {
     override def apply(i: Int) = if (i == 0) None else Some(u(i - 1))
   }
 
-  final class Disjunction[A, B](a: Domain[A], b: Domain[B]) extends Domain[A \/ B] {
+  final class Disjunction[A, B](a: Domain[A], b: Domain[B]) extends Domain[Either[A, B]] {
     private[this] val as = a.size
     override val size = as + b.size
-    override def apply(i: Int) = if (i < as) -\/(a(i)) else \/-(b(i - as))
+    override def apply(i: Int) = if (i < as) Left(a(i)) else Right(b(i - as))
   }
 
   final class Pair[A, B](a: Domain[A], b: Domain[B]) extends Domain[(A, B)] {

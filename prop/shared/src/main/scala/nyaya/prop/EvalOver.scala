@@ -1,8 +1,7 @@
 package nyaya.prop
 
+import cats.{Eq, Foldable}
 import scala.collection.Iterable
-import scalaz.{\/, Foldable, Equal}
-import scala.collection.compat._
 
 final case class EvalOver(input: Any) {
 
@@ -18,10 +17,10 @@ final case class EvalOver(input: Any) {
   def test[A](name: => String, t: Boolean): EvalL =
     Eval.test(name, input, t)
 
-  def equal[A: Equal](name: => String, actual: A, expect: A): EvalL =
+  def equal[A: Eq](name: => String, actual: A, expect: A): EvalL =
     Eval.equal(name, input, actual, expect)
 
-  def either[A](name: => String, data: String \/ A)(f: A => EvalL): EvalL =
+  def either[A](name: => String, data: Either[String, A])(f: A => EvalL): EvalL =
     Eval.either(name, input, data)(f)
 
   def forall[F[_]: Foldable, B](fb: F[B])(each: B => EvalL): EvalL =

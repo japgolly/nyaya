@@ -35,28 +35,4 @@ object ScalaVerSpecific {
     implicit def NyayaSetLikeForArraySeq: SetLike.ByClassTag[ArraySeq] =
       ScalaVerSpecific.SetLikeForArraySeq
   }
-
-  trait GenClassExt[+A] extends Any { self: Gen[A] =>
-
-    final inline def to[B](f: Factory[A, B])(implicit ss: SizeSpec): Gen[B] =
-      fillSS(ss)(f)
-
-    final inline def arraySeq[B >: A](implicit ct: ClassTag[B], ss: SizeSpec): Gen[ArraySeq[B]] =
-      to(ArraySeq)
-
-    final inline def arraySeq[B >: A](ss: SizeSpec)(implicit ct: ClassTag[B]): Gen[ArraySeq[B]] =
-      to[ArraySeq[B]](ArraySeq)(ss)
-
-    // --------------------------------------------------------------------------------------------
-
-    final inline def to1[B](f: Factory[A, B])(implicit ss: SizeSpec): Gen[B] =
-      fillSS1(ss)(f)
-
-    final inline def arraySeq1[B >: A](implicit ct: ClassTag[B], ss: SizeSpec): Gen[ArraySeq[B]] =
-      to1(ArraySeq)
-
-    final inline def arraySeq1[B >: A](ss: SizeSpec)(implicit ct: ClassTag[B]): Gen[ArraySeq[B]] =
-      to1[ArraySeq[B]](ArraySeq)(ss)
-
-  }
 }

@@ -1,10 +1,9 @@
 package nyaya.prop
 
+import cats.syntax.eq._
+import cats.{Contravariant, Eq, Eval => CE, Foldable}
 import scala.annotation.elidable
 import scala.collection.Iterable
-import scalaz.{\/, Equal, Foldable, Contravariant, Need}
-import scalaz.syntax.equal._
-import scala.collection.compat._
 
 final class PropA[A] private[nyaya](val t: A => EvalL)
 
@@ -30,7 +29,7 @@ object Prop {
     Atom[PropA, A](None, new PropA(q))
 
   def evaln[A](name: => String, q: A => EvalL): Prop[A] =
-    Atom[PropA, A](Some(Need(name)), new PropA(q))
+    Atom[PropA, A](Some(CE.later(name)), new PropA(q))
 
   def run[A](l: Prop[A])(a: A): Eval =
     l.run(p => Eval.run(p.t(a)))
@@ -38,18 +37,18 @@ object Prop {
   def test[A](name: => String, t: A => Boolean): Prop[A] =
     atom(name, a => reasonBool(t(a), a))
 
-  def equalSelf[A: Equal](name: => String, f: A => A): Prop[A] =
+  def equalSelf[A: Eq](name: => String, f: A => A): Prop[A] =
     equal[A, A](name, f, identity)
 
-  def equal[A, B: Equal](name: => String, actual: A => B, expect: A => B): Prop[A] =
+  def equal[A, B: Eq](name: => String, actual: A => B, expect: A => B): Prop[A] =
     atom[A](name, a => reasonEq(actual(a), expect(a)))
 
   def equal[A](name: => String) = new EqualB[A](name)
   final class EqualB[A](private val name: String) extends AnyVal {
-    def apply[B: Equal](actual: A => B, expect: A => B): Prop[A] = equal(name, actual, expect)
+    def apply[B: Eq](actual: A => B, expect: A => B): Prop[A] = equal(name, actual, expect)
   }
 
-  def either[A, B](name: => String, f: A => String \/ B)(p: Prop[B]): Prop[A] =
+  def either[A, B](name: => String, f: A => Either[String, B])(p: Prop[B]): Prop[A] =
     evaln(name, a => Eval.either(name, a, f(a))(p(_).liftL))
 
   def reason(b: Boolean, r: => String): FailureReasonO =
@@ -58,8 +57,8 @@ object Prop {
   def reasonBool(b: Boolean, input: => Any): FailureReasonO =
     reason(b, s"Invalid input [$input]")
 
-  def reasonEq[A: Equal](a: A, e: A): FailureReasonO =
-    reason(a ≟ e, s"Actual: $a\nExpect: $e")
+  def reasonEq[A: Eq](a: A, e: A): FailureReasonO =
+    reason(a === e, s"Actual: $a\nExpect: $e")
 
   @elidable(elidable.ASSERTION)
   def assert[A](l: => Prop[A])(a: => A): Unit =

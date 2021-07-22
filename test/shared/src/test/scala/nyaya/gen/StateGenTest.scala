@@ -12,7 +12,7 @@ object StateGenTest extends TestSuite {
     } yield s + i
 
   override def tests = Tests {
-    val (s, i) = g(40).samples().next()
+    val (s, i) = g.run(40).samples().next()
     assert(s == 50, i >= 40 && i < 50)
   }
 }

@@ -1,24 +1,19 @@
 package nyaya.gen
 
+import cats.data._
+import cats.{Distributive, Eval, Functor, Monad, Traverse, ~>}
 import java.time.ZoneId
 import java.util.UUID
-import nyaya.util.{NonEmptyList => NonEmptyListN}
-import nyaya.util.ScalaVerSpecificUtil.Implicits._
 import scala.annotation.{switch, tailrec}
-import scala.collection.AbstractIterator
-import scala.collection.compat._
-import scala.collection.immutable.{IndexedSeq, NumericRange}
+import scala.collection.immutable.{ArraySeq, IndexedSeq, NumericRange, SortedSet}
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.{AbstractIterator, BuildFrom, Factory}
 import scala.jdk.CollectionConverters._
-import scalaz.{Name, Need, NonEmptyList => NonEmptyListZ}
-import scalaz.std.function._
-import SizeSpec.DisableDefault._
+import scala.reflect.ClassTag
 
-final case class Gen[+A](run: Gen.Run[A]) extends AnyVal with ScalaVerSpecific.GenClassExt[A] {
+final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
-  /**
-   * Produce a sample datum.
-   */
+  /** Produce a sample datum. */
   def sample(): A =
     samples().next()
 
@@ -82,11 +77,14 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal with ScalaVerSpecific.G
   def strengthL[B](b: B): Gen[(B, A)] = map((b, _))
   def strengthR[B](b: B): Gen[(A, B)] = map((_, b))
 
-  def ***[B](g: Gen[B]): Gen[(A, B)] =
-    for {a <- this; b <- g} yield (a, b)
-
   def either[B](g: Gen[B]): Gen[Either[A, B]] =
     Gen(c => if (c.nextBit()) Left(run(c)) else Right(g run c))
+
+  @inline def |[B](g: Gen[B]): Gen[Either[A, B]] =
+    either(g)
+
+  def &[B](g: Gen[B]): Gen[(A, B)] =
+    for {a <- this; b <- g} yield (a, b)
 
   def fillFold[B](n: Int, z: B)(f: (B, A) => B): Gen[B] =
     Gen { c =>
@@ -126,13 +124,33 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal with ScalaVerSpecific.G
   @inline def fillSS1[B](ss: SizeSpec)(implicit cbf: Factory[A, B]): Gen[B] =
     ss.gen1 flatMap fill[B]
 
-  def list       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS(ss)
-  def set[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS(ss)
-  def vector     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS(ss)
+  def to[B](f: Factory[A, B])(implicit ss: SizeSpec): Gen[B] =
+    fillSS(ss)(f)
 
-  def list1       (implicit ss: SizeSpec): Gen[List  [A]] = fillSS1(ss)
-  def set1[B >: A](implicit ss: SizeSpec): Gen[Set   [B]] = fillSS1(ss)
-  def vector1     (implicit ss: SizeSpec): Gen[Vector[A]] = fillSS1(ss)
+  def arraySeq[B >: A](implicit ct: ClassTag[B], ss: SizeSpec): Gen[ArraySeq[B]] =
+    to(ArraySeq)
+
+  def arraySeq[B >: A](ss: SizeSpec)(implicit ct: ClassTag[B]): Gen[ArraySeq[B]] =
+    to[ArraySeq[B]](ArraySeq)(ss)
+
+  def to1[B](f: Factory[A, B])(implicit ss: SizeSpec): Gen[B] =
+    fillSS1(ss)(f)
+
+  def arraySeq1[B >: A](implicit ct: ClassTag[B], ss: SizeSpec): Gen[ArraySeq[B]] =
+    to1(ArraySeq)
+
+  def arraySeq1[B >: A](ss: SizeSpec)(implicit ct: ClassTag[B]): Gen[ArraySeq[B]] =
+    to1[ArraySeq[B]](ArraySeq)(ss)
+
+  def list             (implicit ss: SizeSpec)                : Gen[List     [A]] = fillSS(ss)
+  def sortedSet[B >: A](implicit ss: SizeSpec, o: Ordering[B]): Gen[SortedSet[B]] = fillSS(ss)
+  def set      [B >: A](implicit ss: SizeSpec)                : Gen[Set      [B]] = fillSS(ss)
+  def vector           (implicit ss: SizeSpec)                : Gen[Vector   [A]] = fillSS(ss)
+
+  def list1             (implicit ss: SizeSpec)                : Gen[List     [A]] = fillSS1(ss)
+  def sortedSet1[B >: A](implicit ss: SizeSpec, o: Ordering[B]): Gen[SortedSet[B]] = fillSS1(ss)
+  def set1      [B >: A](implicit ss: SizeSpec)                : Gen[Set      [B]] = fillSS1(ss)
+  def vector1           (implicit ss: SizeSpec)                : Gen[Vector   [A]] = fillSS1(ss)
 
   /**
     * This will ensure that only unique random data is used and that the resulting set has the desired size.
@@ -279,40 +297,21 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal with ScalaVerSpecific.G
     }
 
   // ------------------------------------------------------
-  // Nyaya stuff
+  // Cats stuff
   // ------------------------------------------------------
 
-  def nyayaNEL(implicit ss: SizeSpec): Gen[NonEmptyListN[A]] =
-    for (l <- list1(ss)) yield NonEmptyListN(l.head, l.tail)
+  def catsNEL[B >: A](implicit ss: SizeSpec): Gen[NonEmptyList[B]] =
+    list1(ss).map(NonEmptyList.fromListUnsafe)
 
-  // ------------------------------------------------------
-  // Scalaz stuff
-  // ------------------------------------------------------
-  import scalaz._
+  def catsNES[B >: A](implicit ss: SizeSpec, o: Ordering[B]): Gen[NonEmptySet[B]] =
+    sortedSet1(ss, o).map(NonEmptySet.fromSetUnsafe(_))
 
-  @deprecated("Replace with scalazNEL.", "0.7.0")
-  def nel[B >: A](implicit ss: SizeSpec): Gen[NonEmptyListZ[B]] =
-    scalazNEL(ss)
-
-  def scalazNEL[B >: A](implicit ss: SizeSpec): Gen[NonEmptyListZ[B]] =
-    for (l <- list1(ss)) yield NonEmptyListZ.nels[B](l.head, l.tail: _*)
-
-  def \/[B](g: Gen[B]): Gen[A \/ B] =
-    Gen(c => if (c.nextBit()) -\/(run(c)) else \/-(g run c))
-
-  @inline def +++[B](g: Gen[B]): Gen[A \/ B] =
-    \/(g)
-
-  def \&/[B](g: Gen[B]): Gen[A \&/ B] =
-    Gen { c =>
-      import scalaz.\&/._
-      c.rnd.nextInt(3) match {
-        case 0 => Both(run(c), g run c)
-        case 1 => This(run(c))
-        case 2 => That(g run c)
-      }
-    }
+  def catsNEV[B >: A](implicit ss: SizeSpec): Gen[NonEmptyVector[B]] =
+    vector1(ss).map(NonEmptyVector.fromVectorUnsafe)
 }
+
+// =====================================================================================================================
+// =====================================================================================================================
 
 object Gen {
   type Run[+A] = GenCtx => A
@@ -334,12 +333,19 @@ object Gen {
     implicit def headAndTraversable[S[x] <: Iterable[x], A]: ToNonEmptySeq[(A, S[A]), A] =
       apply(o => merge(o._1, o._2))
 
-    import scalaz.OneAnd
+    implicit def catsNEC[A]: ToNonEmptySeq[NonEmptyChain[A], A] =
+      apply(_.toChain.toVector)
 
-    implicit def scalazNEL[A]: ToNonEmptySeq[NonEmptyListZ[A], A] =
-      apply(_.list.toList)
+    implicit def catsNEL[A]: ToNonEmptySeq[NonEmptyList[A], A] =
+      apply(_.toList)
 
-    implicit def scalazOneAndTraversable[S[x] <: Iterable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
+    implicit def catsNES[A]: ToNonEmptySeq[NonEmptySet[A], A] =
+      apply(_.toSortedSet.toSeq)
+
+    implicit def catsNEV[A]: ToNonEmptySeq[NonEmptyVector[A], A] =
+      apply(_.toVector)
+
+    implicit def catsOneAndTraversable[S[x] <: Iterable[x], A]: ToNonEmptySeq[OneAnd[S, A], A] =
       apply(o => merge(o.head, o.tail))
   }
 
@@ -406,16 +412,28 @@ object Gen {
   def pure[A](a: A): Gen[A] =
     Gen(_ => a)
 
+  @deprecated("Use .delay", "0.11.0")
   def point[A](a: => A): Gen[A] =
     Gen(_ => a)
 
+  @deprecated("Use .suspend", "0.11.0")
   def byName[A](ga: => Gen[A]): Gen[A] =
-    pure(Name(ga)) flatMap (_.value)
+    delay(ga).flatten
 
-  def byNeed[A](ga: => Gen[A]): Gen[A] =
-    pure(Need(ga)) flatMap (_.value)
+  @deprecated("Use .lazily", "0.11.0")
+  @inline def byNeed[A](ga: => Gen[A]): Gen[A] =
+    lazily(ga)
 
-  @inline def lazily[A](ga: => Gen[A]): Gen[A] = byNeed(ga)
+  def delay[A](a: => A): Gen[A] =
+    Gen(_ => a)
+
+  def suspend[A](ga: => Gen[A]): Gen[A] =
+    apply(ctx => ga.run(ctx))
+
+  def lazily[A](ga: => Gen[A]): Gen[A] = {
+    lazy val g = ga
+    suspend(g)
+  }
 
   val int    : Gen[Int]     = Gen(_.rnd.nextInt())
   val long   : Gen[Long]    = Gen(_.rnd.nextLong())
@@ -855,7 +873,7 @@ object Gen {
       Gen.pure(current())
 
     def genNowByName: Gen[Now] =
-      Gen.point(current())
+      Gen.delay(current())
   }
 
   def dateTime(implicit genNow: Gen[Now]): DateTimeBuilder =
@@ -914,39 +932,38 @@ object Gen {
   @inline def lift9[A,B,C,D,E,F,G,H,I,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I])(z: (A,B,C,D,E,F,G,H,I)=>Z): Gen[Z] = apply9(z)(A,B,C,D,E,F,G,H,I)
 
   // ------------------------------------------------------
-  // Scalaz stuff
+  // Cats stuff
   // ------------------------------------------------------
 
-  import scalaz._
+  object fromEval extends (Eval ~> Gen) {
+    override def apply[A](fa: Eval[A]): Gen[A] =
+      Gen.delay(fa.value)
+  }
 
-  implicit val scalazInstance: Monad[Gen] with Distributive[Gen] with BindRec[Gen] =
-    new Monad[Gen] with Distributive[Gen] with BindRec[Gen] {
-      override def point[A](a: => A)                         : Gen[A] = Gen point a
-      override def ap[A, B](fa: => Gen[A])(g: => Gen[A => B]): Gen[B] = g flatMap fa.map
-      override def bind[A, B](fa: Gen[A])(f: A => Gen[B])    : Gen[B] = fa flatMap f
-      override def map[A,B](fa: Gen[A])(f: A => B)           : Gen[B] = fa map f
+  implicit object catsInstance extends Monad[Gen] with Distributive[Gen] {
+    override def pure[A](a: A)                             : Gen[A] = Gen.pure(a)
+    override def flatMap[A, B](fa: Gen[A])(f: A => Gen[B]) : Gen[B] = fa flatMap f
+    override def map[A, B](fa: Gen[A])(f: A => B)          : Gen[B] = fa map f
 
-      override def distributeImpl[F[_], A, B](fa: F[A])(f: A => Gen[B])(implicit F: Functor[F]): Gen[F[B]] =
-        Gen(ctx => F.map(fa)(f(_) run ctx))
+    override def distribute[G[_], A, B](ga: G[A])(f: A => Gen[B])(implicit G: Functor[G]): Gen[G[B]] =
+      Gen(ctx => G.map(ga)(f(_) run ctx))
 
-      override def tailrecM[A, B](f: A => Gen[A \/ B])(a: A): Gen[B] =
-        Gen { c =>
-          @tailrec
-          def go(a1: A): B =
-            f(a1).run(c) match {
-              case -\/(a2) => go(a2)
-              case \/-(b)  => b
-            }
-          go(a)
-        }
-    }
+    override def tailRecM[A, B](a: A)(f: A => Gen[Either[A, B]]): Gen[B] =
+      Gen { c =>
+        @tailrec
+        def go(a1: A): B =
+          f(a1).run(c) match {
+            case Left(a2) => go(a2)
+            case Right(b) => b
+          }
+        go(a)
+      }
+  }
 
-  def traverseZ [T[_], A, B](as: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(as)(f)
-  def traverseZG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
-  def sequenceZ [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
+  def traverseC [T[_], A, B](as: T[A]     )(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(as)(f)
+  def traverseCG[T[_], A, B](gs: T[Gen[A]])(f: A => Gen[B])(implicit T: Traverse[T]): Gen[T[B]] = T.traverse(gs)(_ flatMap f)
+  def sequenceC [T[_], A   ](gs: T[Gen[A]])                (implicit T: Traverse[T]): Gen[T[A]] = T.sequence(gs)
 
-  def distribute  [F[_], B]   (a: Gen[F[B]])(implicit D: Distributive[F])            : F[Gen[B]]             = D.cosequence(a)
-  def distributeR [A, B]      (a: Gen[A => B])                                       : A => Gen[B]           = distribute[A => *, B](a)
-  def distributeRK[A, B]      (a: Gen[A => B])                                       : Kleisli[Gen, A, B]    = Kleisli(distributeR(a))
-  def distributeK [F[_], A, B](a: Gen[Kleisli[F, A, B]])(implicit D: Distributive[F]): Kleisli[F, A, Gen[B]] = distribute[Kleisli[F, A, *], B](a)
+  def distribute  [F[_], B](a: Gen[F[B]])(implicit D: Distributive[F]): F[Gen[B]]   = D.cosequence(a)
+  def distributeR [A, B]   (a: Gen[A => B])                           : A => Gen[B] = distribute[A => *, B](a)
 }

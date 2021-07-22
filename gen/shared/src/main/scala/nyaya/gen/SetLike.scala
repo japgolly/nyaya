@@ -2,7 +2,6 @@ package nyaya.gen
 
 import scala.annotation.nowarn
 import scala.reflect.ClassTag
-import scalaz.EphemeralStream
 
 trait SetLike[F[_], A] {
   def empty                     : F[A]
@@ -34,7 +33,7 @@ object SetLike extends ScalaVerSpecific.SetLikeImplicits with SetLikeLowPriImpli
     def apply[A: ClassTag]: SetLike[F, A]
   }
 
-  @inline implicit def byClassTag[F[_], A](implicit g: Generic[F], a: ClassTag[A]): SetLike[F, A] =
+  @inline implicit def byClassTag[F[_], A](implicit g: Generic[F]): SetLike[F, A] =
     g.apply[A]
 
   // ===================================================================================================================
@@ -92,18 +91,6 @@ object SetLike extends ScalaVerSpecific.SetLikeImplicits with SetLikeLowPriImpli
       override def contains(h: F[A], a: A)    = h contains a
       override def add     (h: F[A], a: A)    = a #:: h
       override def addAll  (h: F[A], i: F[A]) = i #::: h
-    }
-  })
-
-  // TODO deprecate and stop relying on Scalaz
-  implicit object ForEphemeralStream extends CastFromAny[EphemeralStream]({
-    type F[A] = EphemeralStream[A]
-    type A = Any
-    new SetLike[F, A] {
-      override def empty                      = EphemeralStream[A]
-      override def contains(h: F[A], a: A)    = !h.filter(_ == a).isEmpty
-      override def add     (h: F[A], a: A)    = a ##:: h
-      override def addAll  (h: F[A], i: F[A]) = h ++ i
     }
   })
 

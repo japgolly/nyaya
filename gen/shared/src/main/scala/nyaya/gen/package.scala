@@ -1,6 +1,6 @@
 package nyaya
 
-import scalaz.StateT
+import cats.data.StateT
 
 package object gen {
 

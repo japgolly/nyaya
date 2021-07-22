@@ -1,8 +1,8 @@
 package nyaya.benchmark
 
-import org.openjdk.jmh.annotations._
+import nyaya.benchmark.GenBM._
 import nyaya.gen._
-import GenBM._
+import org.openjdk.jmh.annotations._
 
 object GenBM {
 

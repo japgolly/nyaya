@@ -2,7 +2,7 @@ package nyaya.test
 
 import nyaya.gen.ThreadNumber
 import nyaya.prop.Prop
-import PTest._
+import nyaya.test.PTest._
 
 object Executor {
   type DebugPrefix = String

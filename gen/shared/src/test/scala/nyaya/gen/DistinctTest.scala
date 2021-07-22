@@ -1,8 +1,8 @@
 package nyaya.gen
 
+import alleycats.std.set._
+import cats.instances.list._
 import monocle.Lens
-import scalaz.std.list._
-import scalaz.std.set._
 import utest._
 
 object DistinctTest extends TestSuite {

@@ -1,7 +1,6 @@
 package nyaya.test
 
 import utest._
-import scalaz._, Scalaz._
 
 object DomainTest extends TestSuite {
 
@@ -18,7 +17,7 @@ object DomainTest extends TestSuite {
   override def tests = Tests {
     "boolean" - test(b)(true, false)
     "option"  - test(b.option)(None, Some(true), Some(false))
-    "either"  - test(b +++ z)(true.left, false.left, 0.right, 1.right)
+    "either"  - test(b +++ z)(Left(true), Left(false), Right(0), Right(1))
     "pair"    - test(b *** z)((true, 0), (true, 1), (false, 0), (false, 1))
     "abc"     - test(abc)('a', 'b', 'c')
     "map"     - test(abc.map(c => (c - 32).toChar))('A', 'B', 'C')

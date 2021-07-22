@@ -1,6 +1,5 @@
 package nyaya.test
 
-import scalaz.{-\/, \/, \/-}
 import nyaya.gen.GenSize
 
 /**
@@ -13,7 +12,7 @@ final case class SampleSize(value: Int) {
 
 case class Settings(
   executor   : Executor          = SingleThreadedExecutor,
-  sizeDist   : Settings.SizeDist = Seq(1 -> \/-(GenSize(4)), 1 -> -\/(0.5), 8 -> -\/(1)),
+  sizeDist   : Settings.SizeDist = Seq(1 -> Right(GenSize(4)), 1 -> Left(0.5), 8 -> Left(1)),
   sampleSize : SampleSize        = SampleSize(96),
   genSize    : GenSize           = GenSize.Default,
   seed       : Option[Long]      = None,
@@ -33,5 +32,5 @@ case class Settings(
 }
 
 object Settings {
-  type SizeDist = Seq[(Int, Double \/ GenSize)]
+  type SizeDist = Seq[(Int, Either[Double, GenSize])]
 }

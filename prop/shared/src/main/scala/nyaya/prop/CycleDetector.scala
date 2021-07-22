@@ -2,7 +2,6 @@ package nyaya.prop
 
 import scala.annotation.tailrec
 import scala.collection.Iterable
-import scalaz.{\/-, -\/, \/}
 
 final case class CycleFree[A](value: A)
 
@@ -17,8 +16,8 @@ case class CycleDetector[A, B](extract: A => Iterator[B], check: (A, Iterator[B]
   final def findCycle(a: A): Option[(B, B)] =
     check(a, extract(a))
 
-  def cycleFree(a: A): (B, B) \/ CycleFree[A] =
-    findCycle(a).fold[(B, B) \/ CycleFree[A]](\/-(CycleFree(a)))(-\/.apply)
+  def cycleFree(a: A): Either[(B, B), CycleFree[A]] =
+    findCycle(a).fold[Either[(B, B), CycleFree[A]]](Right(CycleFree(a)))(Left(_))
 
   def contramap[Z](f: Z => A) =
     new CycleDetector[Z, B](extract compose f, (z, b) => check(f(z), b))
@@ -35,30 +34,30 @@ object CycleDetector {
     override def check[A, B, I](vertices: (A, B) => Iterator[B], id: B => I): (A, Iterator[B]) => Option[(B, B)] =
       (a, input) => {
 
-        def outer(prev: B, is0: Set[I]): Set[I] \/ (B, B) = {
+        def outer(prev: B, is0: Set[I]): Either[Set[I], (B, B)] = {
           val it = vertices(a, prev)
 
           @tailrec
-          def inner(is: Set[I]): Set[I] \/ (B, B) =
+          def inner(is: Set[I]): Either[Set[I], (B, B)] =
             if (it.hasNext) {
               val b = it.next()
               val i = id(b)
               if (is contains i)
-                \/-((prev, b))
+                Right((prev, b))
               else
                 outer(b, is + i) match {
-                  case -\/(is2)  => inner(is2)
-                  case r@ \/-(_) => r
+                  case Left(is2)  => inner(is2)
+                  case r@ Right(_) => r
                 }
             } else
-              -\/(is)
+              Left(is)
 
           inner(is0)
         }
 
         input
           .map(b => outer(b, Set(id(b))))
-          .collectFirst { case \/-(v) => v }
+          .collectFirst { case Right(v) => v }
       }
   }
 

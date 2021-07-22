@@ -1,12 +1,11 @@
 package nyaya.test
 
+import cats.instances.list._
 import java.util.concurrent.atomic._
-import scalaz.{-\/, \/-}
-import scalaz.std.list._
-import utest._
 import nyaya.gen._
 import nyaya.prop._
-import PropTest._
+import nyaya.test.PropTest._
+import utest._
 
 object PropTestTest extends TestSuite {
 
@@ -31,7 +30,7 @@ object PropTestTest extends TestSuite {
           assert(r.runs == s, r.result == Result.Satisfied, i.get() == s)
         }
         t(Seq.empty)
-        t(Seq(1 -> \/-(GenSize(4)), 1 -> -\/(0.2), 8 -> -\/(0.8)))
+        t(Seq(1 -> Right(GenSize(4)), 1 -> Left(0.2), 8 -> Left(0.8)))
       }
         "1" - test(  1)
         "4" - test(  4)

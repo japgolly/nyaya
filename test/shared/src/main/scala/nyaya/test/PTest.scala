@@ -1,10 +1,10 @@
 package nyaya.test
 
-import scala.annotation.tailrec
-import scala.collection.AbstractIterator
 import nyaya.gen._
 import nyaya.prop._
-import Executor.Data
+import nyaya.test.Executor.Data
+import scala.annotation.tailrec
+import scala.collection.AbstractIterator
 
 case class RunState[A](runs: Int, result: Result[A])
 object RunState {

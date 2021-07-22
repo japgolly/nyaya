@@ -1,7 +1,7 @@
 package nyaya
 
+import cats.Foldable
 import scala.annotation.elidable
-import scalaz.{Need, Foldable}
 
 package object prop {
 
@@ -9,7 +9,7 @@ package object prop {
     def show: String = a.toString
   }
 
-  type Name = Need[String]
+  type Name = cats.Eval[String]
 
   type FailureReason  = String
   type FailureReasonO = Option[FailureReason]

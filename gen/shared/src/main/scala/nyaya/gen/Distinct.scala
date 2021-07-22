@@ -1,20 +1,20 @@
 package nyaya.gen
 
-import nyaya.util.{NonEmptyList, MultiValues, Multimap}
+import cats.data.{NonEmptyList, State}
+import cats.evidence.===
+import cats.syntax.foldable._
+import cats.{Eval, Foldable, Monoid, Traverse}
+import japgolly.microlibs.multimap.{MultiValues, Multimap}
 import monocle._
-import scalaz.{Monoid, Foldable, State, Traverse}
-import scalaz.Leibniz.===
-import scalaz.syntax.foldable._
-import SetLike.Implicits._
-import Distinct.{Fixer, foldableList}
-import scala.collection.compat._
+import nyaya.gen.Distinct.{Fixer, foldableList}
+import nyaya.gen.SetLike.Implicits._
 
 sealed trait DistinctFn[A, B] {
   def run: A => B
 }
 
-case class Distinct[A, X, H[_], Y, Z, B](
-    fixer: Fixer[X, H, Y, Z], t: A => (X => State[H[Y], Z]) => State[H[Y], B]) extends DistinctFn[A, B]{
+case class Distinct[A, X, H[_], Y, Z, B](fixer: Fixer[X, H, Y, Z],
+                                         t: A => (X => State[H[Y], Z]) => State[H[Y], B]) extends DistinctFn[A, B]{
 
   final type S[λ] = State[H[Y], λ]
 
@@ -22,13 +22,13 @@ case class Distinct[A, X, H[_], Y, Z, B](
     t(a)(fixer.apply)
 
   def run: A => B =
-    runs(_).eval(fixer.inith)
+    runs(_).runA(fixer.inith).value
 
   def addh(xs: X*): Distinct[A, X, H, Y, Z, B] =
     copy(fixer = this.fixer.addh(xs: _*))
 
   @inline final def at[M, N](l: PLens[M, N, A, B]): Distinct[M, X, H, Y, Z, N] =
-    dimap(l.get, (m, b) => l.set(b)(m))
+    dimap(l.get, (m, b) => l.replace(b)(m))
 
   @inline final def at[M, N](l: PIso[M, N, A, B]): Distinct[M, X, H, Y, Z, N] =
     at(l.asLens)
@@ -36,8 +36,8 @@ case class Distinct[A, X, H[_], Y, Z, B](
   @inline final def at[M, N](l: POptional[M, N, A, B]): Distinct[M, X, H, Y, Z, N] =
     dimaps(m => asb =>
       l.getOrModify(m).fold[S[N]](
-        n => State state n, // No A = no dup
-        a => asb(a).map(b => l.set(b)(m))))
+        n => State.pure(n), // No A = no dup
+        a => asb(a).map(b => l.replace(b)(m))))
 
   @inline final def at[M, N](l: PPrism[M, N, A, B]): Distinct[M, X, H, Y, Z, N] =
     at(l.asOptional)
@@ -47,7 +47,7 @@ case class Distinct[A, X, H[_], Y, Z, B](
       var h = h0
       val n =
         l.modify(a => {
-          val (h2, b) = a_sb(a).run(h)
+          val (h2, b) = a_sb(a).run(h).value
           h = h2
           b
         })(m)
@@ -68,7 +68,7 @@ case class Distinct[A, X, H[_], Y, Z, B](
       var h = h0
       val t2 =
         traversal.modify({ data =>
-          val (h2, d2) = d_sd(data).run(h)
+          val (h2, d2) = d_sd(data).run(h).value
           h = h2
           d2
         })(t)
@@ -79,8 +79,8 @@ case class Distinct[A, X, H[_], Y, Z, B](
     dimaps[F[A], F[B]](fa => ab => State { h0 =>
       var h = h0
       val fb =
-        fa.foldl(FB.empty)(q => a => {
-          val (h2, b) = ab(a).run(h)
+        fa.foldl(FB.empty)((q, a) => {
+          val (h2, b) = ab(a).run(h).value
           h = h2
           q + b
         })
@@ -111,7 +111,7 @@ case class Distinct[A, X, H[_], Y, Z, B](
     Distinct[A, X, H, Y, Z, C](fixer + f.fixer, a => _ => runs(a) flatMap f.runs)
 
   def *(f: DistinctFn[A, A])(implicit ev: B === A): DistinctEndo[A] =
-    DistinctEndo(NonEmptyList(ev.subst[Distinct[A, X, H, Y, Z, *]](this), f :: Nil))
+    DistinctEndo(NonEmptyList(ev.substitute[Distinct[A, X, H, Y, Z, *]](this), f :: Nil))
 
   // def ***[C, D](f: Distinct1[C, D]): Distinct1[(A, C), (B, D)] =
 }
@@ -144,12 +144,15 @@ object Distinct {
   // scalaz.std.list.listInstance pulls in too much other unneeded crap
   private[gen] implicit val foldableList: Foldable[List] =
     new Foldable[List] {
+
       override def foldLeft[A, B](fa: List[A], z: B)(f: (B, A) => B): B =
         fa.foldLeft(z)(f)
-      override def foldRight[A, B](fa: List[A], z: => B)(f: (A, => B) => B): B =
+
+      override def foldRight[A, B](fa: List[A], z: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] =
         fa.foldRight(z)(f(_, _))
+
       override def foldMap[A, B](fa: List[A])(f: A => B)(implicit F: Monoid[B]): B =
-        fa.foldLeft(F.zero)((b, a) => F.append(b, f(a)))
+        fa.foldLeft(F.empty)((b, a) => F.combine(b, f(a)))
     }
 
   final case class Fixer[X, H[_], Y, Z](f: X => Y, g: Y => Z, fix: H[Y] => Y, inith: H[Y])

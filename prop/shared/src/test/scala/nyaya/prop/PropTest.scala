@@ -1,8 +1,8 @@
 package nyaya.prop
 
-import scalaz.Equal
-import scalaz.std.AllInstances._
-import scalaz.syntax.equal._
+import cats.Eq
+import cats.instances.all._
+import cats.syntax.eq._
 import utest._
 
 object PropTest extends TestSuite {
@@ -27,14 +27,14 @@ object PropTest extends TestSuite {
     }
 
   val sep = "="*120
-  def assertEq[A: Equal](actual: A, expect: A): Unit =
+  def assertEq[A: Eq](actual: A, expect: A): Unit =
     assertEq(None, actual, expect)
 
-  def assertEq[A: Equal](name: String, actual: A, expect: A): Unit =
+  def assertEq[A: Eq](name: String, actual: A, expect: A): Unit =
     assertEq(Some(name), actual, expect)
 
-  def assertEq[A: Equal](name: Option[String], actual: A, expect: A): Unit =
-    if (actual ≠ expect) {
+  def assertEq[A: Eq](name: Option[String], actual: A, expect: A): Unit =
+    if (actual =!= expect) {
       println()
       name.foreach(n => println(s">>>>>>> $n"))
       val as = actual.toString
@@ -47,7 +47,7 @@ object PropTest extends TestSuite {
       assert(false)
     }
 
-  val anyEq = Equal.equalA[Any]
+  val anyEq = Eq.fromUniversalEquals[Any]
 
   val DEBUG                                        = Tst(_ => v => println(s"$sep\n${v.report}\n"))
   val nop                                          = Tst(_ => _ => ())

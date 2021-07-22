@@ -1,13 +1,11 @@
 package nyaya.prop
 
+import cats.syntax.foldable._
+import cats.{Contravariant, Eq, Eval => CE, Foldable}
+import japgolly.microlibs.multimap.Multimap
+import nyaya.util.Util
 import scala.annotation.elidable
-import scala.collection.Iterable
-import scala.collection.mutable
-import scalaz.{Contravariant, Equal, Foldable, Need, Value, \/}
-import scalaz.syntax.foldable._
-import nyaya.util.{Multimap, Util}
-import nyaya.util.ScalaVerSpecificUtil.Implicits._
-import scala.collection.compat._
+import scala.collection.{Iterable, mutable}
 
 object Eval {
   type Failures = Multimap[FailureReason, List, List[Eval]]
@@ -37,22 +35,22 @@ object Eval {
     atom(name, input, Some(reason))
 
   def atom(name: => String, input: Any, failure: FailureReasonO): EvalL = {
-    val n = Need(name)
+    val n = CE.later(name)
     Atom[Eval_, Nothing](Some(n), Eval(n, Input(input), failure.fold(root)(root.add(_, Nil))))
   }
 
   def test(name: => String, input: Any, t: Boolean): EvalL =
     atom(name, input, Prop.reasonBool(t, input))
 
-  def equal[A: Equal](name: => String, input: Any, actual: A, expect: A): EvalL =
+  def equal[A: Eq](name: => String, input: Any, actual: A, expect: A): EvalL =
     atom(name, input, Prop.reasonEq(actual, expect))
 
   def equal[A](name: => String, a: A) = new EqualB[A](name, a)
   final class EqualB[A](name: String, a: A)  {
-    def apply[B: Equal](actual: A => B, expect: A => B): EvalL = equal(name, a, actual(a), expect(a))
+    def apply[B: Eq](actual: A => B, expect: A => B): EvalL = equal(name, a, actual(a), expect(a))
   }
 
-  def either[A](name: => String, input: Any, data: String \/ A)(f: A => EvalL): EvalL =
+  def either[A](name: => String, input: Any, data: Either[String, A])(f: A => EvalL): EvalL =
     data.fold(fail(name, _, input), f)
 
   @elidable(elidable.ASSERTION)
@@ -62,7 +60,7 @@ object Eval {
   def forall[F[_]: Foldable, B](input: Any, fb: F[B])(each: B => EvalL): EvalL = {
     val es = fb.foldLeft(List.empty[Eval])((q, b) => run(each(b)) :: q)
     val ho = es.headOption
-    val n  = Need(ho.fold("∅")(e => s"∀{${e.name.value}}"))
+    val n  = CE.later(ho.fold("∅")(e => s"∀{${e.name.value}}"))
     val i  = Input(input)
     val r  = es.filter(_.failure) match {
       case Nil =>
@@ -176,7 +174,7 @@ final case class Eval private[nyaya] (name: Name, input: Input, failures: Failur
         r.add(k.value, f)
       else
         vs.foldLeft(r)((q, v) => loope(v, q))
-    loope(this, Multimap.empty).m.toList.map(x => (Value(x._1), x._2)).toMap
+    loope(this, Multimap.empty).m.toList.map(x => (CE.now(x._1), x._2)).toMap
   }
 
   def failureTree = failureTreeI("")

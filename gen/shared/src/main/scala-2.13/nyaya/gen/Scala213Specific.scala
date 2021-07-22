@@ -1,7 +1,6 @@
 package nyaya.gen
 
 import scala.collection.immutable.ArraySeq
-import scala.collection.Factory
 import scala.reflect.ClassTag
 
 object ScalaVerSpecific {
@@ -30,29 +29,5 @@ object ScalaVerSpecific {
   trait SetLikeImplicits {
     implicit def NyayaSetLikeForLazyList = ScalaVerSpecific.SetLikeForLazyList
     implicit def NyayaSetLikeForArraySeq = ScalaVerSpecific.SetLikeForArraySeq
-  }
-
-  trait GenClassExt[+A] extends Any { self: Gen[A] =>
-
-    final def to[B](f: Factory[A, B])(implicit ss: SizeSpec): Gen[B] =
-      fillSS(ss)(f)
-
-    final def arraySeq[B >: A](implicit ct: ClassTag[B], ss: SizeSpec): Gen[ArraySeq[B]] =
-      to(ArraySeq)
-
-    final def arraySeq[B >: A](ss: SizeSpec)(implicit ct: ClassTag[B]): Gen[ArraySeq[B]] =
-      to[ArraySeq[B]](ArraySeq)(ss)
-
-    // --------------------------------------------------------------------------------------------
-
-    final def to1[B](f: Factory[A, B])(implicit ss: SizeSpec): Gen[B] =
-      fillSS1(ss)(f)
-
-    final def arraySeq1[B >: A](implicit ct: ClassTag[B], ss: SizeSpec): Gen[ArraySeq[B]] =
-      to1(ArraySeq)
-
-    final def arraySeq1[B >: A](ss: SizeSpec)(implicit ct: ClassTag[B]): Gen[ArraySeq[B]] =
-      to1[ArraySeq[B]](ArraySeq)(ss)
-
   }
 }

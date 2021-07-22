@@ -1,12 +1,12 @@
 package nyaya.test
 
-import java.util.concurrent.{Callable, ExecutorService, Executors, Future, TimeUnit}
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{Callable, ExecutorService, Executors, Future, TimeUnit}
 import nyaya.gen.ThreadNumber
 import nyaya.prop.Prop
-import ParallelExecutor._
-import PTest._
-import Executor.{DataCtx, Data}
+import nyaya.test.Executor.{Data, DataCtx}
+import nyaya.test.PTest._
+import nyaya.test.ParallelExecutor._
 
 // TODO data SampleSize = TotalSamples(n) | Fn(qty|%, gensize|%) | PerWorker(sampleSize)
 

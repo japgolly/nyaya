@@ -1,12 +1,13 @@
 package nyaya.gen
 
+import cats.FlatMap
+import cats.data.NonEmptyList
+import cats.instances.all._
 import java.nio.charset.Charset
-import scalaz.{BindRec, NonEmptyList, -\/, \/-}
-import scalaz.std.AllInstances._
-import utest._
 import nyaya.prop._
 import nyaya.test.PropTest._
-import scala.collection.compat._
+import scala.annotation.nowarn
+import utest._
 
 object GenTest extends TestSuite {
 
@@ -47,12 +48,13 @@ object GenTest extends TestSuite {
   val freqArgs: Gen[NonEmptyList[Gen.Freq[Char]]] = {
     val freq = Gen.chooseInt(1, 16)
     val gen = Gen.char.map(Gen.pure)
-    (freq *** gen).scalazNEL
+    (freq & gen).catsNEL
   }
 
   // For cases when parametricity means there's nothing useful to test without the ability to write a ∃-test
   def didntCrash[A] = Prop.test[A]("Didn't crash", _ => true)
 
+  @nowarn("cat=unused")
   def assertType[T](f: => T): Unit = ()
 
   val abc = "abc".toCharArray.toList
@@ -188,7 +190,7 @@ object GenTest extends TestSuite {
       val lim = 100000
       def test(g: Int => Gen[Int]): Unit = assert(g(0).samples().next() == lim)
       "plain" - test(Gen.tailrec[Int, Int](i => Gen.pure(if (i < lim) Left(i + 1) else Right(i))))
-      "scalaz" - test(BindRec[Gen].tailrecM[Int, Int](i => Gen.pure(if (i < lim) -\/(i + 1) else \/-(i))))
+      "cats" - test(FlatMap[Gen].tailRecM[Int, Int](_)(i => Gen.pure(if (i < lim) Left(i + 1) else Right(i))))
     }
 
     "optionGet" - {

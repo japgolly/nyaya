@@ -1,9 +1,9 @@
 package nyaya.gen
 
 import java.util.Date
+import nyaya.gen.DateTimeBuilder._
+import nyaya.gen.Gen.Now
 import scala.concurrent.duration.FiniteDuration
-import DateTimeBuilder._
-import Gen.Now
 
 object DateTimeBuilder {
 
@@ -71,10 +71,10 @@ final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) 
     copy(genNow = g)
 
   def withNow(now: => Now): DateTimeBuilder =
-    withNowGen(Gen point now)
+    withNowGen(Gen.delay(now))
 
   def withNowMs(nowMs: => Long): DateTimeBuilder =
-    withNowGen(Gen point Now(nowMs))
+    withNowGen(Gen.delay(Now(nowMs)))
 
   /** The current time is sampled once and reused */
   def withNowSampledOnce: DateTimeBuilder =

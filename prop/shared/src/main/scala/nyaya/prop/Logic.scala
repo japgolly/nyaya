@@ -1,7 +1,7 @@
 package nyaya.prop
 
-import scalaz.{Contravariant, Need}
-import nyaya.util.NonEmptyList
+import cats.data.NonEmptyList
+import cats.{Contravariant, Eval => CE}
 
 final case class Named        [P[_], A   ](n: Name, l: Logic[P, A])        extends Logic[P, A]
 final case class Mapped       [P[_], A, B](m: A => B, l: Logic[P, B])      extends Logic[P, A]
@@ -23,7 +23,7 @@ object Logic {
     def wrap(s: String): String = if (s.indexOf(' ') >= 0) s"[$s]" else s
     val es    = ls.map(_ run x)
     val input = es.head.input
-    val name  = Need(es.toList.reverse.map(x => wrap(x.name.value)).mkString("(", op, ")"))
+    val name  = CE.later(es.toList.reverse.map(x => wrap(x.name.value)).mkString("(", op, ")"))
     val fails = findFailures(es)
     if (fails.isEmpty)
       Eval.success(name, input)
@@ -36,7 +36,7 @@ object Logic {
                                    (implicit F: Contravariant[P]): Eval = {
     val p = lp.run(x)
     val q = lq.run(x)
-    val n = Need(name(p.name.value, q.name.value))
+    val n = CE.later(name(p.name.value, q.name.value))
     val i = {
       val a = p.input
       val b = q.input
@@ -119,7 +119,7 @@ sealed abstract class Logic[P[_], A] {
   }
 
   final def rename(n: => String): Logic[P, A] = this match {
-    case Named(_, l)         => Named(Need(n), l)
+    case Named(_, l)         => Named(CE.later(n), l)
     case Mapped(m, l)        => Mapped(m, l rename n)
     case Atom(_, _)
        | Negation(_)
@@ -127,7 +127,7 @@ sealed abstract class Logic[P[_], A] {
        | Disjunction(_)
        | Implication(_, _)
        | Reduction(_, _)
-       | Biconditional(_, _) => Named(Need(n), this)
+       | Biconditional(_, _) => Named(CE.later(n), this)
   }
 
   final def run(x: P[A] => Eval)(implicit F: Contravariant[P]): Eval = this match {
@@ -140,7 +140,7 @@ sealed abstract class Logic[P[_], A] {
 
     case Negation(l) =>
       val e = l.run(x)
-      val n = Need("¬" + e.name.value)
+      val n = CE.later("¬" + e.name.value)
       val f = if (e.failure) Eval.root
               else           Eval.root.add(s"Failure expected with input [${e.input.show}].", Nil)
       Eval(n, e.input, f)

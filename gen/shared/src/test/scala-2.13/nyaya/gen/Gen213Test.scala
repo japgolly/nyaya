@@ -1,7 +1,7 @@
 package nyaya.gen
 
-import utest._
 import scala.collection.immutable.ArraySeq
+import utest._
 
 object Gen213Test extends TestSuite {
 

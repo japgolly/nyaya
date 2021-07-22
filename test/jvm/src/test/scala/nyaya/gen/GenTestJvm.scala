@@ -1,16 +1,15 @@
 package nyaya.gen
 
+import cats.instances.all._
 import java.time._
-import scala.concurrent.duration._
-import scala.collection.SortedSet
-import scala.collection.compat._
-import scalaz.std.AllInstances._
-import utest._
+import nyaya.gen.DateTimeBuilderJava8.UTC
+import nyaya.gen.Gen.Now
 import nyaya.prop._
 import nyaya.test.ParallelExecutor
 import nyaya.test.PropTest._
-import DateTimeBuilderJava8.UTC
-import Gen.Now
+import scala.collection.SortedSet
+import scala.concurrent.duration._
+import utest._
 
 object GenTestJvm extends TestSuite {
 

@@ -1,7 +1,7 @@
 package nyaya.gen
 
 import java.time._
-import DateTimeBuilderJava8._
+import nyaya.gen.DateTimeBuilderJava8._
 
 object DateTimeBuilderJava8 {
 
