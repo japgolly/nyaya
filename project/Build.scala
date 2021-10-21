@@ -47,16 +47,12 @@ object NyayaBuild {
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      organization                  := "com.github.japgolly.nyaya",
-      homepage                      := Some(url("https://github.com/japgolly/" + ghProject)),
-      licenses                      += ("LGPL v2.1+" -> url("http://www.gnu.org/licenses/lgpl-2.1.txt")),
       scalaVersion                  := Ver.scala2,
       crossScalaVersions            := Seq(Ver.scala2, Ver.scala3),
       scalacOptions                ++= scalacCommonFlags,
       scalacOptions                ++= scalac2Flags.filter(_ => isScala2.value),
       scalacOptions                ++= scalac3Flags.filter(_ => scalaVersion.value.startsWith("3")),
       testFrameworks                := Nil,
-      ThisBuild / shellPrompt       := ((s: State) => Project.extract(s).currentRef.project + "> "),
       updateOptions                 := updateOptions.value.withCachedResolution(true),
       releasePublishArtifactsAction := PgpKeys.publishSigned.value,
       releaseTagComment             := s"v${(ThisBuild / version).value}",
