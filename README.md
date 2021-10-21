@@ -71,7 +71,7 @@ I do all my OSS work unpaid so showing your support will make a big difference.
 
 #### Licence
 ```
-Copyright (C) 2014-2020 David Barri
+Copyright (C) 2014-2022 David Barri
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
