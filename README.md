@@ -28,14 +28,14 @@ Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> N
 
 ```scala
 // Property expression, evaluation, assertion.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "0.11.0"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "1.0.0"
 
 // Random data generation.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "0.11.0"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "1.0.0"
 
 // Property testing with random data.
 // Property proving.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "0.11.0" % Test
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "1.0.0" % Test
 ```
 
 <br>
