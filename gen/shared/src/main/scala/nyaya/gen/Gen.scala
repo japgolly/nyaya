@@ -2,6 +2,7 @@ package nyaya.gen
 
 import cats.data._
 import cats.{Distributive, Eval, Functor, Monad, Traverse, ~>}
+import java.net.InetAddress
 import java.time.ZoneId
 import java.util.UUID
 import scala.annotation.{switch, tailrec}
@@ -878,6 +879,13 @@ object Gen {
 
   def dateTime(implicit genNow: Gen[Now]): DateTimeBuilder =
     DateTimeBuilder.default(genNow)
+
+  // ------------------
+  // Networking related
+  // ------------------
+
+  lazy val ip4: Gen[InetAddress] =
+    Gen.byte.arraySeq(4).map(a => InetAddress.getByAddress(a.toArray))
 
   // --------------------------------------------------------------
   // Traverse using plain Scala collections and CanBuildFrom (fast)
