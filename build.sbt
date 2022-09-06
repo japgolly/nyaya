@@ -14,4 +14,6 @@ val genJVM    = NyayaBuild.genJVM
 val genJS     = NyayaBuild.genJS
 val testJVM   = NyayaBuild.testJVM
 val testJS    = NyayaBuild.testJS
+val circeJVM  = NyayaBuild.circeJVM
+val circeJS   = NyayaBuild.circeJS
 val benchmark = NyayaBuild.benchmark

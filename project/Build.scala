@@ -81,8 +81,8 @@ object NyayaBuild {
   lazy val root = (project in file("."))
     .configure(commonSettings.jvm, preventPublication)
     .aggregate(
-      utilJVM, propJVM, genJVM, testJVM,
-      utilJS, propJS, genJS, testJS,
+      utilJVM, propJVM, genJVM, testJVM, circeJVM,
+      utilJS, propJS, genJS, testJS, circeJS,
       benchmark)
 
   lazy val utilJVM = util.jvm
@@ -121,8 +121,23 @@ object NyayaBuild {
       libraryDependencies ++= Seq(
         Dep.cats.value,
         Dep.microlibsMultimap.value,
+        Dep.microlibsRecursion.value,
         Dep.monocleCore.value,
         Dep.alleyCats.value % Test,
+      ),
+    )
+
+  lazy val circeJVM = circe.jvm
+  lazy val circeJS  = circe.js
+  lazy val circe = crossProject(JVMPlatform, JSPlatform)
+    .in(file("circe"))
+    .configureCross(commonSettings, publicationSettings)
+    .dependsOn(gen)
+    .configureCross(utestSettings)
+    .settings(
+      moduleName := "nyaya-circe",
+      libraryDependencies ++= Seq(
+        Dep.circeCore.value,
       ),
     )
 
