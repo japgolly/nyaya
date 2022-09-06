@@ -5,6 +5,8 @@ ThisBuild / shellPrompt   := ((s: State) => Project.extract(s).currentRef.projec
 ThisBuild / startYear     := Some(2014)
 ThisBuild / versionScheme := Some("early-semver")
 
+sonatypeProfileName := "com.github.japgolly"
+
 val root        = NyayaBuild.root
 val utilJVM     = NyayaBuild.utilJVM
 val utilJS      = NyayaBuild.utilJS
