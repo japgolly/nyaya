@@ -4,7 +4,6 @@ import com.jsuereth.sbtpgp.PgpKeys
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import pl.project13.scala.sbt.JmhPlugin
-import sbtrelease.ReleasePlugin.autoImport._
 import scalajscrossproject.ScalaJSCrossPlugin.autoImport._
 import org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv
 import ScalaJSPlugin.autoImport._
@@ -47,17 +46,14 @@ object NyayaBuild {
 
   val commonSettings = ConfigureBoth(
     _.settings(
-      scalaVersion                  := Ver.scala2,
-      crossScalaVersions            := Seq(Ver.scala2, Ver.scala3),
-      scalacOptions                ++= scalacCommonFlags,
-      scalacOptions                ++= scalac2Flags.filter(_ => isScala2.value),
-      scalacOptions                ++= scalac3Flags.filter(_ => scalaVersion.value.startsWith("3")),
-      testFrameworks                := Nil,
-      updateOptions                 := updateOptions.value.withCachedResolution(true),
-      releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-      releaseTagComment             := s"v${(ThisBuild / version).value}",
-      releaseVcsSign                := true,
-      isScala2                      := scalaVersion.value startsWith "2.",
+      scalaVersion        := Ver.scala2,
+      crossScalaVersions  := Seq(Ver.scala2, Ver.scala3),
+      scalacOptions      ++= scalacCommonFlags,
+      scalacOptions      ++= scalac2Flags.filter(_ => isScala2.value),
+      scalacOptions      ++= scalac3Flags.filter(_ => scalaVersion.value.startsWith("3")),
+      testFrameworks      := Nil,
+      updateOptions       := updateOptions.value.withCachedResolution(true),
+      isScala2            := scalaVersion.value startsWith "2.",
 
       Test / scalacOptions --= Seq("-Ywarn-dead-code"),
 
