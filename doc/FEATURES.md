@@ -86,6 +86,19 @@ Note: `Gen` does not contain a `.suchThat` or `.filter`.
 Don't generate data just to throw it away. Instead, write an accurate generator.
 There are better ways than throw-away-retry.
 
+### Generating Random JSON
+
+Add the `nyaya-gen-circe` module as a dependency and then:
+
+```scala
+import io.circe.Json
+import nyaya.gen.circe.GenJson
+
+// Generate JSON with a maximum depth of 4
+val json: Json =
+  GenJson(4).sample()
+```
+
 ##### Example
 Say we have these data types
 ```scala
