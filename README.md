@@ -27,15 +27,20 @@ Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> N
 #### SBT setup
 
 ```scala
+ver nyayaVer = "1.1.0"
+
 // Property expression, evaluation, assertion.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % "1.0.0"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % nyayaVer
 
 // Random data generation.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % "1.0.0"
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % nyayaVer
+
+// Random JSON generation
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen-circe" % nyayaVer
 
 // Property testing with random data.
 // Property proving.
-libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "1.0.0" % Test
+libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % nyayaVer % Test
 ```
 
 <br>
@@ -49,7 +54,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % "1.0.0" % 
 
 #### Requires:
 * Scala 2.13+
-* Scala.JS 1.7+ *(optional)*
+* Scala.JS 1.10+ *(optional)*
 
 <br>
 
