@@ -5,6 +5,12 @@ on:
     tags:
       - v*.*.*
 
+permissions:
+  contents: write # for action-gh-release
+
+env:
+  SBT: sbt -J-Xmx3G -DCI=1
+
 jobs:
 
   release:
@@ -19,14 +25,12 @@ jobs:
           java-version: adopt@1.8
 
       - name: Release
-        run: >-
-          sbt
-          -J-Xmx3G
-          -J-XX:+UseG1GC
-          -DCI=1
-          ci-release
+        run: $SBT ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
