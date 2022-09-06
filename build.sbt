@@ -5,15 +5,15 @@ ThisBuild / shellPrompt   := ((s: State) => Project.extract(s).currentRef.projec
 ThisBuild / startYear     := Some(2014)
 ThisBuild / versionScheme := Some("early-semver")
 
-val root      = NyayaBuild.root
-val utilJVM   = NyayaBuild.utilJVM
-val utilJS    = NyayaBuild.utilJS
-val propJVM   = NyayaBuild.propJVM
-val propJS    = NyayaBuild.propJS
-val genJVM    = NyayaBuild.genJVM
-val genJS     = NyayaBuild.genJS
-val testJVM   = NyayaBuild.testJVM
-val testJS    = NyayaBuild.testJS
-val circeJVM  = NyayaBuild.circeJVM
-val circeJS   = NyayaBuild.circeJS
-val benchmark = NyayaBuild.benchmark
+val root        = NyayaBuild.root
+val utilJVM     = NyayaBuild.utilJVM
+val utilJS      = NyayaBuild.utilJS
+val propJVM     = NyayaBuild.propJVM
+val propJS      = NyayaBuild.propJS
+val genJVM      = NyayaBuild.genJVM
+val genJS       = NyayaBuild.genJS
+val testJVM     = NyayaBuild.testJVM
+val testJS      = NyayaBuild.testJS
+val genCirceJVM = NyayaBuild.genCirceJVM
+val genCirceJS  = NyayaBuild.genCirceJS
+val benchmark   = NyayaBuild.benchmark
