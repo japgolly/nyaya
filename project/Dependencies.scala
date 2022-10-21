@@ -11,7 +11,7 @@ object Dependencies {
     val circe            = "0.14.2"
     val microlibs        = "4.2.1"
     val monocle          = "3.1.0"
-    val scala2           = "2.13.8"
+    val scala2           = "2.13.10"
     val scala3           = "3.1.3"
 
     // Internal
