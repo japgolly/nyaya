@@ -8,7 +8,7 @@ object Dependencies {
 
     // Externally observable
     val cats             = "2.8.0"
-    val circe            = "0.14.2"
+    val circe            = "0.14.4"
     val microlibs        = "4.2.1"
     val monocle          = "3.1.0"
     val scala2           = "2.13.8"
