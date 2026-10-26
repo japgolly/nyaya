@@ -176,6 +176,14 @@ object GenTest extends TestSuite {
     "fill"           - fillGen                                       .mustSatisfy(fillProp)
     "shuffle"        - shuffleGen                                    .mustSatisfy(shuffleProp)
 
+    "subset1" - {
+      var runs = 0
+      val g = Gen[Vector[Int]] { _ => runs += 1; Vector(1, 2, 3) }
+      val s = g.subset1.sample()
+      assert(runs == 1)
+      assert(s.nonEmpty && s.forall(Set(1, 2, 3).contains))
+    }
+
     // TODO: https://github.com/lampepfl/dotty/issues/11681
     // "subset"         - Gen.int.list.subset                           .mustSatisfy(didntCrash)
     // "subset1"        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)

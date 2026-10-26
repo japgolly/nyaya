@@ -198,8 +198,8 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
    */
   def subset1[C[X] <: IndexedSeq[X], B](implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen { c =>
-      val a = run(c)
-      var r = Gen.runSubset[C, B](run(c), c)
+      val a = ev(run(c))
+      var r = Gen.runSubset[C, B](a, c)
       if (r.isEmpty && a.nonEmpty) {
         val b = cbf.newBuilder
         b.sizeHint(1)
