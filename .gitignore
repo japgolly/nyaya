@@ -13,5 +13,5 @@
 *.pid
 *.tmp
 ~*
-project/metals.sbt
+metals.sbt
 target
