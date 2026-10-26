@@ -76,9 +76,9 @@ object GenAbstractJson {
     val genNull      = Gen.pure(JsonF.Null)
     val genTrue      = Gen.pure(JsonF.True)
     val genFalse     = Gen.pure(JsonF.False)
-    val genStr       = genString.map(JsonF.Str)
-    val genNumDouble = Gen.double.map(JsonF.NumDouble)
-    val genNumLong   = Gen.long.map(JsonF.NumLong)
+    val genStr       = genString.map(JsonF.Str.apply)
+    val genNumDouble = Gen.double.map(JsonF.NumDouble.apply)
+    val genNumLong   = Gen.long.map(JsonF.NumLong.apply)
 
     val nonRecursiveGens: List[Gen[JsonF[Spec]]] =
       List(

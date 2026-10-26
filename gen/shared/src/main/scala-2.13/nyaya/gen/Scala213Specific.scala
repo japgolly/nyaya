@@ -27,7 +27,7 @@ object ScalaVerSpecific {
   }
 
   trait SetLikeImplicits {
-    implicit def NyayaSetLikeForLazyList = ScalaVerSpecific.SetLikeForLazyList
-    implicit def NyayaSetLikeForArraySeq = ScalaVerSpecific.SetLikeForArraySeq
+    implicit def NyayaSetLikeForLazyList: ScalaVerSpecific.SetLikeForLazyList.type = ScalaVerSpecific.SetLikeForLazyList
+    implicit def NyayaSetLikeForArraySeq: ScalaVerSpecific.SetLikeForArraySeq.type = ScalaVerSpecific.SetLikeForArraySeq
   }
 }

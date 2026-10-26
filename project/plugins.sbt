@@ -1,7 +1,7 @@
-addSbtPlugin("ch.epfl.scala"      % "sbt-scalafix"             % "0.9.34")
-addSbtPlugin("com.github.sbt"     % "sbt-ci-release"           % "1.5.10")
-addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.2.0")
-addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.10.1")
-addSbtPlugin("pl.project13.scala" % "sbt-jmh"                  % "0.4.3")
+addSbtPlugin("ch.epfl.scala"      % "sbt-scalafix"             % "0.14.9")
+addSbtPlugin("com.github.sbt"     % "sbt-ci-release"           % "1.12.1")
+addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.4.0")
+addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.20.2")
+addSbtPlugin("pl.project13.scala" % "sbt-jmh"                  % "0.4.8")
 
 libraryDependencies += "org.scala-js" %% "scalajs-env-jsdom-nodejs" % "1.1.1"

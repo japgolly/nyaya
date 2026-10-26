@@ -6,7 +6,6 @@ import cats.instances.all._
 import java.nio.charset.Charset
 import nyaya.prop._
 import nyaya.test.PropTest._
-import scala.annotation.nowarn
 import utest._
 
 object GenTest extends TestSuite {
@@ -54,7 +53,6 @@ object GenTest extends TestSuite {
   // For cases when parametricity means there's nothing useful to test without the ability to write a ∃-test
   def didntCrash[A] = Prop.test[A]("Didn't crash", _ => true)
 
-  @nowarn("cat=unused")
   def assertType[T](f: => T): Unit = ()
 
   val abc = "abc".toCharArray.toList
