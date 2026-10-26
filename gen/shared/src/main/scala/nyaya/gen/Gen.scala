@@ -446,14 +446,16 @@ object Gen {
   def unit   : Gen[Unit]    = pure(())
   def uuid   : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
 
-  val positiveInt   : Gen[Int]     = int    map (Math abs _)
-  val positiveLong  : Gen[Long]    = long   map (Math abs _)
-  val positiveDouble: Gen[Double]  = double map (Math abs _)
-  def positiveFloat : Gen[Float]   = float  map (Math abs _)
-  val negativeInt   : Gen[Int]     = positiveInt    map (-_)
-  val negativeLong  : Gen[Long]    = positiveLong   map (-_)
-  val negativeDouble: Gen[Double]  = positiveDouble map (-_)
-  def negativeFloat : Gen[Float]   = positiveFloat  map (-_)
+  // Don't use Math.abs anywhere here; Math.abs(MinValue) is negative
+  val positiveInt   : Gen[Int]  = int  map (_ >>> 1)
+  val positiveLong  : Gen[Long] = long map (_ >>> 1)
+  val negativeInt   : Gen[Int]  = int  map (i => if (i <= 0) i else -i)
+  val negativeLong  : Gen[Long] = long map (l => if (l <= 0) l else -l)
+
+  val positiveDouble: Gen[Double] = double map (Math abs _)
+  def positiveFloat : Gen[Float]  = float map (Math abs _)
+  val negativeDouble: Gen[Double] = positiveDouble map (-_)
+  def negativeFloat : Gen[Float]  = positiveFloat  map (-_)
 
   /*
   import java.nio.charset.Charset

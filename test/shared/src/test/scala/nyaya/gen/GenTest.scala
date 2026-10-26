@@ -141,6 +141,17 @@ object GenTest extends TestSuite {
       }
     }
 
+    "positiveAndNegative" - {
+      "int" - {
+        Gen.positiveInt.samples().take(1000).foreach(i => assert(i >= 0))
+        Gen.negativeInt.samples().take(1000).foreach(i => assert(i <= 0))
+      }
+      "long" - {
+        Gen.positiveLong.samples().take(1000).foreach(l => assert(l >= 0L))
+        Gen.negativeLong.samples().take(1000).foreach(l => assert(l <= 0L))
+      }
+    }
+
     "chooseChar" - {
       // Ensure scalac actually allows these overloads (in some cases it compiles but fails at callsite)
       val s1 = Gen.chooseChar('a', 'b' to 'z')
