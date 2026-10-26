@@ -26,7 +26,6 @@ object Dependencies {
     val circeCore          = Def.setting("io.circe"                      %%% "circe-core"     % Ver.circe)
     val microlibsMultimap  = Def.setting("com.github.japgolly.microlibs" %%% "multimap"       % Ver.microlibs)
     val microlibsRecursion = Def.setting("com.github.japgolly.microlibs" %%% "recursion"      % Ver.microlibs)
-    val microlibsStdlibExt = Def.setting("com.github.japgolly.microlibs" %%% "stdlib-ext"     % Ver.microlibs)
     val microlibsTestUtil  = Def.setting("com.github.japgolly.microlibs" %%% "test-util"      % Ver.microlibs)
     val monocleCore        = Def.setting("dev.optics"                    %%% "monocle-core"   % Ver.monocle)
     val utest              = Def.setting("com.lihaoyi"                   %%% "utest"          % Ver.utest)

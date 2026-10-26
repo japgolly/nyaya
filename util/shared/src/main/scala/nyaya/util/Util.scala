@@ -17,6 +17,18 @@ object Util {
     sb.toString
   }
 
+  def escapeString(s: String): String =
+    s.toCharArray.map {
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      case '\\' => "\\"
+      case '"' => "\\\""
+      case n if n >= 32 && n <= 127 => n.toString
+      //case n if n < 256 => "\\x%02x" format n.toInt
+      case n => "\\u%04x" format n.toLong
+    }.mkString
+
   def asciiTree[N](root: Iterable[N])(leaves: N => Iterable[N], show: N => String, indent: String = ""): String =
     quickSB(asciiTreeSB(root)(_, leaves, show, indent))
 

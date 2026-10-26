@@ -151,9 +151,6 @@ object NyayaBuild {
     .settings(
       name := "test",
       moduleName := "nyaya-test",
-      libraryDependencies ++= Seq(
-        Dep.microlibsStdlibExt.value
-      )
     )
 
   lazy val benchmark = (project in file("benchmark"))
