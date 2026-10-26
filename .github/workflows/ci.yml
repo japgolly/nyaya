@@ -12,6 +12,7 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - java: 14
@@ -27,7 +28,8 @@ jobs:
       - name: Setup Scala
         uses: japgolly/setup-everything-scala@v4.1
         with:
-          java-version: adopt@1.${{ matrix.java }}
+          java-version: adoptium@1.${{ matrix.java }}
+          node-version: 26
 
       - name: Build and test
         shell: bash
