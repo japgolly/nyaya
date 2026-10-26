@@ -15,7 +15,7 @@ case class SeedCtx(thread: ThreadNumber, sample: SampleNumber) {
  * This data is mutable.
  */
 final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: ThreadNumber) {
-  private var lastBit = 32
+  private var lastBit = 31
   private var intBits = 0
   private var sampleNumber = SampleNumber(0)
 
@@ -33,7 +33,7 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: Thr
 
   /** 32x less calls nextInt() compared to java.util.Random.nextBoolean() */
   def nextBit(): Boolean = {
-    if (lastBit == 32) {
+    if (lastBit == 31) {
       lastBit = 0
       intBits = rnd.nextInt()
     } else
@@ -43,7 +43,7 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: Thr
 
   def setSeed(seed: Long): Unit = {
     rnd setSeed seed
-    lastBit = 32
+    lastBit = 31
   }
 
   def shiftLeft(i: Int): Int = {

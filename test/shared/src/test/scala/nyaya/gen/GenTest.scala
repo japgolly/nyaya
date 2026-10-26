@@ -287,6 +287,20 @@ object GenTest extends TestSuite {
       }
     }
 
+    "nextBit" - {
+      val ctx = GenCtx(GenSize(0), ThreadNumber(0))
+      ctx.setSeed(1L)
+      val r = new java.util.Random(1L)
+      val int1 = r.nextInt()
+      val int2 = r.nextInt()
+      val expectedBits1 = (0 until 32).map(b => (int1 & (1 << b)) == 0)
+      val actualBits1 = (0 until 32).map(_ => ctx.nextBit())
+      assert(actualBits1 == expectedBits1)
+      val actualBit33 = ctx.nextBit()
+      val expectedBit33 = (int2 & 1) == 0
+      assert(actualBit33 == expectedBit33)
+    }
+
     "uuid" - {
       val (a, b) = Gen.uuid.pair.sample()
       assert(a != b)
