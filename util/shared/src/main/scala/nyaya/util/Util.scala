@@ -22,7 +22,7 @@ object Util {
       case '\n' => "\\n"
       case '\r' => "\\r"
       case '\t' => "\\t"
-      case '\\' => "\\"
+      case '\\' => "\\\\"
       case '"' => "\\\""
       case n if n >= 32 && n <= 127 => n.toString
       //case n if n < 256 => "\\x%02x" format n.toInt
