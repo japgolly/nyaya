@@ -12,6 +12,12 @@ object Gen3Test extends TestSuite {
     "Gen#to"           - assertType[Gen[List[Int]    ]](Gen.int.to(List))
     "Gen#arraySeq"     - assertType[Gen[ArraySeq[Int]]](Gen.int.arraySeq)
     "Gen#arraySeq(ss)" - assertType[Gen[ArraySeq[Int]]](Gen.int.arraySeq(1 to 2))
+    "SetLike#arraySeq" - {
+      val s = implicitly[SetLike[ArraySeq, Int]]
+      val as = s.add(s.empty, 1)
+      assert(s.contains(as, 1))
+      assert(!s.contains(as, 2))
+    }
 
   }
 }
