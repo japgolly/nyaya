@@ -184,10 +184,9 @@ object GenTest extends TestSuite {
       assert(s.nonEmpty && s.forall(Set(1, 2, 3).contains))
     }
 
-    // TODO: https://github.com/lampepfl/dotty/issues/11681
-    // "subset"         - Gen.int.list.subset                           .mustSatisfy(didntCrash)
-    // "subset1"        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)
-    // "take"           - Gen.int.list.take(0 to 210)                   .mustSatisfy(didntCrash)
+    "subset"         - Gen.int.list.subset                           .mustSatisfy(didntCrash)
+    "subset1"        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)
+    "take"           - Gen.int.list.take(0 to 210)                   .mustSatisfy(didntCrash)
 
     "mapBy"          - Gen.int.mapBy(Gen.char)                       .mustSatisfy(didntCrash)
     "mapByKeySubset" - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)
