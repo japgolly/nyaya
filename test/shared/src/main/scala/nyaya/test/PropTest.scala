@@ -1,8 +1,8 @@
 package nyaya.test
 
+import japgolly.microlibs.stdlib_ext.EscapeUtils
 import nyaya.gen._
 import nyaya.prop._
-import nyaya.util.Util
 import scala.Console._
 
 object PropTest extends PropTestOps {
@@ -40,8 +40,8 @@ trait PropTestOps {
   private[this] def printFailureInfo[A](a: A, header: String => String, printFooter: => Unit)(implicit S: Settings): Unit = {
     if (!S.debug) {
       val v = a.toString
-      val w = Util.escapeString(v)
       println(header(v))
+      val w = EscapeUtils.escape(v)
       if (w != v) println(s"$w\n")
     }
     printFooter
