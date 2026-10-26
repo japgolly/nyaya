@@ -174,7 +174,14 @@ object GenTest extends TestSuite {
     "mapByKeySubset" - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)
     "mapByEachKey"   - mapByEachKeyGen                               .mustSatisfy(mapByEachKeyProp)
     "newOrOld"       - Gen.int.list.flatMap(Gen.newOrOld(Gen.int, _)).mustSatisfy(didntCrash)
-    "frequency"      - freqArgs.flatMap(Gen frequencyNE _)           .mustSatisfy(didntCrash)
+    "frequency" - {
+      "coverage" - {
+        val g = Gen.frequency(1 -> Gen.pure("a"), 1 -> Gen.pure("b"))
+        val actual = g.samples().take(100).toSet
+        assert(actual == Set("a", "b"))
+      }
+      "random" - freqArgs.flatMap(Gen frequencyNE _).mustSatisfy(didntCrash)
+    }
 
     "sequence" - {
       val inp = "heheyay"

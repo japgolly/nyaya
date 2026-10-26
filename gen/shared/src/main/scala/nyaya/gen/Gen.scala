@@ -765,7 +765,7 @@ object Gen {
       }
       val h = xs.head
       val t = xs.tail
-      chooseInt(total - 1) flatMap (pick(_, h, t))
+      chooseInt(total) flatMap (pick(_, h, t))
     }
 
   /**
