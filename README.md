@@ -54,7 +54,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % nyayaVer %
 
 #### Requires:
 * Scala 2.13+
-* Scala.JS 1.10+ *(optional)*
+* Scala.JS 1.20+ *(optional)*
 
 <br>
 
@@ -76,7 +76,7 @@ I do all my OSS work unpaid so showing your support will make a big difference.
 
 #### Licence
 ```
-Copyright (C) 2014-2022 David Barri
+Copyright (C) 2014-2026 David Barri
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
