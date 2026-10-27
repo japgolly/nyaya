@@ -85,7 +85,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     either(g)
 
   def &[B](g: Gen[B]): Gen[(A, B)] =
-    for {a <- this; b <- g} yield (a, b)
+    Gen(c => (run(c), g.run(c)))
 
   def fillFold[B](n: Int, z: B)(f: (B, A) => B): Gen[B] =
     Gen { c =>
@@ -927,23 +927,23 @@ object Gen {
   // Arity boilerplate
   // ------------------------------------------------------
 
-  def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = for {a<-A;b<-B} yield (a,b)
-  def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = for {a<-A;b<-B;c<-C} yield (a,b,c)
-  def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = for {a<-A;b<-B;c<-C;d<-D} yield (a,b,c,d)
-  def tuple5[A,B,C,D,E](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[(A,B,C,D,E)] = for {a<-A;b<-B;c<-C;d<-D;e<-E} yield (a,b,c,d,e)
-  def tuple6[A,B,C,D,E,F](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[(A,B,C,D,E,F)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F} yield (a,b,c,d,e,f)
-  def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G} yield (a,b,c,d,e,f,g)
-  def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H} yield (a,b,c,d,e,f,g,h)
-  def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H;i<-I} yield (a,b,c,d,e,f,g,h,i)
+  def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = Gen(c => (A.run(c), B.run(c)))
+  def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = Gen(c => (A.run(c), B.run(c), C.run(c)))
+  def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c)))
+  def tuple5[A,B,C,D,E](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[(A,B,C,D,E)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c)))
+  def tuple6[A,B,C,D,E,F](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[(A,B,C,D,E,F)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c)))
+  def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c)))
+  def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c)))
+  def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c)))
 
-  def apply2[A,B,Z](z: (A,B)=>Z)(A:Gen[A], B:Gen[B]): Gen[Z] = for {a<-A;b<-B} yield z(a,b)
-  def apply3[A,B,C,Z](z: (A,B,C)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = for {a<-A;b<-B;c<-C} yield z(a,b,c)
-  def apply4[A,B,C,D,Z](z: (A,B,C,D)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D} yield z(a,b,c,d)
-  def apply5[A,B,C,D,E,Z](z: (A,B,C,D,E)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E} yield z(a,b,c,d,e)
-  def apply6[A,B,C,D,E,F,Z](z: (A,B,C,D,E,F)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F} yield z(a,b,c,d,e,f)
-  def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G} yield z(a,b,c,d,e,f,g)
-  def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H} yield z(a,b,c,d,e,f,g,h)
-  def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H;i<-I} yield z(a,b,c,d,e,f,g,h,i)
+  def apply2[A,B,Z](z: (A,B)=>Z)(A:Gen[A], B:Gen[B]): Gen[Z] = Gen(c => z(A.run(c), B.run(c)))
+  def apply3[A,B,C,Z](z: (A,B,C)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c)))
+  def apply4[A,B,C,D,Z](z: (A,B,C,D)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c)))
+  def apply5[A,B,C,D,E,Z](z: (A,B,C,D,E)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c)))
+  def apply6[A,B,C,D,E,F,Z](z: (A,B,C,D,E,F)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c)))
+  def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c)))
+  def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c)))
+  def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c)))
 
   @inline def lift2[A,B,Z](A:Gen[A], B:Gen[B])(z: (A,B)=>Z): Gen[Z] = apply2(z)(A,B)
   @inline def lift3[A,B,C,Z](A:Gen[A], B:Gen[B], C:Gen[C])(z: (A,B,C)=>Z): Gen[Z] = apply3(z)(A,B,C)

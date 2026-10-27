@@ -390,5 +390,74 @@ object GenTest extends TestSuite {
       }
     }
 
+    "arity" - {
+      def counter(): Gen[Int] = {
+        var count = 0
+        Gen(_ => { count += 1; count })
+      }
+
+      "tuple" - {
+        val c2 = counter()
+        assert(Gen.tuple2(c2, c2).sample() == (1, 2))
+        val c3 = counter()
+        assert(Gen.tuple3(c3, c3, c3).sample() == (1, 2, 3))
+        val c4 = counter()
+        assert(Gen.tuple4(c4, c4, c4, c4).sample() == (1, 2, 3, 4))
+        val c5 = counter()
+        assert(Gen.tuple5(c5, c5, c5, c5, c5).sample() == (1, 2, 3, 4, 5))
+        val c6 = counter()
+        assert(Gen.tuple6(c6, c6, c6, c6, c6, c6).sample() == (1, 2, 3, 4, 5, 6))
+        val c7 = counter()
+        assert(Gen.tuple7(c7, c7, c7, c7, c7, c7, c7).sample() == (1, 2, 3, 4, 5, 6, 7))
+        val c8 = counter()
+        assert(Gen.tuple8(c8, c8, c8, c8, c8, c8, c8, c8).sample() == (1, 2, 3, 4, 5, 6, 7, 8))
+        val c9 = counter()
+        assert(Gen.tuple9(c9, c9, c9, c9, c9, c9, c9, c9, c9).sample() == (1, 2, 3, 4, 5, 6, 7, 8, 9))
+      }
+
+      "apply" - {
+        val c2 = counter()
+        assert(Gen.apply2((a: Int, b: Int) => (a, b))(c2, c2).sample() == (1, 2))
+        val c3 = counter()
+        assert(Gen.apply3((a: Int, b: Int, d: Int) => (a, b, d))(c3, c3, c3).sample() == (1, 2, 3))
+        val c4 = counter()
+        assert(Gen.apply4((a: Int, b: Int, d: Int, e: Int) => (a, b, d, e))(c4, c4, c4, c4).sample() == (1, 2, 3, 4))
+        val c5 = counter()
+        assert(Gen.apply5((a: Int, b: Int, d: Int, e: Int, f: Int) => (a, b, d, e, f))(c5, c5, c5, c5, c5).sample() == (1, 2, 3, 4, 5))
+        val c6 = counter()
+        assert(Gen.apply6((a: Int, b: Int, d: Int, e: Int, f: Int, g: Int) => (a, b, d, e, f, g))(c6, c6, c6, c6, c6, c6).sample() == (1, 2, 3, 4, 5, 6))
+        val c7 = counter()
+        assert(Gen.apply7((a: Int, b: Int, d: Int, e: Int, f: Int, g: Int, h: Int) => (a, b, d, e, f, g, h))(c7, c7, c7, c7, c7, c7, c7).sample() == (1, 2, 3, 4, 5, 6, 7))
+        val c8 = counter()
+        assert(Gen.apply8((a: Int, b: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int) => (a, b, d, e, f, g, h, i))(c8, c8, c8, c8, c8, c8, c8, c8).sample() == (1, 2, 3, 4, 5, 6, 7, 8))
+        val c9 = counter()
+        assert(Gen.apply9((a: Int, b: Int, d: Int, e: Int, f: Int, g: Int, h: Int, i: Int, j: Int) => (a, b, d, e, f, g, h, i, j))(c9, c9, c9, c9, c9, c9, c9, c9, c9).sample() == (1, 2, 3, 4, 5, 6, 7, 8, 9))
+      }
+
+      "lift" - {
+        val c2 = counter()
+        assert(Gen.lift2(c2, c2)((a, b) => (a, b)).sample() == (1, 2))
+        val c3 = counter()
+        assert(Gen.lift3(c3, c3, c3)((a, b, c) => (a, b, c)).sample() == (1, 2, 3))
+        val c4 = counter()
+        assert(Gen.lift4(c4, c4, c4, c4)((a, b, c, d) => (a, b, c, d)).sample() == (1, 2, 3, 4))
+        val c5 = counter()
+        assert(Gen.lift5(c5, c5, c5, c5, c5)((a, b, c, d, e) => (a, b, c, d, e)).sample() == (1, 2, 3, 4, 5))
+        val c6 = counter()
+        assert(Gen.lift6(c6, c6, c6, c6, c6, c6)((a, b, c, d, e, f) => (a, b, c, d, e, f)).sample() == (1, 2, 3, 4, 5, 6))
+        val c7 = counter()
+        assert(Gen.lift7(c7, c7, c7, c7, c7, c7, c7)((a, b, c, d, e, f, g) => (a, b, c, d, e, f, g)).sample() == (1, 2, 3, 4, 5, 6, 7))
+        val c8 = counter()
+        assert(Gen.lift8(c8, c8, c8, c8, c8, c8, c8, c8)((a, b, c, d, e, f, g, h) => (a, b, c, d, e, f, g, h)).sample() == (1, 2, 3, 4, 5, 6, 7, 8))
+        val c9 = counter()
+        assert(Gen.lift9(c9, c9, c9, c9, c9, c9, c9, c9, c9)((a, b, c, d, e, f, g, h, i) => (a, b, c, d, e, f, g, h, i)).sample() == (1, 2, 3, 4, 5, 6, 7, 8, 9))
+      }
+
+      "product" - {
+        val c = counter()
+        assert((c & c).sample() == (1, 2))
+      }
+    }
+
   }
 }
