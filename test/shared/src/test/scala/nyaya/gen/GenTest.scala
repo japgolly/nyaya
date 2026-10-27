@@ -4,6 +4,7 @@ import cats.FlatMap
 import cats.data.NonEmptyList
 import cats.instances.all._
 import java.nio.charset.Charset
+import java.util.SplittableRandom
 import nyaya.prop._
 import nyaya.test.PropTest._
 import utest._
@@ -339,7 +340,7 @@ object GenTest extends TestSuite {
     "nextBit" - {
       val ctx = GenCtx(GenSize(0), ThreadNumber(0))
       ctx.setSeed(1L)
-      val r = new java.util.Random(1L)
+      val r = new SplittableRandom(1L)
       val int1 = r.nextInt()
       val int2 = r.nextInt()
       val expectedBits1 = (0 until 32).map(b => (int1 & (1 << b)) == 0)
@@ -364,20 +365,20 @@ object GenTest extends TestSuite {
         Gen.long
       ).sample()
       // println((c, d, e))
-      val (s0, s1a, s1b) = (-4962768465676381896L,-4964420948893066024L,7564655870752979346L)
+      val (s0, s1a, s1b) = (-2152535657050944081L, -7995527694508729151L, -4689498862643123097L)
       assert(c == s0, d == s1a, e == s1b)
       assert(Set(a,b,c,d,e).size == 5)
     }
 
     "withSeedAcrossSamples" - {
       val actual = Gen.long.withSeed(0).samples().take(3).toList
-      val expect = List(-4962768465676381896L, -7346045213905167455L, 8717422115870565898L)
+      val expect = List(-2152535657050944081L, 696566373075308979L, 8604477608339801740L)
       assert(actual == expect)
     }
 
     "withConstSeed" - {
       val actual = Gen.long.withConstSeed(0).samples().take(3).toList
-      val expect = List.fill(3)(-4962768465676381896L)
+      val expect = List.fill(3)(-2152535657050944081L)
       assert(actual == expect)
     }
 
@@ -385,7 +386,7 @@ object GenTest extends TestSuite {
       "deterministic" - {
         implicit val genNow = Gen pure Gen.Now(1476661717639L)
         val g = Gen.dateTime.aroundNowDays(10).asEpochMs.withSeed(0).sample()
-        assert(g == 1477367458999L)
+        assert(g == 1476208275317L)
       }
     }
 

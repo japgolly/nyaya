@@ -4,7 +4,7 @@ import cats.data._
 import cats.{Distributive, Eval, Functor, Monad, Traverse, ~>}
 import java.net.InetAddress
 import java.time.ZoneId
-import java.util.UUID
+import java.util.{SplittableRandom, UUID}
 import scala.annotation.{switch, tailrec}
 import scala.collection.immutable.{ArraySeq, IndexedSeq, NumericRange, SortedSet}
 import scala.collection.mutable.ArrayBuffer
@@ -369,10 +369,10 @@ object Gen {
     r.result()
   }
 
-  private[Gen] def runShuffle[A](buf: ArrayBuffer[A], r: java.util.Random): Unit = {
+  private[Gen] def runShuffle[A](buf: ArrayBuffer[A], rnd: SplittableRandom): Unit = {
     var n = buf.length
     while (n > 1) {
-      val k = r.nextInt(n)
+      val k = rnd.nextInt(n)
       n -= 1
       val tmp = buf(n)
       buf(n) = buf(k)
@@ -439,7 +439,7 @@ object Gen {
   val int    : Gen[Int]     = Gen(_.rnd.nextInt())
   val long   : Gen[Long]    = Gen(_.rnd.nextLong())
   val double : Gen[Double]  = Gen(_.rnd.nextDouble())
-  def float  : Gen[Float]   = Gen(_.rnd.nextFloat())
+  def float  : Gen[Float]   = Gen(_.rnd.nextDouble().toFloat)
   def short  : Gen[Short]   = Gen(_.rnd.nextInt().toShort)
   def byte   : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
   val boolean: Gen[Boolean] = Gen(_.nextBit())

@@ -1,5 +1,7 @@
 package nyaya.gen
 
+import java.util.SplittableRandom
+
 case class ThreadNumber(value: Int) extends AnyVal
 
 case class SampleNumber(value: Int) extends AnyVal
@@ -14,10 +16,14 @@ case class SeedCtx(thread: ThreadNumber, sample: SampleNumber) {
  *
  * This data is mutable.
  */
-final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: ThreadNumber) {
+final class GenCtx(initialRnd: SplittableRandom, _genSize: GenSize, val thread: ThreadNumber) {
+  private var _rnd    = initialRnd
   private var lastBit = 31
   private var intBits = 0
   private var sampleNumber = SampleNumber(0)
+
+  def rnd =
+    _rnd
 
   def seedCtx(): SeedCtx =
     SeedCtx(thread, sampleNumber)
@@ -31,7 +37,7 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: Thr
   def incSampleNumber(): Unit =
     sampleNumber = SampleNumber(sampleNumber.value + 1)
 
-  /** 32x less calls nextInt() compared to java.util.Random.nextBoolean() */
+  /** 32x less calls nextInt() compared to SplittableRandom.nextBoolean() */
   def nextBit(): Boolean = {
     if (lastBit == 31) {
       lastBit = 0
@@ -42,7 +48,7 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: Thr
   }
 
   def setSeed(seed: Long): Unit = {
-    rnd setSeed seed
+    _rnd = new SplittableRandom(seed)
     lastBit = 31
   }
 
@@ -98,5 +104,5 @@ final class GenCtx(val rnd: java.util.Random, _genSize: GenSize, val thread: Thr
 
 object GenCtx {
   def apply(gs: GenSize, thread: ThreadNumber): GenCtx =
-    new GenCtx(new java.util.Random, gs, thread)
+    new GenCtx(new SplittableRandom, gs, thread)
 }
