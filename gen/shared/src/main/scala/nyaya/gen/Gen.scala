@@ -547,7 +547,7 @@ object Gen {
   /** Args are inclusive. [l,h] */
   def chooseInt(l: Int, h: Int): Gen[Int] = {
     if (l > h)
-      throw new IllegalArgumentException(s"Gen.chooseLong($l, $h) is invalid: $l > $h.")
+      throw new IllegalArgumentException(s"Gen.chooseInt($l, $h) is invalid: $l > $h.")
     val range = h - l + 1
     if (range <= 0) {
       if (l == Int.MinValue && h == Int.MaxValue)
