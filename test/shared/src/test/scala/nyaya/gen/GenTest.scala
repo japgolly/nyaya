@@ -305,6 +305,37 @@ object GenTest extends TestSuite {
       }
     }
 
+    "batches" - {
+      val items = (1 to 20).toVector
+
+      "normal" - {
+        val b = Gen.batches(items, 3 to 5).sample()
+        assert(b.flatten == items)
+        assert(b.dropRight(1).forall(x => x.length >= 3 && x.length <= 5))
+      }
+
+      "dropRemainder" - {
+        val b = Gen.batches(items, 6 to 6, keepRemainder = false).sample()
+        assert(b.forall(_.length == 6))
+        assert(b.length == 3)
+        assert(b.flatten == items.take(18))
+      }
+
+      "emptyInput" - {
+        val b = Gen.batches(Vector.empty[Int], 2 to 4).sample()
+        assert(b.isEmpty)
+      }
+
+      "zeroAllowed" - {
+        val b = Gen.batches(items, 0 to 3).samples().take(20).toList
+        b.foreach { batchList =>
+          assert(batchList.flatten == items)
+          assert(batchList.forall(_.length <= 3))
+        }
+        b.map(_.map(_.mkString("[", ",", "]")).mkString("[", ",", "]")).mkString("\n")
+      }
+    }
+
     "nextBit" - {
       val ctx = GenCtx(GenSize(0), ThreadNumber(0))
       ctx.setSeed(1L)

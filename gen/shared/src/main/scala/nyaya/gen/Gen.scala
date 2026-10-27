@@ -833,13 +833,26 @@ object Gen {
       Gen(Gen.shuffle(as).samplesUsing(_).flatten)
 
   def batches[A](as: Vector[A], partitionSize: Range.Inclusive, keepRemainder: Boolean = true): Gen[Vector[Vector[A]]] = {
+    if (partitionSize.min < 0)
+      throw new IllegalArgumentException("partitionSize.min must be >= 0")
+    if (partitionSize.max < 1)
+      throw new IllegalArgumentException("partitionSize.max must be >= 1")
     val genSize = Gen.chooseInt(partitionSize.min, partitionSize.max)
     Gen { ctx =>
       val b = Vector.newBuilder[Vector[A]]
       @tailrec def go(rem: Vector[A]): Unit =
-        if (rem.isEmpty)
-          ()
-        else if (rem.length >= partitionSize.min) {
+        if (rem.isEmpty) {
+          // Generate trailing empty vectors if allowed
+          if (partitionSize.min == 0) {
+            genSize.run(ctx) match {
+              case 0 =>
+                b += Vector.empty
+                go(rem)
+              case _ =>
+                () // exit `go` loop
+            }
+          }
+        } else if (rem.length >= partitionSize.min) {
           val n = genSize.run(ctx)
           b += rem.take(n)
           go(rem.drop(n))
