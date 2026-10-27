@@ -34,30 +34,45 @@ object CycleDetector {
     override def check[A, B, I](vertices: (A, B) => Iterator[B], id: B => I): (A, Iterator[B]) => Option[(B, B)] =
       (a, input) => {
 
-        def outer(prev: B, is0: Set[I]): Either[Set[I], (B, B)] = {
+        def outer(prev: B, parent0: Option[I], is0: Set[I]): Either[Set[I], (B, B)] = {
           val it = vertices(a, prev)
 
           @tailrec
-          def inner(is: Set[I]): Either[Set[I], (B, B)] =
+          def inner(parent: Option[I], is: Set[I]): Either[Set[I], (B, B)] =
             if (it.hasNext) {
               val b = it.next()
               val i = id(b)
-              if (is contains i)
+              if (parent.contains(i))
+                inner(None, is)
+              else if (is contains i)
                 Right((prev, b))
               else
-                outer(b, is + i) match {
-                  case Left(is2)  => inner(is2)
+                outer(b, Some(id(prev)), is + i) match {
+                  case Left(is2)   => inner(parent, is2)
                   case r@ Right(_) => r
                 }
             } else
               Left(is)
 
-          inner(is0)
+          inner(parent0, is0)
         }
 
-        input
-          .map(b => outer(b, Set(id(b))))
-          .collectFirst { case Right(v) => v }
+        @tailrec
+        def loop(is: Set[I]): Option[(B, B)] =
+          if (input.hasNext) {
+            val b = input.next()
+            val i = id(b)
+            if (is contains i)
+              loop(is)
+            else
+              outer(b, None, is + i) match {
+                case Left(is2)  => loop(is2)
+                case Right(res) => Some(res)
+              }
+          } else
+            None
+
+        loop(Set.empty)
       }
   }
 

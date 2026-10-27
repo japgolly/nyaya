@@ -198,8 +198,8 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
    */
   def subset1[C[X] <: IndexedSeq[X], B](implicit ev: A <:< C[B], cbf: Factory[B, C[B]]): Gen[C[B]] =
     Gen { c =>
-      val a = run(c)
-      var r = Gen.runSubset[C, B](run(c), c)
+      val a = ev(run(c))
+      var r = Gen.runSubset[C, B](a, c)
       if (r.isEmpty && a.nonEmpty) {
         val b = cbf.newBuilder
         b.sizeHint(1)
@@ -446,14 +446,16 @@ object Gen {
   def unit   : Gen[Unit]    = pure(())
   def uuid   : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
 
-  val positiveInt   : Gen[Int]     = int    map (Math abs _)
-  val positiveLong  : Gen[Long]    = long   map (Math abs _)
-  val positiveDouble: Gen[Double]  = double map (Math abs _)
-  def positiveFloat : Gen[Float]   = float  map (Math abs _)
-  val negativeInt   : Gen[Int]     = positiveInt    map (-_)
-  val negativeLong  : Gen[Long]    = positiveLong   map (-_)
-  val negativeDouble: Gen[Double]  = positiveDouble map (-_)
-  def negativeFloat : Gen[Float]   = positiveFloat  map (-_)
+  // Don't use Math.abs anywhere here; Math.abs(MinValue) is negative
+  val positiveInt   : Gen[Int]  = int  map (_ >>> 1)
+  val positiveLong  : Gen[Long] = long map (_ >>> 1)
+  val negativeInt   : Gen[Int]  = int  map (i => if (i <= 0) i else -i)
+  val negativeLong  : Gen[Long] = long map (l => if (l <= 0) l else -l)
+
+  val positiveDouble: Gen[Double] = double map (Math abs _)
+  def positiveFloat : Gen[Float]  = float map (Math abs _)
+  val negativeDouble: Gen[Double] = positiveDouble map (-_)
+  def negativeFloat : Gen[Float]  = positiveFloat  map (-_)
 
   /*
   import java.nio.charset.Charset
@@ -545,7 +547,7 @@ object Gen {
   /** Args are inclusive. [l,h] */
   def chooseInt(l: Int, h: Int): Gen[Int] = {
     if (l > h)
-      throw new IllegalArgumentException(s"Gen.chooseLong($l, $h) is invalid: $l > $h.")
+      throw new IllegalArgumentException(s"Gen.chooseInt($l, $h) is invalid: $l > $h.")
     val range = h - l + 1
     if (range <= 0) {
       if (l == Int.MinValue && h == Int.MaxValue)
@@ -765,7 +767,7 @@ object Gen {
       }
       val h = xs.head
       val t = xs.tail
-      chooseInt(total - 1) flatMap (pick(_, h, t))
+      chooseInt(total) flatMap (pick(_, h, t))
     }
 
   /**
@@ -831,13 +833,26 @@ object Gen {
       Gen(Gen.shuffle(as).samplesUsing(_).flatten)
 
   def batches[A](as: Vector[A], partitionSize: Range.Inclusive, keepRemainder: Boolean = true): Gen[Vector[Vector[A]]] = {
+    if (partitionSize.min < 0)
+      throw new IllegalArgumentException("partitionSize.min must be >= 0")
+    if (partitionSize.max < 1)
+      throw new IllegalArgumentException("partitionSize.max must be >= 1")
     val genSize = Gen.chooseInt(partitionSize.min, partitionSize.max)
     Gen { ctx =>
       val b = Vector.newBuilder[Vector[A]]
       @tailrec def go(rem: Vector[A]): Unit =
-        if (rem.isEmpty)
-          ()
-        else if (rem.length >= partitionSize.min) {
+        if (rem.isEmpty) {
+          // Generate trailing empty vectors if allowed
+          if (partitionSize.min == 0) {
+            genSize.run(ctx) match {
+              case 0 =>
+                b += Vector.empty
+                go(rem)
+              case _ =>
+                () // exit `go` loop
+            }
+          }
+        } else if (rem.length >= partitionSize.min) {
           val n = genSize.run(ctx)
           b += rem.take(n)
           go(rem.drop(n))

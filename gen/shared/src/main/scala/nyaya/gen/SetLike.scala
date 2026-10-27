@@ -33,8 +33,8 @@ object SetLike extends ScalaVerSpecific.SetLikeImplicits with SetLikeLowPriImpli
     def apply[A: ClassTag]: SetLike[F, A]
   }
 
-  @inline implicit def byClassTag[F[_], A](implicit g: Generic[F]): SetLike[F, A] =
-    g.apply[A]
+  @inline implicit def byClassTag[F[_], A](implicit b: ByClassTag[F], ct: ClassTag[A]): SetLike[F, A] =
+    b.apply[A]
 
   // ===================================================================================================================
 

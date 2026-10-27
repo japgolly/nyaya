@@ -179,6 +179,8 @@ object PropTest extends TestSuite {
    }
     "renamed" - {
       test(mod235c.rename("whateverness"), 6, failureTreeIs("whateverness\n└─ mod5"))
+      test(~even.rename("isEven"), 4, name("¬isEven") >> ko)
+      test(~(~even.rename("isEven")), 4, name("isEven") >> ok)
     }
     "forall" - {
       "*" - {

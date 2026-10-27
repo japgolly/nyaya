@@ -110,18 +110,26 @@ case class Distinct[A, X, H[_], Y, Z, B](fixer: Fixer[X, H, Y, Z],
   def +[C](f: Distinct[B, X, H, Y, Z, C]): Distinct[A, X, H, Y, Z, C] =
     Distinct[A, X, H, Y, Z, C](fixer + f.fixer, a => _ => runs(a) flatMap f.runs)
 
-  def *(f: DistinctFn[A, A])(implicit ev: B === A): DistinctEndo[A] =
-    DistinctEndo(NonEmptyList(ev.substitute[Distinct[A, X, H, Y, Z, *]](this), f :: Nil))
+  def *(f: DistinctFn[A, A])(implicit ev: B === A): DistinctEndo[A] = {
+    val a = ev.substitute[Distinct[A, X, H, Y, Z, *]](this)
+    f match {
+      case DistinctEndo(ds) => DistinctEndo(a :: ds)
+      case _                => DistinctEndo(NonEmptyList(a, f :: Nil))
+    }
+  }
 
   // def ***[C, D](f: Distinct1[C, D]): Distinct1[(A, C), (B, D)] =
 }
 
 final case class DistinctEndo[A](ds: NonEmptyList[DistinctFn[A, A]]) extends DistinctFn[A, A] {
   def run: A => A =
-    ds.tail.foldLeft(ds.head.run)(_ compose _.run)
+    ds.tail.foldLeft(ds.head.run)(_ andThen _.run)
 
   def *(d: DistinctFn[A, A]): DistinctEndo[A] =
-    DistinctEndo(d :: ds)
+    d match {
+      case DistinctEndo(ds2) => DistinctEndo(ds.concat(ds2.toList))
+      case _                 => DistinctEndo(ds :+ d)
+    }
 
   def map[B](f: DistinctFn[A, A] => DistinctFn[B, B]): DistinctEndo[B] =
     DistinctEndo(ds map f)

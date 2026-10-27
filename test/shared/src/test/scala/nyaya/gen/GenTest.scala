@@ -141,6 +141,17 @@ object GenTest extends TestSuite {
       }
     }
 
+    "positiveAndNegative" - {
+      "int" - {
+        Gen.positiveInt.samples().take(1000).foreach(i => assert(i >= 0))
+        Gen.negativeInt.samples().take(1000).foreach(i => assert(i <= 0))
+      }
+      "long" - {
+        Gen.positiveLong.samples().take(1000).foreach(l => assert(l >= 0L))
+        Gen.negativeLong.samples().take(1000).foreach(l => assert(l <= 0L))
+      }
+    }
+
     "chooseChar" - {
       // Ensure scalac actually allows these overloads (in some cases it compiles but fails at callsite)
       val s1 = Gen.chooseChar('a', 'b' to 'z')
@@ -165,16 +176,30 @@ object GenTest extends TestSuite {
     "fill"           - fillGen                                       .mustSatisfy(fillProp)
     "shuffle"        - shuffleGen                                    .mustSatisfy(shuffleProp)
 
-    // TODO: https://github.com/lampepfl/dotty/issues/11681
-    // "subset"         - Gen.int.list.subset                           .mustSatisfy(didntCrash)
-    // "subset1"        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)
-    // "take"           - Gen.int.list.take(0 to 210)                   .mustSatisfy(didntCrash)
+    "subset1" - {
+      var runs = 0
+      val g = Gen[Vector[Int]] { _ => runs += 1; Vector(1, 2, 3) }
+      val s = g.subset1.sample()
+      assert(runs == 1)
+      assert(s.nonEmpty && s.forall(Set(1, 2, 3).contains))
+    }
+
+    "subset"         - Gen.int.list.subset                           .mustSatisfy(didntCrash)
+    "subset1"        - Gen.int.vector.subset1                        .mustSatisfy(didntCrash)
+    "take"           - Gen.int.list.take(0 to 210)                   .mustSatisfy(didntCrash)
 
     "mapBy"          - Gen.int.mapBy(Gen.char)                       .mustSatisfy(didntCrash)
     "mapByKeySubset" - Gen.int.list.flatMap(Gen.int.mapByKeySubset)  .mustSatisfy(didntCrash)
     "mapByEachKey"   - mapByEachKeyGen                               .mustSatisfy(mapByEachKeyProp)
     "newOrOld"       - Gen.int.list.flatMap(Gen.newOrOld(Gen.int, _)).mustSatisfy(didntCrash)
-    "frequency"      - freqArgs.flatMap(Gen frequencyNE _)           .mustSatisfy(didntCrash)
+    "frequency" - {
+      "coverage" - {
+        val g = Gen.frequency(1 -> Gen.pure("a"), 1 -> Gen.pure("b"))
+        val actual = g.samples().take(100).toSet
+        assert(actual == Set("a", "b"))
+      }
+      "random" - freqArgs.flatMap(Gen frequencyNE _).mustSatisfy(didntCrash)
+    }
 
     "sequence" - {
       val inp = "heheyay"
@@ -278,6 +303,51 @@ object GenTest extends TestSuite {
         val f = s.length - t
         assert(Math.abs(t - f) <= 1)
       }
+    }
+
+    "batches" - {
+      val items = (1 to 20).toVector
+
+      "normal" - {
+        val b = Gen.batches(items, 3 to 5).sample()
+        assert(b.flatten == items)
+        assert(b.dropRight(1).forall(x => x.length >= 3 && x.length <= 5))
+      }
+
+      "dropRemainder" - {
+        val b = Gen.batches(items, 6 to 6, keepRemainder = false).sample()
+        assert(b.forall(_.length == 6))
+        assert(b.length == 3)
+        assert(b.flatten == items.take(18))
+      }
+
+      "emptyInput" - {
+        val b = Gen.batches(Vector.empty[Int], 2 to 4).sample()
+        assert(b.isEmpty)
+      }
+
+      "zeroAllowed" - {
+        val b = Gen.batches(items, 0 to 3).samples().take(20).toList
+        b.foreach { batchList =>
+          assert(batchList.flatten == items)
+          assert(batchList.forall(_.length <= 3))
+        }
+        b.map(_.map(_.mkString("[", ",", "]")).mkString("[", ",", "]")).mkString("\n")
+      }
+    }
+
+    "nextBit" - {
+      val ctx = GenCtx(GenSize(0), ThreadNumber(0))
+      ctx.setSeed(1L)
+      val r = new java.util.Random(1L)
+      val int1 = r.nextInt()
+      val int2 = r.nextInt()
+      val expectedBits1 = (0 until 32).map(b => (int1 & (1 << b)) == 0)
+      val actualBits1 = (0 until 32).map(_ => ctx.nextBit())
+      assert(actualBits1 == expectedBits1)
+      val actualBit33 = ctx.nextBit()
+      val expectedBit33 = (int2 & 1) == 0
+      assert(actualBit33 == expectedBit33)
     }
 
     "uuid" - {

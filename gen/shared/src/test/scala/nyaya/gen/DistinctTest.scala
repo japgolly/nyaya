@@ -1,6 +1,7 @@
 package nyaya.gen
 
 import alleycats.std.set._
+import cats.data.State
 import cats.instances.list._
 import monocle.Lens
 import utest._
@@ -38,12 +39,39 @@ object DistinctTest extends TestSuite {
   val r = ta.toSet
 
   override def tests = Tests {
-    "names"                      - assert(names(t).sorted == List("A", "B", "C"))
+
+    "names" - assert(names(t).sorted == List("A", "B", "C"))
+
     "ages" - {
       "Same number of ages"     - assert(sa.size == ta.size)
       "All ages distinct"       - assert(r.size == ta.size)
       "Original ages preserved" - (sa.toSet[Age] - 0 - 500).foreach(o => assert(r contains o))
       "No blacklisted ages"     - assert(!r.contains(0), !r.contains(500))
+    }
+
+    "composition" - {
+      def appendD(n: Int): Distinct[List[Int], Int, Set, Int, Int, List[Int]] =
+        Distinct(Distinct.Fixer.lift[Set, Int](_ => 0), list => _ => State.pure(list :+ n))
+
+      val d1 = appendD(1)
+      val d2 = appendD(2)
+      val d3 = appendD(3)
+      val d4 = appendD(4)
+
+      "order" - {
+        val d = d1 * d2
+        val result = d.run(List.empty)
+        assert(result == List(1, 2))
+      }
+
+      "associativity" - {
+        val l = ((d1 * d2) * d3).run(List.empty)
+        val r = (d1 * (d2 * d3)).run(List.empty)
+        val lr = ((d1 * d2) * (d3 * d4)).run(List.empty)
+        assert(l == List(1, 2, 3))
+        assert(r == List(1, 2, 3))
+        assert(lr == List(1, 2, 3, 4))
+      }
     }
   }
 }

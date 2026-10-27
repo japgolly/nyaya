@@ -116,10 +116,11 @@ object Eval {
    * Test that all Bs are present in Cs.
    */
   def allPresent[B, C](name: => String, input: Any, required: Set[B], testData: => IterableOnce[C])(implicit ev: B <:< C): EvalL = {
-    val cs = testData.iterator.toSet
+    val csList = testData.iterator.toList
+    val cs = csList.toSet
     atom(name, input, {
       val rs = required.filterNot(cs contains _)
-      setMembershipResult(input, "Required", required, "Found   ", testData.iterator.toList, "Missing ", rs)
+      setMembershipResult(input, "Required", required, "Found   ", csList, "Missing ", rs)
     })
   }
 
@@ -128,8 +129,9 @@ object Eval {
                                      csName: String, cs: => IterableOnce[C],
                                      failureName: String)(implicit ev: C <:< B): EvalL =
     atom(name, input, {
-      val rs = cs.iterator.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
-      setMembershipResult(input, bsName, bs, csName, cs.iterator.toList, failureName, rs)
+      val csList = cs.iterator.toList
+      val rs = csList.foldLeft(Set.empty[C])((q, c) => if (bs.contains(c) == expect) q else q + c)
+      setMembershipResult(input, bsName, bs, csName, csList, failureName, rs)
     })
 
   private[this] def setMembershipResult(input: Any,

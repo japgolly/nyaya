@@ -30,24 +30,32 @@ object CycleDetectorTest extends TestSuite {
       val cd = CycleDetector.Directed.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, false, ns: _*)
 
-      "lines"     - test(None,      `1234`,`5678`)
-      "diamond"   - test(None,      diamond)
+      "lines"    - test(None,      `1234`,`5678`)
+      "diamond"  - test(None,      diamond)
       "1(35)24"  - test(None,      `1(35)24`)
       "1(35)245" - test(Some(4,5), `1(35)245`)
-      "circle"    - test(Some(3,4), `41234`)
-      "self"      - test(Some(9,9), `9→9`)
+      "circle"   - test(Some(3,4), `41234`)
+      "self"     - test(Some(9,9), `9→9`)
     }
 
     "undirected" - {
       val cd = CycleDetector.Undirected.tree[N, Int](_.vs.iterator, _.id)
       def test(e: Option[(Int, Int)], ns: N*) = testn(cd, e, true, ns: _*)
 
-      "lines"     - test(None,    `1234`,`5678`)
-      "diamond"   - test(Some(3,4), diamond)
+      "lines"    - test(None,    `1234`,`5678`)
+      "diamond"  - test(Some(3,4), diamond)
       "1(35)24"  - test(Some(5,2), `1(35)24`)
       "1(35)245" - test(Some(3,5), `1(35)245`)
-      "circle"    - test(Some(3,4), `41234`)
-      "self"      - test(Some(9,9), `9→9`)
+      "circle"   - test(Some(3,4), `41234`)
+      "self"     - test(Some(9,9), `9→9`)
+
+      "multimap" - {
+        val cdSet = CycleDetector.Undirected.multimap[Set, Int, Int](identity, Set.empty)
+        val cdList = CycleDetector.Undirected.multimap[List, Int, Int](identity, Nil)
+        "path"          - assert(cdSet.noCycle(Map(1 -> Set(2), 2 -> Set(1, 3), 3 -> Set(2))))
+        "triangle"      - assert(cdSet.hasCycle(Map(1 -> Set(2, 3), 2 -> Set(1, 3), 3 -> Set(1, 2))))
+        "parallelEdges" - assert(cdList.hasCycle(Map(1 -> List(2, 2), 2 -> List(1, 1))))
+      }
     }
   }
 }
