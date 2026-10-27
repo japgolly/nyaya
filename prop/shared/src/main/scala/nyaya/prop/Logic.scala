@@ -106,7 +106,7 @@ sealed abstract class Logic[P[_], A] {
 
   final def unary_~ : Logic[P, A] = this match {
     case Negation(l)                   => l
-    case Named(n, l)                   => Named(n, ~l)
+    case Named(n, l)                   => Named(n.map(s => if (s.startsWith("¬")) s.drop(1) else "¬" + s), ~l)
     case Mapped(m, l)                  => Mapped(m, ~l)
     case Disjunction(ls)               => Conjunction(ls.map(~_))
     case Conjunction(ls)               => Disjunction(ls.map(~_))
