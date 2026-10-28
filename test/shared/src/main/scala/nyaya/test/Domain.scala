@@ -129,6 +129,9 @@ object Domain {
   def ofRangeN[A](r: NumericRange[A]): Domain[A] =
     new OverSeq[A](r)
 
+  val unit: Domain[Unit] =
+    ofValues(())
+
   val boolean: Domain[Boolean] =
     ofValues(true, false)
 

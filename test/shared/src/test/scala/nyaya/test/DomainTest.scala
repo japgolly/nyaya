@@ -15,6 +15,7 @@ object DomainTest extends TestSuite {
   }
 
   override def tests = Tests {
+    "unit"    - test(Domain.unit)(())
     "boolean" - test(b)(true, false)
     "option"  - test(b.option)(None, Some(true), Some(false))
     "either"  - test(b +++ z)(Left(true), Left(false), Right(0), Right(1))
