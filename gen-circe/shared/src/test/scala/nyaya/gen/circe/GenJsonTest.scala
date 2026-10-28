@@ -17,5 +17,10 @@ object GenJsonTest extends TestSuite {
     "genJson"       - test(GenJson.small, 30)
     "genJsonObject" - test(GenJson.smallObj, 30)
 
+    "validation" - {
+      "minDepthZero" - intercept[IllegalArgumentException] { GenJson(0, 2); () }
+      "minGtMax"     - intercept[IllegalArgumentException] { GenJson(3, 2); () }
+    }
+
   }
 }
