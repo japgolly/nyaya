@@ -2,11 +2,16 @@ Nyaya
 =====
 
 Nyaya is a Scala/Scala.JS library to:
+* Generate random data.
+* Ensure uniqueness in random data.
 * Test properties using random data.
 * Prove properties with (reasonably-sized) finite domains.
 * Assert properties in real data.
-* Generate random data.
-* Ensure uniqueness in random data.
+
+Unlike other property-testing libraries:
+  * random data generation is its own separate module
+  * properties can be tested against single instances of real data (as opposed to only random samples)
+  * can *prove* properties of finite domains
 
 It is:
 * **Fast**. Probably the fastest Scala random data gen / prop tester. (Benchmarks coming soon…)
