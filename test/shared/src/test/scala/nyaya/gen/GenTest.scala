@@ -537,5 +537,16 @@ object GenTest extends TestSuite {
       }
     }
 
+    "filter" - {
+      "match" - {
+        assert(Gen.boolean.filter(identity).sample())
+      }
+      "fail" - {
+        intercept[NoSuchElementException] {
+          Gen.chooseInt(2).filter(_ > 2).sample(); ()
+        }
+      }
+    }
+
   }
 }

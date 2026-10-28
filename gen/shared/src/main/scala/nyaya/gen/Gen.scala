@@ -49,10 +49,23 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def >>[B](f: Gen[B]): Gen[B] =
     flatMap(_ => f)
 
-  def withFilter(p: A => Boolean): Gen[A] =
-    map(a => if (p(a)) a else
-    // This is what scala.Future does
-      throw new NoSuchElementException("Gen.withFilter predicate is not satisfied"))
+  def filter(f: A => Boolean, maxTries: Int = 1000): Gen[A] = {
+    if (maxTries <= 0)
+      throw new IllegalArgumentException(s"Gen.filter maxTries must be > 0, not $maxTries")
+    Gen { ctx =>
+      @tailrec
+      def loop(triesLeft: Int): A =
+        if (triesLeft > 0) {
+          val a = ctx.sample(this)
+          if (f(a)) a else loop(triesLeft - 1)
+        } else
+          throw new NoSuchElementException(s"Gen.filter predicate was not satisfied after $maxTries tries")
+      loop(maxTries)
+    }
+  }
+
+  def withFilter(f: A => Boolean): Gen[A] =
+    filter(f)
 
   def withSeed(seed: Long): Gen[A] =
     Gen.setSeed(seed) >> this
