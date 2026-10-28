@@ -455,26 +455,26 @@ object Gen {
     suspend(g)
   }
 
-  val int    : Gen[Int]     = Gen(_.rnd.nextInt())
-  val long   : Gen[Long]    = Gen(_.rnd.nextLong())
-  val double : Gen[Double]  = Gen(_.rnd.nextDouble())
-  def float  : Gen[Float]   = Gen(_.rnd.nextDouble().toFloat)
-  def short  : Gen[Short]   = Gen(_.rnd.nextInt().toShort)
-  def byte   : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
-  val boolean: Gen[Boolean] = Gen(_.nextBit())
-  def unit   : Gen[Unit]    = pure(())
-  def uuid   : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
+  val int           : Gen[Int]     = Gen(_.rnd.nextInt())
+  val long          : Gen[Long]    = Gen(_.rnd.nextLong())
+  val double        : Gen[Double]  = Gen(_.rnd.nextDouble())
+  val float         : Gen[Float]   = Gen(_.rnd.nextDouble().toFloat)
+  val short         : Gen[Short]   = Gen(_.rnd.nextInt().toShort)
+  val byte          : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
+  val boolean       : Gen[Boolean] = Gen(_.nextBit())
+  val unit          : Gen[Unit]    = pure(())
+  val uuid          : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
 
   // Don't use Math.abs anywhere here; Math.abs(MinValue) is negative
-  val positiveInt   : Gen[Int]  = int  map (_ >>> 1)
-  val positiveLong  : Gen[Long] = long map (_ >>> 1)
-  val negativeInt   : Gen[Int]  = int  map (i => if (i <= 0) i else -i)
-  val negativeLong  : Gen[Long] = long map (l => if (l <= 0) l else -l)
+  val positiveInt   : Gen[Int]     = int  map (_ >>> 1)
+  val positiveLong  : Gen[Long]    = long map (_ >>> 1)
+  val negativeInt   : Gen[Int]     = int  map (i => if (i <= 0) i else -i)
+  val negativeLong  : Gen[Long]    = long map (l => if (l <= 0) l else -l)
 
-  val positiveDouble: Gen[Double] = double map (Math abs _)
-  def positiveFloat : Gen[Float]  = float map (Math abs _)
-  val negativeDouble: Gen[Double] = positiveDouble map (-_)
-  def negativeFloat : Gen[Float]  = positiveFloat  map (-_)
+  val positiveDouble: Gen[Double]  = double map (Math abs _)
+  val positiveFloat : Gen[Float]   = float  map (Math abs _)
+  val negativeDouble: Gen[Double]  = positiveDouble map (-_)
+  val negativeFloat : Gen[Float]   = positiveFloat  map (-_)
 
   /*
   import java.nio.charset.Charset
