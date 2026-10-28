@@ -335,7 +335,7 @@ object GenTest extends TestSuite {
 
     "sizeSpec" - {
       "exactly" - {
-        "negative" - intercept[IllegalArgumentException](SizeSpec.Exactly(-1))
+        "negative" - intercept[IllegalArgumentException] { SizeSpec.Exactly(-1); () }
         "zero" - {
           val s = SizeSpec.Exactly(0)
           assert(s.gen.sample() == 0)
@@ -348,7 +348,7 @@ object GenTest extends TestSuite {
         }
       }
       "oneOf" - {
-        "negative" - intercept[IllegalArgumentException](SizeSpec.OneOf(Vector(1, -2, 3)))
+        "negative" - intercept[IllegalArgumentException] { SizeSpec.OneOf(Vector(1, -2, 3)); () }
         "valid" - {
           val s = SizeSpec.OneOf(Vector(2, 4))
           val samples = s.gen.samples().take(20).toSet
