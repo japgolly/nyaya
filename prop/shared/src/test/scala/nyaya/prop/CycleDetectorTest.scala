@@ -36,6 +36,42 @@ object CycleDetectorTest extends TestSuite {
       "1(35)245" - test(Some(4,5), `1(35)245`)
       "circle"   - test(Some(3,4), `41234`)
       "self"     - test(Some(9,9), `9→9`)
+
+      "map" - {
+        val cd = CycleDetector.Directed.map[Int, Int](identity)
+        "empty"    - assert(cd.noCycle(Map.empty))
+        "line"     - assert(cd.noCycle(Map(1 -> 2, 2 -> 3, 3 -> 4)))
+        "cycle"    - assert(cd.hasCycle(Map(1 -> 2, 2 -> 3, 3 -> 1)))
+        "self"     - assert(cd.findCycle(Map(1 -> 1)) == Some((1, 1)))
+        "lasso"    - assert(cd.hasCycle(Map(1 -> 2, 2 -> 3, 3 -> 2)))
+        "disjoint" - assert(cd.hasCycle(Map(1 -> 2, 2 -> 3, 4 -> 5, 5 -> 4)))
+      }
+
+      "multimap" - {
+        val cd = CycleDetector.Directed.multimap[Set, Int, Int](identity, Set.empty)
+        "empty"          - assert(cd.noCycle(Map.empty))
+        "dagDiamond"     - assert(cd.noCycle(Map(1 -> Set(2, 3), 2 -> Set(4), 3 -> Set(4))))
+        "dagCrossEdges"  - assert(cd.noCycle(Map(1 -> Set(2, 3), 2 -> Set(4, 5), 3 -> Set(4, 5), 4 -> Set(5))))
+        "sharedSubgraph" - assert(cd.noCycle(Map(1 -> Set(3), 2 -> Set(3), 3 -> Set(4))))
+        "cycle"          - assert(cd.hasCycle(Map(1 -> Set(2), 2 -> Set(3), 3 -> Set(1))))
+        "disjointCycle"  - assert(cd.hasCycle(Map(1 -> Set(2, 3), 2 -> Set(3), 4 -> Set(5), 5 -> Set(6), 6 -> Set(4))))
+        "self"           - assert(cd.hasCycle(Map(1 -> Set(1))))
+        "nonRootSelf"    - assert(cd.hasCycle(Map(1 -> Set(2), 2 -> Set(2))))
+        "innerCycle"     - assert(cd.hasCycle(Map(1 -> Set(2), 2 -> Set(3), 3 -> Set(2))))
+        "multiEntry"     - assert(cd.hasCycle(Map(1 -> Set(3), 2 -> Set(3), 3 -> Set(4), 4 -> Set(3))))
+        "denseDag"       - {
+          val dag = Map(
+            1 -> Set(2, 3),
+            2 -> Set(4, 5), 3 -> Set(5, 6),
+            4 -> Set(7, 8), 5 -> Set(8, 9), 6 -> Set(9, 10),
+          )
+          assert(cd.noCycle(dag))
+        }
+        "cycleFree" - {
+          assert(cd.cycleFree(Map(1 -> Set(2))).isRight)
+          assert(cd.cycleFree(Map(1 -> Set(1))).isLeft)
+        }
+      }
     }
 
     "undirected" - {

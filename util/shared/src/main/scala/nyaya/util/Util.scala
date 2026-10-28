@@ -18,7 +18,7 @@ object Util {
   }
 
   def escapeString(s: String): String =
-    s.toCharArray.map {
+    s.iterator.map {
       case '\n' => "\\n"
       case '\r' => "\\r"
       case '\t' => "\\t"

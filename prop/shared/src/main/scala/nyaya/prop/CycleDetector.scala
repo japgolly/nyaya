@@ -1,6 +1,7 @@
 package nyaya.prop
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.collection.Iterable
 
 final case class CycleFree[A](value: A)
@@ -79,21 +80,62 @@ object CycleDetector {
   object Directed extends GraphType {
     override def check[A, B, I](vertices: (A, B) => Iterator[B], id: B => I): (A, Iterator[B]) => Option[(B, B)] =
       (a, input) => {
+        // Memoises explored subgraphs: maps node id -> set of all descendant ids reachable from it.
+        // If a previously explored node's reachable set does not intersect the current DFS path,
+        // it cannot reach any ancestor in `path` and re-exploration can be skipped in O(1).
+        val done        = mutable.HashMap.empty[I, Set[I]]
+        val hasChildren = mutable.HashSet.empty[I]
 
-        def loop(prev: B, is: Set[I]): Option[(B, B)] =
-          vertices(a, prev)
-            .map { b =>
+        def dfs(prev: B, path: Set[I]): Either[Set[I], (B, B)] = {
+          val it = vertices(a, prev)
+          val prevId = id(prev)
+
+          @tailrec
+          def inner(reachable: Set[I]): Either[Set[I], (B, B)] =
+            if (it.hasNext) {
+              val b = it.next()
               val i = id(b)
-              if (is contains i)
-                Some((prev, b))
+              if (path.contains(i))
+                // Back-edge detected pointing to an ancestor on the current DFS path
+                Right((prev, b))
+              else if (done.contains(i) && !done(i).exists(path.contains) && (hasChildren.contains(i) || !vertices(a, b).hasNext))
+                // Subgraph at `i` was already explored and verified to have no path back to `path`.
+                // Prune traversal and reuse its memoised reachable set.
+                inner(reachable ++ done(i))
               else
-                loop(b, is + i)
+                dfs(b, path + i) match {
+                  case r @ Right(_) => r
+                  case Left(bReachable) =>
+                    inner(reachable ++ bReachable)
+                }
+            } else {
+              done.put(prevId, reachable)
+              Left(reachable)
             }
-            .collectFirst { case Some(v) => v }
 
-        input
-          .map(b => loop(b, Set(id(b))))
-          .collectFirst { case Some(v) => v }
+          if (it.hasNext)
+            hasChildren += prevId
+
+          inner(Set(prevId))
+        }
+
+        @tailrec
+        def loop(): Option[(B, B)] =
+          if (input.hasNext) {
+            val b = input.next()
+            val i = id(b)
+            // Skip roots whose subgraphs were already fully traversed
+            if (done.contains(i) && (hasChildren.contains(i) || !vertices(a, b).hasNext))
+              loop()
+            else
+              dfs(b, Set(i)) match {
+                case Right(cycle) => Some(cycle)
+                case Left(_)      => loop()
+              }
+          } else
+            None
+
+        loop()
       }
   }
 

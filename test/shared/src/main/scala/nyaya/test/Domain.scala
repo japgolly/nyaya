@@ -76,7 +76,11 @@ object Domain {
   final class Pair[A, B](a: Domain[A], b: Domain[B]) extends Domain[(A, B)] {
     private[this] val as = a.size
     override val size = as * b.size
-    override def apply(i: Int) = (a(i % as), b(i / as))
+    override def apply(i: Int) =
+      if (as == 0)
+        throw new IndexOutOfBoundsException(s"Index $i out of bounds for domain of size $size")
+      else
+        (a(i % as), b(i / as))
   }
 
   final class OverSeq[A](as: IndexedSeq[A]) extends Domain[A] {
@@ -86,23 +90,34 @@ object Domain {
 
   final class IntoSeq[S[_], A](a: Domain[A], r: Range)(implicit c: Factory[A, S[A]]) extends Domain[S[A]] {
     private[this] val as = a.size
-    val (size, starts) = r.foldLeft((0, Vector.empty[Int])) {
-      case ((sum, q), i) => (sum + (if (i == 0) 1 else math.pow(as, i).toInt), q :+ sum)
-    }
-    override def apply(i0: Int): S[A] = {
-      var i = i0
-      var s = starts.length - 1
-      while (s > 0 && i < starts(s)) s -= 1
-      var seqSize = r(s)
-      i -= starts(s)
-      val builder = c.newBuilder
-      while (seqSize > 0) {
-        builder += a(i % as)
-        i /= as
-        seqSize -= 1
+    val (size, starts) =
+      if (as == 0)
+        (if (r.contains(0)) 1 else 0, Vector.empty[Int])
+      else
+        r.foldLeft((0, Vector.empty[Int])) {
+          case ((sum, q), i) => (sum + (if (i == 0) 1 else math.pow(as, i).toInt), q :+ sum)
+        }
+
+    override def apply(i0: Int): S[A] =
+      if (as == 0) {
+        if (r.contains(0) && i0 == 0)
+          c.newBuilder.result()
+        else
+          throw new IndexOutOfBoundsException(s"Index $i0 out of bounds for domain of size $size")
+      } else {
+        var i = i0
+        var s = starts.length - 1
+        while (s > 0 && i < starts(s)) s -= 1
+        var seqSize = r(s)
+        i -= starts(s)
+        val builder = c.newBuilder
+        while (seqSize > 0) {
+          builder += a(i % as)
+          i /= as
+          seqSize -= 1
+        }
+        builder.result()
       }
-      builder.result()
-    }
   }
 
   def ofValues[A](as: A*): Domain[A] =
@@ -113,6 +128,9 @@ object Domain {
 
   def ofRangeN[A](r: NumericRange[A]): Domain[A] =
     new OverSeq[A](r)
+
+  val unit: Domain[Unit] =
+    ofValues(())
 
   val boolean: Domain[Boolean] =
     ofValues(true, false)

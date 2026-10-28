@@ -61,6 +61,11 @@ object GenAbstractJson {
   // ===================================================================================================================
 
   final case class Spec(currentDepth: Int, minDepth: Int, maxDepth: Int) {
+    if (minDepth < 1)
+      throw new IllegalArgumentException(s"minDepth must be >= 1, not $minDepth")
+    if (minDepth > maxDepth)
+      throw new IllegalArgumentException(s"minDepth ($minDepth) must be <= maxDepth ($maxDepth)")
+
     def minDepthReached = currentDepth >= minDepth
     def maxDepthReached = currentDepth >= maxDepth
   }

@@ -25,8 +25,10 @@ object SizeSpec {
   // ===================================================================================================================
 
   case class Exactly(value: Int) extends SizeSpec {
+    if (value < 0)
+      throw new IllegalArgumentException(s"Size must be >= 0, not $value")
     override val gen  = Gen(_ => value)
-    override val gen1 = Gen(_ => value)
+    override val gen1 = Gen(_ => value max 1)
   }
 
   implicit def autoFromInt(i: Int): SizeSpec =
@@ -35,6 +37,8 @@ object SizeSpec {
   // ===================================================================================================================
 
   case class OneOf(possibilities: IndexedSeq[Int]) extends SizeSpec {
+    if (possibilities.exists(_ < 0))
+      throw new IllegalArgumentException(s"Sizes must be >= 0: $possibilities")
 
     override val (gen, gen1) = {
       val len = possibilities.length

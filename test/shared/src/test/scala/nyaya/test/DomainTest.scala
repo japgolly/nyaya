@@ -15,6 +15,7 @@ object DomainTest extends TestSuite {
   }
 
   override def tests = Tests {
+    "unit"    - test(Domain.unit)(())
     "boolean" - test(b)(true, false)
     "option"  - test(b.option)(None, Some(true), Some(false))
     "either"  - test(b +++ z)(Left(true), Left(false), Right(0), Right(1))
@@ -45,5 +46,31 @@ object DomainTest extends TestSuite {
       "aa", "ab", "ac",
       "ba", "bb", "bc",
       "ca", "cb", "cc")
+
+    "empty" - {
+      val empty = Domain.ofValues[Int]()
+      "size" - assert(empty.size == 0)
+      "pair" - {
+        val p = empty *** z
+        assert(p.size == 0)
+        assert(p.iterator.isEmpty)
+        intercept[IndexOutOfBoundsException] { p(0); () }
+      }
+      "intoSeq" - {
+        "withZero" - {
+          val d = empty.vector(0 to 2)
+          assert(d.size == 1)
+          assert(d.iterator.toList == List(Vector.empty[Int]))
+          assert(d(0) == Vector.empty[Int])
+          intercept[IndexOutOfBoundsException] { d(1); () }
+        }
+        "withoutZero" - {
+          val d = empty.vector(1 to 2)
+          assert(d.size == 0)
+          assert(d.iterator.isEmpty)
+          intercept[IndexOutOfBoundsException] { d(0); () }
+        }
+      }
+    }
   }
 }

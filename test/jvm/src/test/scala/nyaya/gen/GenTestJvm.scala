@@ -75,7 +75,7 @@ object GenTestJvm extends TestSuite {
 
       "deterministic" - {
         val g: ZonedDateTime = Gen.dateTime.aroundNowDays(8).asZonedDateTime(UTC).withSeed(0).sample()
-        assert(g.toString == "2016-10-14T23:17:45.668Z[UTC]")
+        assert(g.toString == "2016-10-13T17:51:15.317Z[UTC]")
       }
 
     }

@@ -4,7 +4,7 @@ import cats.data._
 import cats.{Distributive, Eval, Functor, Monad, Traverse, ~>}
 import java.net.InetAddress
 import java.time.ZoneId
-import java.util.UUID
+import java.util.{SplittableRandom, UUID}
 import scala.annotation.{switch, tailrec}
 import scala.collection.immutable.{ArraySeq, IndexedSeq, NumericRange, SortedSet}
 import scala.collection.mutable.ArrayBuffer
@@ -49,10 +49,23 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def >>[B](f: Gen[B]): Gen[B] =
     flatMap(_ => f)
 
-  def withFilter(p: A => Boolean): Gen[A] =
-    map(a => if (p(a)) a else
-    // This is what scala.Future does
-      throw new NoSuchElementException("Gen.withFilter predicate is not satisfied"))
+  def filter(f: A => Boolean, maxTries: Int = 1000): Gen[A] = {
+    if (maxTries <= 0)
+      throw new IllegalArgumentException(s"Gen.filter maxTries must be > 0, not $maxTries")
+    Gen { ctx =>
+      @tailrec
+      def loop(triesLeft: Int): A =
+        if (triesLeft > 0) {
+          val a = ctx.sample(this)
+          if (f(a)) a else loop(triesLeft - 1)
+        } else
+          throw new NoSuchElementException(s"Gen.filter predicate was not satisfied after $maxTries tries")
+      loop(maxTries)
+    }
+  }
+
+  def withFilter(f: A => Boolean): Gen[A] =
+    filter(f)
 
   def withSeed(seed: Long): Gen[A] =
     Gen.setSeed(seed) >> this
@@ -85,7 +98,7 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
     either(g)
 
   def &[B](g: Gen[B]): Gen[(A, B)] =
-    for {a <- this; b <- g} yield (a, b)
+    Gen(c => (run(c), g.run(c)))
 
   def fillFold[B](n: Int, z: B)(f: (B, A) => B): Gen[B] =
     Gen { c =>
@@ -153,33 +166,40 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def set1      [B >: A](implicit ss: SizeSpec)                : Gen[Set      [B]] = fillSS1(ss)
   def vector1           (implicit ss: SizeSpec)                : Gen[Vector   [A]] = fillSS1(ss)
 
-  /**
-    * This will ensure that only unique random data is used and that the resulting set has the desired size.
-    *
-    * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.sizedSet(3)` will never return.
-    */
+  /** Generates a set with the requested size using unique samples, or throws an exception if the retry budget is exhausted. */
   def sizedSet[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
     _sizedSet(ss.gen)
 
-  /**
-    * This will ensure that only unique random data is used and that the resulting set has the desired size.
-    *
-    * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.sizedSet1(3)` will never return.
-    */
+  /** Generates a non-empty set with the requested size using unique samples, or throws an exception if the retry budget is exhausted. */
   def sizedSet1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
-  _sizedSet(ss.gen1)
+    _sizedSet(ss.gen1)
 
   private def _sizedSet[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
     Gen { ctx =>
       val size = genSize.run(ctx)
-      var set = Set.empty[B]
-      samplesUsing(ctx)
-        .filter(a => if (set.contains(a)) false else { set += a; true })
-        .take(size)
-        .foreach(_ => ())
-      set
+      if (size < 0)
+        throw new IllegalArgumentException(s"Gen.sizedSet size must be >= 0, not $size")
+      else if (size == 0)
+        Set.empty[B]
+      else {
+        val maxAttempts = size * 1000
+        var set = Set.empty[B]
+        var prev = set
+        var curSize = 0
+        var attempts = 0
+        while (curSize < size && attempts < maxAttempts) {
+          attempts += 1
+          val a = ctx.sample(this)
+          prev = set
+          set += a
+          if (set ne prev)
+            curSize += 1
+        }
+        if (curSize == size)
+          set
+        else
+          throw new NoSuchElementException(s"Gen.sizedSet failed to generate $size unique elements after $maxAttempts attempts (only found $curSize)")
+      }
     }
 
   def shuffle[C[X] <: Iterable[X], B](implicit ev: A <:< C[B], cbf: BuildFrom[C[B], B, C[B]]): Gen[C[B]] =
@@ -369,10 +389,10 @@ object Gen {
     r.result()
   }
 
-  private[Gen] def runShuffle[A](buf: ArrayBuffer[A], r: java.util.Random): Unit = {
+  private[Gen] def runShuffle[A](buf: ArrayBuffer[A], rnd: SplittableRandom): Unit = {
     var n = buf.length
     while (n > 1) {
-      val k = r.nextInt(n)
+      val k = rnd.nextInt(n)
       n -= 1
       val tmp = buf(n)
       buf(n) = buf(k)
@@ -436,26 +456,26 @@ object Gen {
     suspend(g)
   }
 
-  val int    : Gen[Int]     = Gen(_.rnd.nextInt())
-  val long   : Gen[Long]    = Gen(_.rnd.nextLong())
-  val double : Gen[Double]  = Gen(_.rnd.nextDouble())
-  def float  : Gen[Float]   = Gen(_.rnd.nextFloat())
-  def short  : Gen[Short]   = Gen(_.rnd.nextInt().toShort)
-  def byte   : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
-  val boolean: Gen[Boolean] = Gen(_.nextBit())
-  def unit   : Gen[Unit]    = pure(())
-  def uuid   : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
+  val int           : Gen[Int]     = Gen(_.rnd.nextInt())
+  val long          : Gen[Long]    = Gen(_.rnd.nextLong())
+  val double        : Gen[Double]  = Gen(_.rnd.nextDouble())
+  val float         : Gen[Float]   = Gen(_.rnd.nextDouble().toFloat)
+  val short         : Gen[Short]   = Gen(_.rnd.nextInt().toShort)
+  val byte          : Gen[Byte]    = Gen(_.rnd.nextInt().toByte)
+  val boolean       : Gen[Boolean] = Gen(_.nextBit())
+  val unit          : Gen[Unit]    = pure(())
+  val uuid          : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
 
   // Don't use Math.abs anywhere here; Math.abs(MinValue) is negative
-  val positiveInt   : Gen[Int]  = int  map (_ >>> 1)
-  val positiveLong  : Gen[Long] = long map (_ >>> 1)
-  val negativeInt   : Gen[Int]  = int  map (i => if (i <= 0) i else -i)
-  val negativeLong  : Gen[Long] = long map (l => if (l <= 0) l else -l)
+  val positiveInt   : Gen[Int]     = int  map (_ >>> 1)
+  val positiveLong  : Gen[Long]    = long map (_ >>> 1)
+  val negativeInt   : Gen[Int]     = int  map (i => if (i <= 0) i else -i)
+  val negativeLong  : Gen[Long]    = long map (l => if (l <= 0) l else -l)
 
-  val positiveDouble: Gen[Double] = double map (Math abs _)
-  def positiveFloat : Gen[Float]  = float map (Math abs _)
-  val negativeDouble: Gen[Double] = positiveDouble map (-_)
-  def negativeFloat : Gen[Float]  = positiveFloat  map (-_)
+  val positiveDouble: Gen[Double]  = double map (Math abs _)
+  val positiveFloat : Gen[Float]   = float  map (Math abs _)
+  val negativeDouble: Gen[Double]  = positiveDouble map (-_)
+  val negativeFloat : Gen[Float]   = positiveFloat  map (-_)
 
   /*
   import java.nio.charset.Charset
@@ -663,16 +683,19 @@ object Gen {
   def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] =
     chooseInt(as.length).map(as.apply)
 
+  private def toIndexedSeq[A](as: IterableOnce[A]): IndexedSeq[A] =
+    as match {
+      case is: IndexedSeq[A] => is
+      case _                 => as.iterator.toIndexedSeq
+    }
+
   /**
    * Randomly selects one of the given elements.
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
   def choose_![A](as: IterableOnce[A]): Gen[A] =
-    as match {
-      case is: IndexedSeq[A] => chooseIndexed_!(is)
-      case _                 => chooseIndexed_!(as.iterator.toIndexedSeq)
-    }
+    chooseIndexed_!(toIndexedSeq(as))
 
   def choose[A](a: A, as: A*): Gen[A] =
     chooseIndexed_!((Vector.newBuilder[A] += a ++= as).result())
@@ -697,23 +720,30 @@ object Gen {
   def chooseGenNE[S, G, A](s: S)(implicit ne: ToNonEmptySeq[S, G], g: G <:< Gen[A]): Gen[A] =
     chooseNE(s).flatten
 
-  def tryChoose[A](as: IterableOnce[A]): Gen[Option[A]] =
-    if (as.iterator.isEmpty)
+  // Note: This can generate `None` even when `as` is non-empty
+  def tryChoose[A](as: IterableOnce[A]): Gen[Option[A]] = {
+    val is = toIndexedSeq(as)
+    if (is.isEmpty)
       pure(None)
     else
-      choose_!(as).option
+      chooseIndexed_!(is).option
+  }
 
-  def tryGenChoose[A](as: IterableOnce[A]): Option[Gen[A]] =
-    if (as.iterator.isEmpty)
+  def tryGenChoose[A](as: IterableOnce[A]): Option[Gen[A]] = {
+    val is = toIndexedSeq(as)
+    if (is.isEmpty)
       None
     else
-      Some(choose_!(as))
+      Some(chooseIndexed_!(is))
+  }
 
-  def tryGenChooseLazily[A](as: IterableOnce[A]): Option[Gen[A]] =
-    if (as.iterator.isEmpty)
+  def tryGenChooseLazily[A](as: IterableOnce[A]): Option[Gen[A]] = {
+    val it = as.iterator
+    if (it.isEmpty)
       None
     else
-      Some(lazily(choose_!(as)))
+      Some(lazily(choose_!(it)))
+  }
 
   @inline def shuffle[A, C[X] <: Iterable[X]](as: C[A])(implicit bf: BuildFrom[C[A], A, C[A]]): Gen[C[A]] =
     pure(as).shuffle
@@ -927,23 +957,49 @@ object Gen {
   // Arity boilerplate
   // ------------------------------------------------------
 
-  def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = for {a<-A;b<-B} yield (a,b)
-  def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = for {a<-A;b<-B;c<-C} yield (a,b,c)
-  def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = for {a<-A;b<-B;c<-C;d<-D} yield (a,b,c,d)
-  def tuple5[A,B,C,D,E](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[(A,B,C,D,E)] = for {a<-A;b<-B;c<-C;d<-D;e<-E} yield (a,b,c,d,e)
-  def tuple6[A,B,C,D,E,F](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[(A,B,C,D,E,F)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F} yield (a,b,c,d,e,f)
-  def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G} yield (a,b,c,d,e,f,g)
-  def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H} yield (a,b,c,d,e,f,g,h)
-  def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H;i<-I} yield (a,b,c,d,e,f,g,h,i)
+  def tuple2[A,B](A:Gen[A], B:Gen[B]): Gen[(A,B)] = Gen(c => (A.run(c), B.run(c)))
+  def tuple3[A,B,C](A:Gen[A], B:Gen[B], C:Gen[C]): Gen[(A,B,C)] = Gen(c => (A.run(c), B.run(c), C.run(c)))
+  def tuple4[A,B,C,D](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[(A,B,C,D)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c)))
+  def tuple5[A,B,C,D,E](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[(A,B,C,D,E)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c)))
+  def tuple6[A,B,C,D,E,F](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[(A,B,C,D,E,F)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c)))
+  def tuple7[A,B,C,D,E,F,G](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[(A,B,C,D,E,F,G)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c)))
+  def tuple8[A,B,C,D,E,F,G,H](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[(A,B,C,D,E,F,G,H)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c)))
+  def tuple9[A,B,C,D,E,F,G,H,I](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[(A,B,C,D,E,F,G,H,I)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c)))
+  def tuple10[A,B,C,D,E,F,G,H,I,J](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J]): Gen[(A,B,C,D,E,F,G,H,I,J)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c)))
+  def tuple11[A,B,C,D,E,F,G,H,I,J,K](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K]): Gen[(A,B,C,D,E,F,G,H,I,J,K)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c)))
+  def tuple12[A,B,C,D,E,F,G,H,I,J,K,L](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c)))
+  def tuple13[A,B,C,D,E,F,G,H,I,J,K,L,M](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c)))
+  def tuple14[A,B,C,D,E,F,G,H,I,J,K,L,M,N](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c)))
+  def tuple15[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c)))
+  def tuple16[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c)))
+  def tuple17[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c)))
+  def tuple18[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c)))
+  def tuple19[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c)))
+  def tuple20[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c), T.run(c)))
+  def tuple21[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T], U:Gen[U]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c), T.run(c), U.run(c)))
+  def tuple22[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T], U:Gen[U], V:Gen[V]): Gen[(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V)] = Gen(c => (A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c), T.run(c), U.run(c), V.run(c)))
 
-  def apply2[A,B,Z](z: (A,B)=>Z)(A:Gen[A], B:Gen[B]): Gen[Z] = for {a<-A;b<-B} yield z(a,b)
-  def apply3[A,B,C,Z](z: (A,B,C)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = for {a<-A;b<-B;c<-C} yield z(a,b,c)
-  def apply4[A,B,C,D,Z](z: (A,B,C,D)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D} yield z(a,b,c,d)
-  def apply5[A,B,C,D,E,Z](z: (A,B,C,D,E)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E} yield z(a,b,c,d,e)
-  def apply6[A,B,C,D,E,F,Z](z: (A,B,C,D,E,F)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F} yield z(a,b,c,d,e,f)
-  def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G} yield z(a,b,c,d,e,f,g)
-  def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H} yield z(a,b,c,d,e,f,g,h)
-  def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = for {a<-A;b<-B;c<-C;d<-D;e<-E;f<-F;g<-G;h<-H;i<-I} yield z(a,b,c,d,e,f,g,h,i)
+  def apply2[A,B,Z](z: (A,B)=>Z)(A:Gen[A], B:Gen[B]): Gen[Z] = Gen(c => z(A.run(c), B.run(c)))
+  def apply3[A,B,C,Z](z: (A,B,C)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c)))
+  def apply4[A,B,C,D,Z](z: (A,B,C,D)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c)))
+  def apply5[A,B,C,D,E,Z](z: (A,B,C,D,E)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c)))
+  def apply6[A,B,C,D,E,F,Z](z: (A,B,C,D,E,F)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c)))
+  def apply7[A,B,C,D,E,F,G,Z](z: (A,B,C,D,E,F,G)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c)))
+  def apply8[A,B,C,D,E,F,G,H,Z](z: (A,B,C,D,E,F,G,H)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c)))
+  def apply9[A,B,C,D,E,F,G,H,I,Z](z: (A,B,C,D,E,F,G,H,I)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c)))
+  def apply10[A,B,C,D,E,F,G,H,I,J,Z](z: (A,B,C,D,E,F,G,H,I,J)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c)))
+  def apply11[A,B,C,D,E,F,G,H,I,J,K,Z](z: (A,B,C,D,E,F,G,H,I,J,K)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c)))
+  def apply12[A,B,C,D,E,F,G,H,I,J,K,L,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c)))
+  def apply13[A,B,C,D,E,F,G,H,I,J,K,L,M,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c)))
+  def apply14[A,B,C,D,E,F,G,H,I,J,K,L,M,N,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c)))
+  def apply15[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c)))
+  def apply16[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c)))
+  def apply17[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c)))
+  def apply18[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c)))
+  def apply19[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c)))
+  def apply20[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c), T.run(c)))
+  def apply21[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T], U:Gen[U]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c), T.run(c), U.run(c)))
+  def apply22[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,Z](z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V)=>Z)(A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T], U:Gen[U], V:Gen[V]): Gen[Z] = Gen(c => z(A.run(c), B.run(c), C.run(c), D.run(c), E.run(c), F.run(c), G.run(c), H.run(c), I.run(c), J.run(c), K.run(c), L.run(c), M.run(c), N.run(c), O.run(c), P.run(c), Q.run(c), R.run(c), S.run(c), T.run(c), U.run(c), V.run(c)))
 
   @inline def lift2[A,B,Z](A:Gen[A], B:Gen[B])(z: (A,B)=>Z): Gen[Z] = apply2(z)(A,B)
   @inline def lift3[A,B,C,Z](A:Gen[A], B:Gen[B], C:Gen[C])(z: (A,B,C)=>Z): Gen[Z] = apply3(z)(A,B,C)
@@ -953,6 +1009,19 @@ object Gen {
   @inline def lift7[A,B,C,D,E,F,G,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G])(z: (A,B,C,D,E,F,G)=>Z): Gen[Z] = apply7(z)(A,B,C,D,E,F,G)
   @inline def lift8[A,B,C,D,E,F,G,H,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H])(z: (A,B,C,D,E,F,G,H)=>Z): Gen[Z] = apply8(z)(A,B,C,D,E,F,G,H)
   @inline def lift9[A,B,C,D,E,F,G,H,I,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I])(z: (A,B,C,D,E,F,G,H,I)=>Z): Gen[Z] = apply9(z)(A,B,C,D,E,F,G,H,I)
+  @inline def lift10[A,B,C,D,E,F,G,H,I,J,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J])(z: (A,B,C,D,E,F,G,H,I,J)=>Z): Gen[Z] = apply10(z)(A,B,C,D,E,F,G,H,I,J)
+  @inline def lift11[A,B,C,D,E,F,G,H,I,J,K,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K])(z: (A,B,C,D,E,F,G,H,I,J,K)=>Z): Gen[Z] = apply11(z)(A,B,C,D,E,F,G,H,I,J,K)
+  @inline def lift12[A,B,C,D,E,F,G,H,I,J,K,L,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L])(z: (A,B,C,D,E,F,G,H,I,J,K,L)=>Z): Gen[Z] = apply12(z)(A,B,C,D,E,F,G,H,I,J,K,L)
+  @inline def lift13[A,B,C,D,E,F,G,H,I,J,K,L,M,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M)=>Z): Gen[Z] = apply13(z)(A,B,C,D,E,F,G,H,I,J,K,L,M)
+  @inline def lift14[A,B,C,D,E,F,G,H,I,J,K,L,M,N,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N)=>Z): Gen[Z] = apply14(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N)
+  @inline def lift15[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O)=>Z): Gen[Z] = apply15(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O)
+  @inline def lift16[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)=>Z): Gen[Z] = apply16(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)
+  @inline def lift17[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q)=>Z): Gen[Z] = apply17(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q)
+  @inline def lift18[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R)=>Z): Gen[Z] = apply18(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R)
+  @inline def lift19[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S)=>Z): Gen[Z] = apply19(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S)
+  @inline def lift20[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T)=>Z): Gen[Z] = apply20(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T)
+  @inline def lift21[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T], U:Gen[U])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U)=>Z): Gen[Z] = apply21(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U)
+  @inline def lift22[A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,Z](A:Gen[A], B:Gen[B], C:Gen[C], D:Gen[D], E:Gen[E], F:Gen[F], G:Gen[G], H:Gen[H], I:Gen[I], J:Gen[J], K:Gen[K], L:Gen[L], M:Gen[M], N:Gen[N], O:Gen[O], P:Gen[P], Q:Gen[Q], R:Gen[R], S:Gen[S], T:Gen[T], U:Gen[U], V:Gen[V])(z: (A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V)=>Z): Gen[Z] = apply22(z)(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V)
 
   // ------------------------------------------------------
   // Cats stuff
