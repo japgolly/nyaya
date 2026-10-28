@@ -289,6 +289,50 @@ object GenTest extends TestSuite {
       }
     }
 
+    "tryChoose" - {
+      "empty" - {
+        assert(Gen.tryChoose(Nil).sample().isEmpty)
+        assert(Gen.tryChoose(Iterator.empty).sample().isEmpty)
+        assert(Gen.tryChoose(Vector.empty[Int]).sample().isEmpty)
+      }
+      "iterator" - {
+        val it = Iterator(10, 20, 30)
+        val g = Gen.tryChoose(it)
+        val samples = g.samples().take(20).toList
+        assert(samples.flatten.forall(Set(10, 20, 30).contains))
+        assert(samples.flatten.nonEmpty)
+        assert(samples.contains(None))
+      }
+    }
+
+    "tryGenChoose" - {
+      "empty" - {
+        assert(Gen.tryGenChoose(Nil).isEmpty)
+        assert(Gen.tryGenChoose(Iterator.empty).isEmpty)
+      }
+      "iterator" - {
+        val it = Iterator(10, 20, 30)
+        val optG = Gen.tryGenChoose(it)
+        assert(optG.isDefined)
+        val samples = optG.get.samples().take(20).toList
+        assert(samples.forall(Set(10, 20, 30).contains))
+      }
+    }
+
+    "tryGenChooseLazily" - {
+      "empty" - {
+        assert(Gen.tryGenChooseLazily(Nil).isEmpty)
+        assert(Gen.tryGenChooseLazily(Iterator.empty).isEmpty)
+      }
+      "iterator" - {
+        val it = Iterator(10, 20, 30)
+        val optG = Gen.tryGenChooseLazily(it)
+        assert(optG.isDefined)
+        val samples = optG.get.samples().take(20).toList
+        assert(samples.forall(Set(10, 20, 30).contains))
+      }
+    }
+
     "sizedSet" - {
       for (set <- Gen.chooseInt(0, 50).sizedSet(40).samples().take(50))
         assert(set.size == 40)

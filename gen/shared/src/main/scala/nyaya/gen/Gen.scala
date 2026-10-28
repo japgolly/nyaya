@@ -682,16 +682,19 @@ object Gen {
   def chooseIndexed_![A](as: IndexedSeq[A]): Gen[A] =
     chooseInt(as.length).map(as.apply)
 
+  private def toIndexedSeq[A](as: IterableOnce[A]): IndexedSeq[A] =
+    as match {
+      case is: IndexedSeq[A] => is
+      case _                 => as.iterator.toIndexedSeq
+    }
+
   /**
    * Randomly selects one of the given elements.
    *
    * @param as Possible elements. MUST NOT BE EMPTY.
    */
   def choose_![A](as: IterableOnce[A]): Gen[A] =
-    as match {
-      case is: IndexedSeq[A] => chooseIndexed_!(is)
-      case _                 => chooseIndexed_!(as.iterator.toIndexedSeq)
-    }
+    chooseIndexed_!(toIndexedSeq(as))
 
   def choose[A](a: A, as: A*): Gen[A] =
     chooseIndexed_!((Vector.newBuilder[A] += a ++= as).result())
@@ -716,23 +719,30 @@ object Gen {
   def chooseGenNE[S, G, A](s: S)(implicit ne: ToNonEmptySeq[S, G], g: G <:< Gen[A]): Gen[A] =
     chooseNE(s).flatten
 
-  def tryChoose[A](as: IterableOnce[A]): Gen[Option[A]] =
-    if (as.iterator.isEmpty)
+  // Note: This can generate `None` even when `as` is non-empty
+  def tryChoose[A](as: IterableOnce[A]): Gen[Option[A]] = {
+    val is = toIndexedSeq(as)
+    if (is.isEmpty)
       pure(None)
     else
-      choose_!(as).option
+      chooseIndexed_!(is).option
+  }
 
-  def tryGenChoose[A](as: IterableOnce[A]): Option[Gen[A]] =
-    if (as.iterator.isEmpty)
+  def tryGenChoose[A](as: IterableOnce[A]): Option[Gen[A]] = {
+    val is = toIndexedSeq(as)
+    if (is.isEmpty)
       None
     else
-      Some(choose_!(as))
+      Some(chooseIndexed_!(is))
+  }
 
-  def tryGenChooseLazily[A](as: IterableOnce[A]): Option[Gen[A]] =
-    if (as.iterator.isEmpty)
+  def tryGenChooseLazily[A](as: IterableOnce[A]): Option[Gen[A]] = {
+    val it = as.iterator
+    if (it.isEmpty)
       None
     else
-      Some(lazily(choose_!(as)))
+      Some(lazily(choose_!(it)))
+  }
 
   @inline def shuffle[A, C[X] <: Iterable[X]](as: C[A])(implicit bf: BuildFrom[C[A], A, C[A]]): Gen[C[A]] =
     pure(as).shuffle
