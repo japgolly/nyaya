@@ -166,33 +166,39 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def set1      [B >: A](implicit ss: SizeSpec)                : Gen[Set      [B]] = fillSS1(ss)
   def vector1           (implicit ss: SizeSpec)                : Gen[Vector   [A]] = fillSS1(ss)
 
-  /**
-    * This will ensure that only unique random data is used and that the resulting set has the desired size.
-    *
-    * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.sizedSet(3)` will never return.
-    */
+  /** Generates a set with the requested size using unique samples, or throws an exception if the retry budget is exhausted. */
   def sizedSet[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
     _sizedSet(ss.gen)
 
-  /**
-    * This will ensure that only unique random data is used and that the resulting set has the desired size.
-    *
-    * This is dangerous in that it will block until it generates enough unique elements.
-    * For example, `Gen.bool.sizedSet1(3)` will never return.
-    */
+  /** Generates a non-empty set with the requested size using unique samples, or throws an exception if the retry budget is exhausted. */
   def sizedSet1[B >: A](implicit ss: SizeSpec): Gen[Set[B]] =
-  _sizedSet(ss.gen1)
+    _sizedSet(ss.gen1)
 
   private def _sizedSet[B >: A](genSize: Gen[Int]): Gen[Set[B]] =
     Gen { ctx =>
       val size = genSize.run(ctx)
-      var set = Set.empty[B]
-      samplesUsing(ctx)
-        .filter(a => if (set.contains(a)) false else { set += a; true })
-        .take(size)
-        .foreach(_ => ())
-      set
+      if (size < 0)
+        throw new IllegalArgumentException(s"Gen.sizedSet size must be >= 0, not $size")
+      else if (size == 0)
+        Set.empty[B]
+      else {
+        val maxAttempts = size * 1000
+        var set = Set.empty[B]
+        var curSize = 0
+        var attempts = 0
+        while (curSize < size && attempts < maxAttempts) {
+          attempts += 1
+          val a = ctx.sample(this)
+          if (!set.contains(a)) {
+            set += a
+            curSize += 1
+          }
+        }
+        if (curSize == size)
+          set
+        else
+          throw new NoSuchElementException(s"Gen.sizedSet failed to generate $size unique elements after $maxAttempts attempts (only found $curSize)")
+      }
     }
 
   def shuffle[C[X] <: Iterable[X], B](implicit ev: A <:< C[B], cbf: BuildFrom[C[B], B, C[B]]): Gen[C[B]] =

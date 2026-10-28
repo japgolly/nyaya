@@ -292,6 +292,22 @@ object GenTest extends TestSuite {
     "sizedSet" - {
       for (set <- Gen.chooseInt(0, 50).sizedSet(40).samples().take(50))
         assert(set.size == 40)
+
+      "empty" - {
+        assert(Gen.int.sizedSet(0).sample().isEmpty)
+      }
+
+      "exhaustion" - {
+        intercept[NoSuchElementException] {
+          Gen.boolean.sizedSet(3).sample(); ()
+        }
+      }
+
+      "negative" - {
+        intercept[IllegalArgumentException] {
+          Gen.boolean.sizedSet(-1).sample(); ()
+        }
+      }
     }
 
     "fairlyDistributedSeq" - {
