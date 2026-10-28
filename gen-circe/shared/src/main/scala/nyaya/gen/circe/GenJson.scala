@@ -14,8 +14,8 @@ object GenJson extends GenAbstractJson.Dsl[Json, JsonObject] {
     case j: JsonF.Str       => Json.fromString(j.value)
     case j: JsonF.NumLong   => Json.fromLong(j.value)
     case j: JsonF.NumDouble => Json.fromDoubleOrNull(j.value)
-    case JsonF.Arr(values)  => Json.arr(values: _*)
-    case JsonF.Obj(fields)  => Json.obj(fields: _*)
+    case JsonF.Arr(values)  => Json.fromValues(values)
+    case JsonF.Obj(fields)  => Json.fromFields(fields)
   }
 
   override val JsonObject =
