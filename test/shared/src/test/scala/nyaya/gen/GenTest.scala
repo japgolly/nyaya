@@ -333,6 +333,31 @@ object GenTest extends TestSuite {
       }
     }
 
+    "sizeSpec" - {
+      "exactly" - {
+        "negative" - intercept[IllegalArgumentException](SizeSpec.Exactly(-1))
+        "zero" - {
+          val s = SizeSpec.Exactly(0)
+          assert(s.gen.sample() == 0)
+          assert(s.gen1.sample() == 1)
+        }
+        "positive" - {
+          val s = SizeSpec.Exactly(5)
+          assert(s.gen.sample() == 5)
+          assert(s.gen1.sample() == 5)
+        }
+      }
+      "oneOf" - {
+        "negative" - intercept[IllegalArgumentException](SizeSpec.OneOf(Vector(1, -2, 3)))
+        "valid" - {
+          val s = SizeSpec.OneOf(Vector(2, 4))
+          val samples = s.gen.samples().take(20).toSet
+          assert(samples.subsetOf(Set(2, 4)))
+          assert(s.gen1.samples().take(20).toSet.subsetOf(Set(2, 4)))
+        }
+      }
+    }
+
     "sizedSet" - {
       for (set <- Gen.chooseInt(0, 50).sizedSet(40).samples().take(50))
         assert(set.size == 40)
