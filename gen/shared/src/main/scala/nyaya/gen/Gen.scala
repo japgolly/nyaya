@@ -184,15 +184,16 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
       else {
         val maxAttempts = size * 1000
         var set = Set.empty[B]
+        var prev = set
         var curSize = 0
         var attempts = 0
         while (curSize < size && attempts < maxAttempts) {
           attempts += 1
           val a = ctx.sample(this)
-          if (!set.contains(a)) {
-            set += a
+          prev = set
+          set += a
+          if (set ne prev)
             curSize += 1
-          }
         }
         if (curSize == size)
           set
