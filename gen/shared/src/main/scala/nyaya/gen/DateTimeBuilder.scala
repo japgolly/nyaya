@@ -120,6 +120,21 @@ final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) 
   def asLocalDateTime: Gen[LocalDateTime] =
     asInstant.map(LocalDateTime.ofInstant(_, UTC))
 
+  def asLocalDate: Gen[LocalDate] =
+    asLocalDateTime.map(_.toLocalDate)
+
+  def asLocalTime: Gen[LocalTime] =
+    asLocalDateTime.map(_.toLocalTime)
+
+  def asYear: Gen[Year] =
+    asLocalDateTime.map(d => Year.of(d.getYear))
+
+  def asYearMonth: Gen[YearMonth] =
+    asLocalDateTime.map(d => YearMonth.of(d.getYear, d.getMonth))
+
+  def asMonthDay: Gen[MonthDay] =
+    asLocalDateTime.map(d => MonthDay.of(d.getMonth, d.getDayOfMonth))
+
   def asZonedDateTime: Gen[ZonedDateTime] =
     asZonedDateTime(Gen.zoneId)
 
