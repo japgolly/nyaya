@@ -1,10 +1,16 @@
 package nyaya.gen
 
 import cats.{ContravariantMonoidal, MonoidK}
+import cats.data._
+import java.math.{BigDecimal => JBigDecimal, BigInteger => JBigInteger}
+import java.nio.charset.Charset
 import java.time._
-import java.util.{Date, UUID}
+import java.util.{Currency, Date, Locale, Optional, OptionalDouble, OptionalInt, OptionalLong, UUID}
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
+import scala.collection.immutable.BitSet
 import scala.concurrent.{duration => scd}
+import scala.util.matching.Regex
 import scala.util.{Failure, Success, Try}
 
 final case class CoGen[-A](perturb: (Long, A) => Long) extends AnyVal {
@@ -136,6 +142,36 @@ object CoGen {
         case _                      => seedMix(s, 3)
       }
     }
+
+  // Math & Numerics
+  implicit lazy val javaBigInteger: CoGen[JBigInteger] = array[Byte].contramap(_.toByteArray)
+  implicit lazy val bigInt        : CoGen[BigInt]      = javaBigInteger.contramap(_.bigInteger)
+  implicit lazy val javaBigDecimal: CoGen[JBigDecimal] = divide2((d: JBigDecimal) => (d.unscaledValue, d.scale))
+  implicit lazy val bigDecimal    : CoGen[BigDecimal]  = javaBigDecimal.contramap(_.bigDecimal)
+
+  // Java Optionals
+  implicit def javaOptional[A](implicit A: CoGen[A]): CoGen[Optional[A]] =
+    CoGen { (s, o) => if (o.isPresent) A.perturb(seedMix(s, 2), o.get) else seedMix(s, 1) }
+
+  implicit lazy val javaOptionalInt: CoGen[OptionalInt] =
+    CoGen { (s, o) => if (o.isPresent) int.perturb(seedMix(s, 2), o.getAsInt) else seedMix(s, 1) }
+
+  implicit lazy val javaOptionalLong: CoGen[OptionalLong] =
+    CoGen { (s, o) => if (o.isPresent) long.perturb(seedMix(s, 2), o.getAsLong) else seedMix(s, 1) }
+
+  implicit lazy val javaOptionalDouble: CoGen[OptionalDouble] =
+    CoGen { (s, o) => if (o.isPresent) double.perturb(seedMix(s, 2), o.getAsDouble) else seedMix(s, 1) }
+
+  // Misc
+  implicit lazy val bitSet               : CoGen[BitSet]            = array[Long].contramap(_.toBitMask)
+  implicit lazy val charset              : CoGen[Charset]           = string.contramap(_.name)
+  implicit lazy val currency             : CoGen[Currency]          = string.contramap(_.getCurrencyCode)
+  implicit lazy val javaEnum             : CoGen[java.lang.Enum[_]] = int.contramap(_.ordinal)
+  implicit lazy val locale               : CoGen[Locale]            = string.contramap(_.toLanguageTag)
+  implicit lazy val pattern              : CoGen[Pattern]           = divide2((p: Pattern) => (p.pattern, p.flags))
+  implicit lazy val regex                : CoGen[Regex]             = pattern.contramap(_.pattern)
+  implicit lazy val scalaEnumerationValue: CoGen[Enumeration#Value] = int.contramap(_.id)
+  implicit lazy val symbol               : CoGen[Symbol]            = string.contramap(_.name)
 
   // ------------------------------------------------------
   // Arity boilerplate
@@ -292,6 +328,33 @@ object CoGen {
   // ------------------------------------------------------
   // Cats stuff
   // ------------------------------------------------------
+
+  implicit def catsChain[A](implicit A: CoGen[A]): CoGen[Chain[A]] =
+    iteratorFn[A].contramap(c => () => c.iterator)
+
+  implicit def catsNonEmptyChain[A](implicit A: CoGen[A]): CoGen[NonEmptyChain[A]] =
+    iteratorFn[A].contramap(c => () => c.iterator)
+
+  implicit def catsNonEmptyList[A](implicit A: CoGen[A]): CoGen[NonEmptyList[A]] =
+    iterable[A].contramap(_.toList)
+
+  implicit def catsNonEmptyVector[A](implicit A: CoGen[A]): CoGen[NonEmptyVector[A]] =
+    iterable[A].contramap(_.toVector)
+
+  implicit def catsNonEmptySet[A](implicit A: CoGen[A]): CoGen[NonEmptySet[A]] =
+    iterable[A].contramap(_.toSortedSet)
+
+  implicit def catsValidated[E, A](implicit E: CoGen[E], A: CoGen[A]): CoGen[Validated[E, A]] =
+    either[E, A].contramap(_.toEither)
+
+  implicit def catsIor[A, B](implicit A: CoGen[A], B: CoGen[B]): CoGen[Ior[A, B]] =
+    CoGen { (s, i) =>
+      i match {
+        case Ior.Left(a)    => A.perturb(seedMix(s, 1), a)
+        case Ior.Right(b)   => B.perturb(seedMix(s, 2), b)
+        case Ior.Both(a, b) => B.perturb(A.perturb(seedMix(s, 3), a), b)
+      }
+    }
 
   implicit object catsInstance extends ContravariantMonoidal[CoGen] with MonoidK[CoGen] {
     override def contramap[A, B](fa: CoGen[A])(f: B => A): CoGen[B] =
