@@ -694,10 +694,14 @@ object Gen {
   val uuid          : Gen[UUID]    = lift2(long, long)(new UUID(_, _))
 
   // Don't use Math.abs anywhere here; Math.abs(MinValue) is negative
-  val positiveInt   : Gen[Int]     = int  map (_ >>> 1)
-  val positiveLong  : Gen[Long]    = long map (_ >>> 1)
-  val negativeInt   : Gen[Int]     = int  map (i => if (i <= 0) i else -i)
-  val negativeLong  : Gen[Long]    = long map (l => if (l <= 0) l else -l)
+  val positiveInt   : Gen[Int]     = int   map (_ >>> 1)
+  val positiveLong  : Gen[Long]    = long  map (_ >>> 1)
+  val positiveShort : Gen[Short]   = short map (s => (s.toInt & 0x7FFF).toShort)
+  val positiveByte  : Gen[Byte]    = byte  map (b => (b.toInt & 0x7F).toByte)
+  val negativeInt   : Gen[Int]     = int   map (i => if (i <= 0) i else -i)
+  val negativeLong  : Gen[Long]    = long  map (l => if (l <= 0) l else -l)
+  val negativeShort : Gen[Short]   = short map (s => if (s <= 0) s else (-s).toShort)
+  val negativeByte  : Gen[Byte]    = byte  map (b => if (b <= 0) b else (-b).toByte)
 
   val positiveDouble: Gen[Double]  = double map (Math abs _)
   val positiveFloat : Gen[Float]   = float  map (Math abs _)
@@ -772,6 +776,42 @@ object Gen {
 
   def chooseChar_!(rs: NumericRange[Char]*): Gen[Char] =
     chooseChar_!("", rs: _*)
+
+  /**
+   * Generate a byte ∈ [0,bound).
+   *
+   * @param bound Upper-bound (exclusive). > 0
+   */
+  def chooseByte(bound: Byte): Gen[Byte] =
+    if (bound <= 0)
+      throw new IllegalArgumentException(s"Gen.chooseByte($bound) is invalid. Must be > 0.")
+    else
+      chooseInt(bound.toInt).map(_.toByte)
+
+  /** Args are inclusive. [l,h] */
+  def chooseByte(l: Byte, h: Byte): Gen[Byte] =
+    if (l > h)
+      throw new IllegalArgumentException(s"Gen.chooseByte($l, $h) is invalid: $l > $h.")
+    else
+      chooseInt(l.toInt, h.toInt).map(_.toByte)
+
+  /**
+   * Generate a short ∈ [0,bound).
+   *
+   * @param bound Upper-bound (exclusive). > 0
+   */
+  def chooseShort(bound: Short): Gen[Short] =
+    if (bound <= 0)
+      throw new IllegalArgumentException(s"Gen.chooseShort($bound) is invalid. Must be > 0.")
+    else
+      chooseInt(bound.toInt).map(_.toShort)
+
+  /** Args are inclusive. [l,h] */
+  def chooseShort(l: Short, h: Short): Gen[Short] =
+    if (l > h)
+      throw new IllegalArgumentException(s"Gen.chooseShort($l, $h) is invalid: $l > $h.")
+    else
+      chooseInt(l.toInt, h.toInt).map(_.toShort)
 
   /**
    * Generate an int ∈ [0,bound).

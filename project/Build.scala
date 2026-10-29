@@ -152,6 +152,7 @@ object NyayaBuild {
       name := "test",
       moduleName := "nyaya-test",
     )
+    .jsSettings(libraryDependencies += Dep.scalaJsJavaTime.value % Test)
 
   lazy val benchmark = (project in file("benchmark"))
     .enablePlugins(JmhPlugin)
