@@ -1,7 +1,9 @@
 package nyaya.gen
 
 import cats.{ContravariantMonoidal, MonoidK}
-import java.util.UUID
+import java.time._
+import java.util.{Date, UUID}
+import java.util.concurrent.TimeUnit
 import scala.util.{Failure, Success, Try}
 
 final case class CoGen[-A](perturb: (Long, A) => Long) extends AnyVal {
@@ -100,6 +102,26 @@ object CoGen {
 
   implicit lazy val uuid: CoGen[UUID] =
     divide2((u: UUID) => (u.getLeastSignificantBits, u.getMostSignificantBits))
+
+  // Java dates and times
+  implicit lazy val date          : CoGen[Date]           = long.contramap(_.getTime)
+  implicit lazy val dayOfWeek     : CoGen[DayOfWeek]      = int.contramap(_.getValue)
+  implicit lazy val duration      : CoGen[Duration]       = divide2((d: Duration) => (d.getSeconds, d.getNano))
+  implicit lazy val instant       : CoGen[Instant]        = divide2((i: Instant) => (i.getEpochSecond, i.getNano))
+  implicit lazy val localDate     : CoGen[LocalDate]      = long.contramap(_.toEpochDay)
+  implicit lazy val localDateTime : CoGen[LocalDateTime]  = divide2((d: LocalDateTime) => (d.toLocalDate, d.toLocalTime))
+  implicit lazy val localTime     : CoGen[LocalTime]      = long.contramap(_.toNanoOfDay)
+  implicit lazy val month         : CoGen[Month]          = int.contramap(_.getValue)
+  implicit lazy val monthDay      : CoGen[MonthDay]       = divide2((m: MonthDay) => (m.getMonthValue, m.getDayOfMonth))
+  implicit lazy val offsetDateTime: CoGen[OffsetDateTime] = divide2((d: OffsetDateTime) => (d.toLocalDateTime, d.getOffset))
+  implicit lazy val offsetTime    : CoGen[OffsetTime]     = divide2((t: OffsetTime) => (t.toLocalTime, t.getOffset))
+  implicit lazy val period        : CoGen[Period]         = divide3((p: Period) => (p.getYears, p.getMonths, p.getDays))
+  implicit lazy val timeUnit      : CoGen[TimeUnit]       = int.contramap(_.ordinal)
+  implicit lazy val year          : CoGen[Year]           = int.contramap(_.getValue)
+  implicit lazy val yearMonth     : CoGen[YearMonth]      = divide2((m: YearMonth) => (m.getYear, m.getMonthValue))
+  implicit lazy val zonedDateTime : CoGen[ZonedDateTime]  = divide2((d: ZonedDateTime) => (d.toInstant, d.getZone))
+  implicit lazy val zoneId        : CoGen[ZoneId]         = string.contramap(_.getId)
+  implicit lazy val zoneOffset    : CoGen[ZoneOffset]     = int.contramap(_.getTotalSeconds)
 
   // ------------------------------------------------------
   // Arity boilerplate

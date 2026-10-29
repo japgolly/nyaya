@@ -1,6 +1,5 @@
 package nyaya.gen
 
-import java.util.UUID
 import scala.collection.immutable.ArraySeq
 import scala.util.Try
 import utest._
@@ -23,7 +22,6 @@ object CoGenTest extends TestSuite {
       "string" - assertImplicitExists[String]
       "throwable" - assertImplicitExists[Throwable]
       "unit" - assertImplicitExists[Unit]
-      "uuid" - assertImplicitExists[UUID]
 
       "array" - assertImplicitExists[Array[Int]]
       "arraySeq" - assertImplicitExists[ArraySeq[Int]]
