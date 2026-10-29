@@ -17,18 +17,20 @@ object Dependencies {
     // Internal
     val betterMonadicFor = "0.3.1"
     val kindProjector    = "0.13.4"
+    def scalaJsJavaTime  = "2.4.0"
     val utest            = "0.8.4"
   }
 
   object Dep {
-    val alleyCats          = Def.setting("org.typelevel"                 %%% "alleycats-core" % Ver.cats)
-    val cats               = Def.setting("org.typelevel"                 %%% "cats-core"      % Ver.cats)
-    val circeCore          = Def.setting("io.circe"                      %%% "circe-core"     % Ver.circe)
-    val microlibsMultimap  = Def.setting("com.github.japgolly.microlibs" %%% "multimap"       % Ver.microlibs)
-    val microlibsRecursion = Def.setting("com.github.japgolly.microlibs" %%% "recursion"      % Ver.microlibs)
-    val microlibsTestUtil  = Def.setting("com.github.japgolly.microlibs" %%% "test-util"      % Ver.microlibs)
-    val monocleCore        = Def.setting("dev.optics"                    %%% "monocle-core"   % Ver.monocle)
-    val utest              = Def.setting("com.lihaoyi"                   %%% "utest"          % Ver.utest)
+    val alleyCats          = Def.setting("org.typelevel"                 %%% "alleycats-core"  % Ver.cats)
+    val cats               = Def.setting("org.typelevel"                 %%% "cats-core"       % Ver.cats)
+    val circeCore          = Def.setting("io.circe"                      %%% "circe-core"      % Ver.circe)
+    val microlibsMultimap  = Def.setting("com.github.japgolly.microlibs" %%% "multimap"        % Ver.microlibs)
+    val microlibsRecursion = Def.setting("com.github.japgolly.microlibs" %%% "recursion"       % Ver.microlibs)
+    val microlibsTestUtil  = Def.setting("com.github.japgolly.microlibs" %%% "test-util"       % Ver.microlibs)
+    val monocleCore        = Def.setting("dev.optics"                    %%% "monocle-core"    % Ver.monocle)
+    val scalaJsJavaTime    = Def.setting("io.github.cquiroz"             %%% "scala-java-time" % Ver.scalaJsJavaTime)
+    val utest              = Def.setting("com.lihaoyi"                   %%% "utest"           % Ver.utest)
 
     // Compiler plugins
     val betterMonadicFor = compilerPlugin("com.olegpy"     %% "better-monadic-for" % Ver.betterMonadicFor)

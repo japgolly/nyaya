@@ -1,5 +1,6 @@
 package nyaya.gen
 
+import java.time._
 import java.util.Date
 import nyaya.gen.DateTimeBuilder._
 import nyaya.gen.Gen.Now
@@ -33,9 +34,15 @@ object DateTimeBuilder {
   val YearMs = DayMs * 365.25
   val MonthMs = YearMs / 12
   val WeekMs = YearMs / 52
+
+  val UTC = ZoneId.of("UTC")
+
+  /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
+  val avoidJDK8066982: ZonedDateTime => ZonedDateTime =
+    d => ZonedDateTime.parse(d.toString)
 }
 
-final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) extends DateTimeBuilderJava8 {
+final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) {
 
   protected def copy(genNow: Gen[Now] = genNow, past: TimeSpec = past, future: TimeSpec = future): DateTimeBuilder =
     new DateTimeBuilder(genNow, past = past, future = future)
@@ -49,6 +56,12 @@ final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) 
   def fromNowMinusMonths(d: Double)   = fromNowMinusMs((MonthMs * d).toLong)
   def fromNowMinusWeeks(d: Double)    = fromNowMinusMs((WeekMs * d).toLong)
   def fromNowMinusDays(d: Double)     = fromNowMinusMs((DayMs * d).toLong)
+
+  def  fromInstant(i: Instant) =  fromEpochMs(i.toEpochMilli)
+  def untilInstant(i: Instant) = untilEpochMs(i.toEpochMilli)
+
+  def  fromZDT(d: ZonedDateTime) =  fromInstant(d.toInstant)
+  def untilZDT(d: ZonedDateTime) = untilInstant(d.toInstant)
 
   def untilEpochMs(e: Long)           = copy(future = Fixed(e))
   def untilNowPlusMs(d: Long)         = copy(future = Delta(d))
@@ -100,4 +113,31 @@ final class DateTimeBuilder(genNow: Gen[Now], past: TimeSpec, future: TimeSpec) 
 
   def asDate: Gen[Date] =
     asEpochMs.map(new Date(_))
+
+  def asInstant: Gen[Instant] =
+    asEpochMs.map(Instant.ofEpochMilli)
+
+  def asLocalDateTime: Gen[LocalDateTime] =
+    asInstant.map(LocalDateTime.ofInstant(_, UTC))
+
+  def asZonedDateTime: Gen[ZonedDateTime] =
+    asZonedDateTime(Gen.zoneId)
+
+  def asZonedDateTime(zoneId: ZoneId): Gen[ZonedDateTime] =
+    asInstant.map(_ atZone zoneId)
+
+  def asZonedDateTime(genZoneId: Gen[ZoneId]): Gen[ZonedDateTime] =
+    Gen.lift2(asInstant, genZoneId)(_ atZone _)
+
+  /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
+  def asZonedDateTimeAvoidingJDK8066982: Gen[ZonedDateTime] =
+    asZonedDateTime map avoidJDK8066982
+
+  /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
+  def asZonedDateTimeAvoidingJDK8066982(zoneId: ZoneId): Gen[ZonedDateTime] =
+    asZonedDateTime(zoneId) map avoidJDK8066982
+
+  /** http://stackoverflow.com/questions/40010089/zoneddatetime-parse-bug */
+  def asZonedDateTimeAvoidingJDK8066982(genZoneId: Gen[ZoneId]): Gen[ZonedDateTime] =
+    asZonedDateTime(genZoneId) map avoidJDK8066982
 }
