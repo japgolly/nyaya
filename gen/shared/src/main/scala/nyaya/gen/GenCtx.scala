@@ -52,6 +52,11 @@ final class GenCtx(initialRnd: SplittableRandom, _genSize: GenSize, val thread: 
     lastBit = 31
   }
 
+  def cloneWithSeed(seed: Long): GenCtx = {
+    val r = new SplittableRandom(seed)
+    new GenCtx(r, _genSize, thread)
+  }
+
   def shiftLeft(i: Int): Int = {
     val j = i << 1
     if (nextBit()) j else (j | 1)

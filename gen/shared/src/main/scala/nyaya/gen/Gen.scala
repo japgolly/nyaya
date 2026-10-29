@@ -79,6 +79,233 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   def withOptionalConstSeed(s: Option[Long]): Gen[A] =
     Gen.setOptionalConstSeed(s) >> this
 
+  /** Generates a const function to `A`. */
+  def function0: Gen[() => A] =
+    Gen { ctx =>
+      val a = run(ctx)
+      () => a
+    }
+
+  /** Generates a pure function to `A`. */
+  def function1[B](implicit B: CoGen[B]): Gen[B => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      b => {
+        val newSeed = B.perturb(seed, b)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function2[B, C](implicit B: CoGen[B], C: CoGen[C]): Gen[(B, C) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c) => {
+        val newSeed = C.perturb(B.perturb(seed, b), c)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function3[B, C, D](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D]): Gen[(B, C, D) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d) => {
+        val newSeed = D.perturb(C.perturb(B.perturb(seed, b), c), d)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function4[B, C, D, E](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E]): Gen[(B, C, D, E) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e) => {
+        val newSeed = E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function5[B, C, D, E, F](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F]): Gen[(B, C, D, E, F) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f) => {
+        val newSeed = F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function6[B, C, D, E, F, G](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G]): Gen[(B, C, D, E, F, G) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g) => {
+        val newSeed = G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function7[B, C, D, E, F, G, H](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H]): Gen[(B, C, D, E, F, G, H) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h) => {
+        val newSeed = H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function8[B, C, D, E, F, G, H, I](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I]): Gen[(B, C, D, E, F, G, H, I) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i) => {
+        val newSeed = I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function9[B, C, D, E, F, G, H, I, J](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J]): Gen[(B, C, D, E, F, G, H, I, J) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j) => {
+        val newSeed = J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function10[B, C, D, E, F, G, H, I, J, K](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K]): Gen[(B, C, D, E, F, G, H, I, J, K) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k) => {
+        val newSeed = K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function11[B, C, D, E, F, G, H, I, J, K, L](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L]): Gen[(B, C, D, E, F, G, H, I, J, K, L) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l) => {
+        val newSeed = L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function12[B, C, D, E, F, G, H, I, J, K, L, M](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m) => {
+        val newSeed = M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function13[B, C, D, E, F, G, H, I, J, K, L, M, N](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n) => {
+        val newSeed = N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function14[B, C, D, E, F, G, H, I, J, K, L, M, N, O](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o) => {
+        val newSeed = O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function15[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p) => {
+        val newSeed = P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function16[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q) => {
+        val newSeed = Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function17[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q], R: CoGen[R]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r) => {
+        val newSeed = R.perturb(Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q), r)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function18[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q], R: CoGen[R], S: CoGen[S]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s) => {
+        val newSeed = S.perturb(R.perturb(Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q), r), s)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function19[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q], R: CoGen[R], S: CoGen[S], T: CoGen[T]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t) => {
+        val newSeed = T.perturb(S.perturb(R.perturb(Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q), r), s), t)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function20[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q], R: CoGen[R], S: CoGen[S], T: CoGen[T], U: CoGen[U]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u) => {
+        val newSeed = U.perturb(T.perturb(S.perturb(R.perturb(Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q), r), s), t), u)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function21[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q], R: CoGen[R], S: CoGen[S], T: CoGen[T], U: CoGen[U], V: CoGen[V]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) => {
+        val newSeed = V.perturb(U.perturb(T.perturb(S.perturb(R.perturb(Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q), r), s), t), u), v)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
+  /** Generates a pure function to `A`. */
+  def function22[B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W](implicit B: CoGen[B], C: CoGen[C], D: CoGen[D], E: CoGen[E], F: CoGen[F], G: CoGen[G], H: CoGen[H], I: CoGen[I], J: CoGen[J], K: CoGen[K], L: CoGen[L], M: CoGen[M], N: CoGen[N], O: CoGen[O], P: CoGen[P], Q: CoGen[Q], R: CoGen[R], S: CoGen[S], T: CoGen[T], U: CoGen[U], V: CoGen[V], W: CoGen[W]): Gen[(B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W) => A] =
+    Gen { ctx =>
+      val seed = ctx.rnd.nextLong()
+      (b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w) => {
+        val newSeed = W.perturb(V.perturb(U.perturb(T.perturb(S.perturb(R.perturb(Q.perturb(P.perturb(O.perturb(N.perturb(M.perturb(L.perturb(K.perturb(J.perturb(I.perturb(H.perturb(G.perturb(F.perturb(E.perturb(D.perturb(C.perturb(B.perturb(seed, b), c), d), e), f), g), h), i), j), k), l), m), n), o), p), q), r), s), t), u), v), w)
+        run(ctx.cloneWithSeed(newSeed))
+      }
+    }
+
   def option: Gen[Option[A]] =
     Gen(c => if (c.nextBit()) None else Some(run(c)))
 

@@ -123,6 +123,26 @@ Generators for each are:
     Gen.apply2(Blah)(id.set, Gen.double.triple.option)
 ```
 
+### Generating Random Functions
+
+```scala
+// Say we want to generate a (Int, String) => Long function.
+// It's as simple as this:
+val gen: Gen[(Int, String) => Long] =
+  Gen.long.function2[Int, String]
+
+// It works by fetching an implicit CoGen[Int] and CoGen[String], which are provided out-of-the-box.
+// To use your own custom type, create an implicit CoGen instance for it.
+
+case class Point(x: Int, y: Int)
+
+implicit val coGenPoint: CoGen[Point] =
+  CoGen.divide2((p: Point) => (p.x, p.y))
+
+val gen: Gen[Point => Long] =
+  Gen.long.function1[Point]
+```
+
 ### Testing with Random Data (pt.1)
 
 * Different settings for JVM/JS. By default…
