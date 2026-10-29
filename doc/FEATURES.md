@@ -131,13 +131,13 @@ Generators for each are:
 val gen: Gen[(Int, String) => Long] =
   Gen.long.function2[Int, String]
 
-// It works by fetching an implicit CoGen[Int] and CoGen[String], which are provided out-of-the-box.
-// To use your own custom type, create an implicit CoGen instance for it.
+// It works by fetching an implicit Cogen[Int] and Cogen[String], which are provided out-of-the-box.
+// To use your own custom type, create an implicit Cogen instance for it.
 
 case class Point(x: Int, y: Int)
 
-implicit val coGenPoint: CoGen[Point] =
-  CoGen.divide2((p: Point) => (p.x, p.y))
+implicit val coGenPoint: Cogen[Point] =
+  Cogen.divide2((p: Point) => (p.x, p.y))
 
 val gen: Gen[Point => Long] =
   Gen.long.function1[Point]

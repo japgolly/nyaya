@@ -4,12 +4,12 @@ import scala.collection.immutable.ArraySeq
 import scala.util.Try
 import utest._
 
-object CoGenTest extends TestSuite {
+object CogenTest extends TestSuite {
 
   override def tests = Tests {
 
     "implicits" - {
-      def assertImplicitExists[A: CoGen] = ()
+      def assertImplicitExists[A: Cogen] = ()
 
       "byte" - assertImplicitExists[Byte]
       "char" - assertImplicitExists[Char]
