@@ -67,8 +67,7 @@ object Cogen {
         s = A.perturb(s, it.next())
         count += 1
       }
-      s = seedMix(s, count.toLong)
-      s
+      seedMix(s, count.toLong)
     }
 
   implicit def iterable[A](implicit A: Cogen[A]): Cogen[Iterable[A]] =
