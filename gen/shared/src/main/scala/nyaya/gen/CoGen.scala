@@ -4,6 +4,7 @@ import cats.{ContravariantMonoidal, MonoidK}
 import java.time._
 import java.util.{Date, UUID}
 import java.util.concurrent.TimeUnit
+import scala.concurrent.{duration => scd}
 import scala.util.{Failure, Success, Try}
 
 final case class CoGen[-A](perturb: (Long, A) => Long) extends AnyVal {
@@ -122,6 +123,19 @@ object CoGen {
   implicit lazy val zonedDateTime : CoGen[ZonedDateTime]  = divide2((d: ZonedDateTime) => (d.toInstant, d.getZone))
   implicit lazy val zoneId        : CoGen[ZoneId]         = string.contramap(_.getId)
   implicit lazy val zoneOffset    : CoGen[ZoneOffset]     = int.contramap(_.getTotalSeconds)
+
+  // Scala durations
+  implicit lazy val deadline      : CoGen[scd.Deadline]       = finiteDuration.contramap(_.time)
+  implicit lazy val finiteDuration: CoGen[scd.FiniteDuration] = long.contramap(_.toNanos)
+  implicit lazy val scalaDuration : CoGen[scd.Duration]       =
+    CoGen { (s, d) =>
+      d match {
+        case fd: scd.FiniteDuration => finiteDuration.perturb(s, fd)
+        case scd.Duration.Inf       => seedMix(s, 1)
+        case scd.Duration.MinusInf  => seedMix(s, 2)
+        case _                      => seedMix(s, 3)
+      }
+    }
 
   // ------------------------------------------------------
   // Arity boilerplate
