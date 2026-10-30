@@ -82,26 +82,16 @@ Examples:
 | `Map[Int, Option[Boolean]]` | ≤ 4 entries. | `Gen.int.mapTo(Gen.boolean.option)(0 to 4)` |
 | `Map[String, Set[Int]]` | ≤ 4 elements per set.<br>≤ 10 map entries. | `Gen.int.set(0 to 4).mapBy(Gen.string)(0 to 10)` |
 
-### Generating Random JSON
+##### Custom Data Types
 
-Add the `nyaya-gen-circe` module as a dependency and then:
+Say we have these data types:
 
-```scala
-import io.circe.Json
-import nyaya.gen.circe.GenJson
-
-// Generate JSON with a maximum depth of 4
-val json: Json =
-  GenJson(4).sample()
-```
-
-##### Example
-Say we have these data types
 ```scala
   case class Id(value: Int)
 
   case class Blah(ids: Set[Id], prevCoord: Option[(Double, Double, Double)])
 ```
+
 Generators for each are:
 ```scala
   val id: Gen[Id] =
@@ -119,6 +109,19 @@ Generators for each are:
     Gen.apply2(Blah)(id.set, Gen.double.triple.option)
 ```
 
+### Generating Random JSON
+
+Add the `nyaya-gen-circe` module as a dependency and then:
+
+```scala
+import io.circe.Json
+import nyaya.gen.circe.GenJson
+
+// Generate JSON with a maximum depth of 4
+val json: Json =
+  GenJson(4).sample()
+```
+
 ### Generating Random Functions
 
 ```scala
@@ -132,7 +135,7 @@ val gen: Gen[(Int, String) => Long] =
 
 case class Point(x: Int, y: Int)
 
-implicit val coGenPoint: Cogen[Point] =
+implicit val cogenPoint: Cogen[Point] =
   Cogen.divide2((p: Point) => (p.x, p.y))
 
 val gen: Gen[Point => Long] =
@@ -180,9 +183,6 @@ A nice benefit of this approach is that your data generators do less work. If yo
 
 then you gain nothing by ensuring that the reverse test gets a string different than `a` or `b`. It's more efficient to generate two strings and pick one to use for the reverse test.
 
-##### Example
-See [MultimapTest.scala](../nyaya-test/src/test/scala/nyaya/util/MultimapTest.scala) for a real example.
-
 ### Proving
 
 You can _prove_ a proposition by testing it with all possible, or legal values.
@@ -205,6 +205,7 @@ prop mustBeProvedBy domain  // Method 2
 ```
 
 ### Uniqueness
+
 **Validation** is the easy part. Just use `Prop.distinct`.
 ```scala
 case class Thing(id: Int, name: String)
