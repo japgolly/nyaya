@@ -548,6 +548,17 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
   // Cats stuff
   // ------------------------------------------------------
 
+  def catsChain (implicit ss: SizeSpec): Gen[Chain[A]] = ss.gen.flatMap(_catsChain)
+  def catsChain1(implicit ss: SizeSpec): Gen[Chain[A]] = ss.gen1.flatMap(_catsChain)
+
+  private def _catsChain(size: Int): Gen[Chain[A]] =
+    Gen { ctx =>
+      Chain.fromIterableOnce(samplesUsing(ctx).take(size))
+    }
+
+  def catsNEC[B >: A](implicit ss: SizeSpec): Gen[NonEmptyChain[B]] =
+    catsChain1(ss).map(NonEmptyChain.fromChainUnsafe)
+
   def catsNEL[B >: A](implicit ss: SizeSpec): Gen[NonEmptyList[B]] =
     list1(ss).map(NonEmptyList.fromListUnsafe)
 
