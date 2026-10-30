@@ -32,7 +32,7 @@ Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> N
 #### SBT setup
 
 ```scala
-ver nyayaVer = "1.1.0"
+ver nyayaVer = "1.2.0"
 
 // Property expression, evaluation, assertion.
 libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % nyayaVer
