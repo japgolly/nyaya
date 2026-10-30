@@ -567,6 +567,16 @@ final case class Gen[+A](run: Gen.Run[A]) extends AnyVal {
 
   def catsNEV[B >: A](implicit ss: SizeSpec): Gen[NonEmptyVector[B]] =
     vector1(ss).map(NonEmptyVector.fromVectorUnsafe)
+
+  def catsValidated[B](g: Gen[B]): Gen[Validated[A, B]] =
+    Gen(c => if (c.nextBit()) Validated.invalid(run(c)) else Validated.valid(g run c))
+
+  def catsIor[B](g: Gen[B]): Gen[Ior[A, B]] =
+    Gen.chooseInt(3).flatMap {
+      case 0 => map(Ior.left)
+      case 1 => g.map(Ior.right)
+      case _ => Gen(c => Ior.both(run(c), g.run(c)))
+    }
 }
 
 // =====================================================================================================================
