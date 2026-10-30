@@ -82,10 +82,6 @@ Examples:
 | `Map[Int, Option[Boolean]]` | ≤ 4 entries. | `Gen.int.mapTo(Gen.boolean.option)(0 to 4)` |
 | `Map[String, Set[Int]]` | ≤ 4 elements per set.<br>≤ 10 map entries. | `Gen.int.set(0 to 4).mapBy(Gen.string)(0 to 10)` |
 
-Note: `Gen` does not contain a `.suchThat` or `.filter`.
-Don't generate data just to throw it away. Instead, write an accurate generator.
-There are better ways than throw-away-retry.
-
 ### Generating Random JSON
 
 Add the `nyaya-gen-circe` module as a dependency and then:
