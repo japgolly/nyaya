@@ -1,7 +1,7 @@
 package nyaya.test
 
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{Callable, ExecutorService, Executors, Future, TimeUnit}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.{Callable, ExecutorService, Executors, TimeUnit}
 import nyaya.gen.ThreadNumber
 import nyaya.prop.Prop
 import nyaya.test.Executor.{Data, DataCtx}
@@ -16,8 +16,9 @@ object ParallelExecutor {
   def merge[A](a: RunState[A], b: RunState[A]): RunState[A] = {
     val runs = a.runs max b.runs
     (a.success, b.success) match {
-      case (false, true) => RunState(runs, a.result)
-      case _             => RunState(runs, b.result)
+      case (false, true)  => RunState(runs, a.result)
+      case (false, false) => RunState(runs, if (a.runs <= b.runs) a.result else b.result)
+      case _              => RunState(runs, b.result)
     }
   }
 }
@@ -46,37 +47,43 @@ case class ParallelExecutor(workers: Int = defaultThreadCount) extends Executor 
     }
 
     val ai = new AtomicInteger(0)
-    def task(worker: Int) = mkTask {
-      val dp = debugPrefixes(worker)
-      val data = g(DataCtx(sss(worker), ThreadNumber(worker), S.seed, dp))
-      testN(p, data, () => ai.incrementAndGet(), S)
+    runAsync(workers) { (worker, cont, cancel) =>
+      mkTask {
+        val dp = debugPrefixes(worker)
+        val data = g(DataCtx(sss(worker), ThreadNumber(worker), S.seed, dp))
+        testN(p, data, () => ai.incrementAndGet(), S, continue = cont, onFailure = cancel)
+      }
     }
-    runAsync2(workers, task)
   }
 
   override def prove[A](p: Prop[A], d: Domain[A], S: Settings): RunState[A] = {
     val threads = workers min d.size
 
     val ai = new AtomicInteger(0)
-    def task(worker: Int) = mkTask {
-      proveN(p, d, worker, threads, _ => ai.incrementAndGet, S)
+    runAsync(threads) { (worker, cont, cancel) =>
+      mkTask {
+        proveN(p, d, worker, threads, _ => ai.incrementAndGet(), S, continue = cont, onFailure = cancel)
+      }
     }
-    runAsync2(threads, task)
   }
 
   private[this] def mkTask[A](f: => RunState[A]) = new Callable[RunState[A]] {
     override def call(): RunState[A] = f
   }
 
-  private[this] def runAsync2[A](threads: Int, f: Int => Callable[RunState[A]]): RunState[A] =
-    runAsync(es => (0 until threads).toList.map(es submit f(_)))
-
-  private[this] def runAsync[A](start: ExecutorService => List[Future[RunState[A]]]): RunState[A] = {
+  private[this] def runAsync[A](threads: Int)(task: (Int, () => Boolean, () => Unit) => Callable[RunState[A]]): RunState[A] = {
     val es: ExecutorService = Executors.newFixedThreadPool(workers)
-    val fs = start(es)
-    es.shutdown()
-    val rss = fs.map(_.get())
-    es.awaitTermination(1, TimeUnit.MINUTES)
-    rss.foldLeft(RunState.empty[A])(merge)
+    try {
+      val cancelled = new AtomicBoolean(false)
+      val cancel = () => cancelled.set(true)
+      val cont = () => !cancelled.get()
+      val fs = (0 until threads).toList.map(i => es.submit(task(i, cont, cancel)))
+      val rss = fs.map(_.get())
+      rss.foldLeft(RunState.empty[A])(merge)
+    } finally {
+      es.shutdown()
+      es.awaitTermination(1, TimeUnit.MINUTES)
+      ()
+    }
   }
 }

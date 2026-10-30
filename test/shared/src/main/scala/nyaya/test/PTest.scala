@@ -88,9 +88,19 @@ object PTest {
     S.executor.run(p, prepareData(gen, S.sizeDist, S.genSize, S.debug), S)
   }
 
-  private[test] def testN[A](p: Prop[A], it: Iterator[A], runInc: () => Int, S: Settings): RunState[A] = {
+  private[this] val defaultContinue = () => true
+  private[this] val defaultOnFailure = () => ()
+
+  private[test] def testN[A](
+    p: Prop[A],
+    it: Iterator[A],
+    runInc: () => Int,
+    S: Settings,
+    continue: () => Boolean = defaultContinue,
+    onFailure: () => Unit = defaultOnFailure
+  ): RunState[A] = {
     var rs = RunState.empty[A]
-    while (rs.success && it.hasNext) {
+    while (rs.success && continue() && it.hasNext) {
       val run = runInc()
       try {
         val a = it.next()
@@ -107,6 +117,9 @@ object PTest {
         case e: Throwable =>
           rs = RunState(run, Result.Error(None, e))
       }
+
+      if (!rs.success)
+        onFailure()
     }
     rs
   }
@@ -138,10 +151,19 @@ object PTest {
     }
   }
 
-  private[test] def proveN[A](p: Prop[A], d: Domain[A], start: Int, step: Int, runInc: Int => Int, S: Settings): RunState[A] = {
+  private[test] def proveN[A](
+    p: Prop[A],
+    d: Domain[A],
+    start: Int,
+    step: Int,
+    runInc: Int => Int,
+    S: Settings,
+    continue: () => Boolean = defaultContinue,
+    onFailure: () => Unit = defaultOnFailure
+  ): RunState[A] = {
     var rs = RunState.empty[A]
     var i = start
-    while (rs.success && i < d.size) {
+    while (rs.success && continue() && i < d.size) {
       val a = d(i)
       val run = runInc(i)
 
@@ -152,6 +174,9 @@ object PTest {
         case e: Throwable =>
           rs = RunState(run, Result.Error(Some(a), e))
       }
+
+      if (!rs.success)
+        onFailure()
 
       i += step
     }
