@@ -666,7 +666,7 @@ object Gen {
   /** Apply a new, non-deterministic seed. */
   lazy val reseed: Gen[Unit] =
     Gen { ctx =>
-      val r = new java.util.Random
+      val r = new java.util.SplittableRandom()
       ctx setSeed r.nextLong()
     }
 
