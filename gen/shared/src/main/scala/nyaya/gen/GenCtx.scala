@@ -33,6 +33,11 @@ final class GenCtx(initialRnd: SplittableRandom, _genSize: GenSize, val thread: 
     incSampleNumber()
     a
   }
+  def sample2[A](g: Gen2[A]): Shrinkable[A] = {
+    val a = g run this
+    incSampleNumber()
+    a
+  }
 
   def incSampleNumber(): Unit =
     sampleNumber = SampleNumber(sampleNumber.value + 1)

@@ -11,6 +11,11 @@ object GenBM {
     () => g.withSeed(0).samples(gs).take(sampleSize).toList
   }
 
+  def bm2[A](g: Gen2[A], genSize: Int = 50, sampleSize: Int = 100): () => List[A] = {
+    val gs = GenSize(genSize)
+    () => g.withSeed(0).samples(gs).take(sampleSize).map(_.value).toList
+  }
+
   val intSet = (1 to 200 by 3).toSet
   val intSetG = Gen pure intSet
 
@@ -78,4 +83,7 @@ class GenBM {
 
   val vectorBM = bm(Gen.int.vector)
   @Benchmark def vector = vectorBM()
+
+  val vectorBM2 = bm2(Gen2.int.vector)
+  @Benchmark def vector2 = vectorBM2()
 }

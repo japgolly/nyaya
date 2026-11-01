@@ -124,6 +124,7 @@ object NyayaBuild {
         Dep.microlibsRecursion.value,
         Dep.monocleCore.value,
         Dep.alleyCats.value % Test,
+        Dep.microlibsTestUtil.value % Test
       ),
     )
 
