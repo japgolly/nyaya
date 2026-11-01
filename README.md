@@ -23,7 +23,7 @@ import nyaya.gen._
 scala> val g = Gen.int mapTo Gen.boolean.option
 g: nyaya.gen.Gen[Map[Int,Option[Boolean]]] = Gen(<function1>)
 
-scala> g.samples().take(1).foreach(println)
+scala> g.sample()
 Map(609117252 -> None, -339 -> Some(true), 1684851879 -> Some(false), 78379 -> None)
 ```
 
@@ -40,7 +40,7 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-prop" % nyayaVer
 // Random data generation.
 libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen" % nyayaVer
 
-// Random JSON generation
+// Random JSON generation (with Circe).
 libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-gen-circe" % nyayaVer
 
 // Property testing with random data.
@@ -52,8 +52,8 @@ libraryDependencies += "com.github.japgolly.nyaya" %%% "nyaya-test" % nyayaVer %
 
 #### Doc
 
-* [Features in more detail](doc/FEATURES.md).
-* [Changelogs](doc/changelog/).
+* [Features in more detail](doc/FEATURES.md)
+* [Changelogs](doc/changelog/)
 
 <br>
 
